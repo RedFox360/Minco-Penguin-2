@@ -1,0 +1,8 @@
+.DS_Store
+/.dir-locals.el
+node_modules
+.env
+.eslintrc.json
+testing.ts
+private
+.yarn

@@ -1,0 +1,15 @@
+{
+	"compilerOptions": {
+		"esModuleInterop": true,
+		"moduleResolution": "node",
+		"resolveJsonModule": true,
+		"target": "ESNext",
+		"module": "ESNext",
+		"allowSyntheticDefaultImports": true,
+		"outDir": "compiled"
+	},
+	"exclude": [
+		"node_modules",
+		"private/archive"
+	]
+}
