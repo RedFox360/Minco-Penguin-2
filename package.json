@@ -1,0 +1,11 @@
+{
+  "name": "bs-poker-bot",
+  "version": "1.0.0",
+  "description": "Discord BS poker bot",
+  "main": "main.ts",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "ts-node --esm ./src/main.ts"
+  }
+}
