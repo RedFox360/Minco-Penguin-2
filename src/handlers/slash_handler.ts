@@ -5,6 +5,7 @@ import {
 	RESTPostAPIChatInputApplicationCommandsJSONBody,
 	RESTPostAPIContextMenuApplicationCommandsJSONBody,
 	Guild,
+	Snowflake,
 } from "discord.js";
 import { readdirSync } from "fs";
 import chalk from "chalk";
@@ -16,11 +17,10 @@ export default async function slashHandler(
 	inDev = false,
 	updateCommands = false
 ) {
-	const mincoPenguinServer = (await client.guilds.fetch(
-		process.env.TEST_SERVER_ID as string
-	)) as Guild;
-	const slashFiles = readdirSync(`./src/slash_commands`).filter(
-		file => file.endsWith(".ts")
+	const mincoPenguinServerId = process.env.TEST_SERVER_ID as Snowflake;
+	const hchId = process.env.HCH_ID as Snowflake;
+	const slashFiles = readdirSync(`./src/slash_commands`).filter(file =>
+		file.endsWith(".ts")
 	);
 	const commandPromises: Array<
 		Promise<{ default: SlashCommand | UserContextMenu }>
@@ -32,33 +32,22 @@ export default async function slashHandler(
 	slashFiles.forEach(fileName => {
 		commandPromises.push(import(`../slash_commands/${fileName}`));
 	});
-	(await Promise.all(commandPromises)).forEach(
-		({ default: command }) => {
-			const commandData = command.builder.toJSON();
-			client["commands"].set(commandData.name, command);
-			if (updateCommands)
-				console.log(
-					`${commandData.name} | dmp: ${commandData.default_member_permissions}`
-				);
-			data.push(commandData);
-		}
-	);
+	(await Promise.all(commandPromises)).forEach(({ default: command }) => {
+		const commandData = command.builder.toJSON();
+		client["commands"].set(commandData.name, command);
+		console.log(
+			`${chalk.blue(commandData.name)} | dmp: ${
+				commandData.default_member_permissions
+			}`
+		);
+		if (updateCommands) data.push(commandData);
+	});
 	console.log(
 		`${chalk.green("commands set")} || command count: ${data.length}`
 	);
-	if (inDev) {
-		await rest.put(
-			Routes.applicationGuildCommands(
-				client.user.id,
-				mincoPenguinServer.id
-			),
-			{
-				body: data,
-			}
-		);
-	} else {
-		await rest.put(Routes.applicationCommands(client.user.id), {
-			body: data,
-		});
-	}
+	if (!updateCommands) return;
+	console.log(chalk.yellow("Updating commands..."));
+	await rest.put(Routes.applicationCommands(client.user.id), {
+		body: data,
+	});
 }

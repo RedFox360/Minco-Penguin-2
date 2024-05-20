@@ -6,7 +6,9 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "ts-node --esm ./src/main.ts"
+    "dev": "ts-node --esm ./src/main.ts",
+    "dev-update": "ts-node --esm ./src/main.ts --update",
+    "start": "ts-node --esm ./src/main.ts --prod"
   },
   "dependencies": {
     "chalk": "^5.3.0",
