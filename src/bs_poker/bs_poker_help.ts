@@ -29,7 +29,7 @@ Once a player reaches a certain amount of cards (specified by the host), they ar
 1. **Double Pair** e.g. \`Ace Pair King Pair\` - There exist two Aces and two Kings in the deck.
 1. **Triple Pair** e.g. \`Ace Pair King Pair Queen Pair\` - There exist two Aces, two Kings, and two Queens in the deck.
 1. **Triple** e.g. \`Triple Ace\` - There exist three Aces in the deck.
-1. **Straight** e.g. \`Queen High Straight\` - A straight refers to 5 cards in a sequence. Since the Queen is the highest card, the straight includes Queen, Jack, 10, 9, and 8.
+1. **Straight** e.g. \`Queen High Straight\` - A straight refers to 5 cards in a sequence. Since the Queen is the highest card, the straight includes Queen, Jack, 10, 9, and 8. Note that if a straight has a high card of 5, 4, 3, or 2, the cards in the straight will "wrap around". e.g. \`3 High Straight\` includes 3, 2, Ace, King, and Queen.
 1. **Flush** e.g. \`Queen High Hearts Flush\` - A flush refers to 5 cards of the same suit. The Queen is called as the highest card in this flush. Therefore, there must be a Queen:hearts: in the deck, and 4 other hearts that are lower than a Queen. Note that for flushes (and double flushes), it is better to have a *lower valued card* as the highest card, because it restricts the possibilities more.
 1. **Double Flush** e.g. \`Queen High Hearts Flush\` \`King Hearts Flush\` - There exist two flushes *of 4 cards each* in the deck.
 1. **Full House** e.g. \`Ace Triple 8 Pair\` - There exist three Aces and two 8s in the deck.

@@ -44,7 +44,7 @@ client.on("ready", async readyClient => {
 		)} servers!`
 	);
 	setInterval(() => {
-		readyClient.user.setActivity(`${readyClient.guilds.cache.size} servers`, {
+		readyClient.user.setActivity(`/bs_poker`, {
 			type: ActivityType.Listening,
 		});
 	});

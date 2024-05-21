@@ -81,19 +81,40 @@ export default async function run(
 	);
 
 	const startTime = Date.now() + collectorTime;
+	const createEmbed = (gameStarted = false) =>
+		new EmbedBuilder()
+			.setTitle(gameStarted ? "BS Poker Game Starting" : "BS Poker")
+			.setDescription(
+				`Welcome to a game of BS Poker!
+Current players: ${players.map(player => `<@${player}>`).join(", ")}` +
+					(gameStarted
+						? ""
+						: `\n${playerLimit - players.length} more players can join.${
+								players.length >= 2
+									? ""
+									: " Minimum 2 players required to start the game."
+						  }
+
+<@${
+								interaction.user.id
+						  }> is the host of the game and can abort or start it immediately.
+Otherwise, the game will start in ${time(
+								Math.floor(startTime / 1000),
+								TimestampStyles.RelativeTime
+						  )}`)
+			)
+			.addFields({
+				name: "Options",
+				value: `Cards to get out: ${cardsToOut}\nJokers in Deck: ${jokerCount}\nInsurance Cards in Deck: ${insuranceCount}\nCommon Cards: ${
+					commonCards === -1 ? "Median" : commonCards
+				}`,
+			})
+			.setTimestamp()
+			.setColor(gameStarted ? 0x58d68d : 0x7289da)
+			.setFooter({ text: interaction.guild.name });
 
 	const msg = await interaction.reply({
-		embeds: [
-			createEmbed(
-				interaction,
-				playerLimit,
-				players,
-				startTime,
-				cardsToOut,
-				jokerCount,
-				insuranceCount
-			),
-		],
+		embeds: [createEmbed()],
 		components: [row1, row2],
 	});
 
@@ -121,17 +142,7 @@ export default async function run(
 				startButton.setDisabled(false);
 			}
 			await buttonInteraction.update({
-				embeds: [
-					createEmbed(
-						interaction,
-						playerLimit,
-						players,
-						startTime,
-						cardsToOut,
-						jokerCount,
-						insuranceCount
-					),
-				],
+				embeds: [createEmbed()],
 				components: [row1, row2],
 			});
 		}
@@ -151,17 +162,7 @@ export default async function run(
 				startButton.setDisabled(true);
 			}
 			await buttonInteraction.update({
-				embeds: [
-					createEmbed(
-						interaction,
-						playerLimit,
-						players,
-						startTime,
-						cardsToOut,
-						jokerCount,
-						insuranceCount
-					),
-				],
+				embeds: [createEmbed()],
 				components: [row1, row2],
 			});
 		}
@@ -190,18 +191,7 @@ export default async function run(
 				return;
 			}
 			await buttonInteraction.update({
-				embeds: [
-					createEmbed(
-						interaction,
-						playerLimit,
-						players,
-						startTime,
-						cardsToOut,
-						jokerCount,
-						insuranceCount,
-						true
-					),
-				],
+				embeds: [createEmbed(true)],
 				components: [],
 			});
 			collector.stop();
@@ -228,33 +218,30 @@ export default async function run(
 			return;
 		}
 		await msg.edit({
-			embeds: [
-				createEmbed(
-					interaction,
-					playerLimit,
-					players,
-					startTime,
-					cardsToOut,
-					jokerCount,
-					insuranceCount,
-					true
-				),
-			],
+			embeds: [createEmbed(true)],
 			components: [],
 		});
 		shuffleArrayInPlace(players);
-		await gameLogic(
+
+		gameLogic(
 			interaction,
 			players,
 			cardsToOut,
 			commonCards,
 			jokerCount,
 			insuranceCount
-		);
-		channelsWithActiveGames.splice(
-			channelsWithActiveGames.indexOf(interaction.channelId),
-			1
-		);
+		)
+			.catch(() => {
+				interaction.channel.send(
+					"Sorry, but an unknown error occured while running the game and the game has aborted."
+				);
+			})
+			.finally(() => {
+				channelsWithActiveGames.splice(
+					channelsWithActiveGames.indexOf(interaction.channelId),
+					1
+				);
+			});
 	});
 }
 
@@ -263,44 +250,4 @@ function shuffleArrayInPlace(arr: any[]) {
 		const j = Math.floor(Math.random() * (i + 1));
 		[arr[i], arr[j]] = [arr[j], arr[i]];
 	}
-}
-
-function createEmbed(
-	interaction: ChatInputCommandInteraction<"cached">,
-	playerLimit: number,
-	players: string[],
-	startTime: number,
-	cardsToOut: number,
-	jokerCount: number,
-	insuranceCount: number,
-	gameStarted = false
-) {
-	return new EmbedBuilder()
-		.setTitle(gameStarted ? "BS Poker Game Starting" : "BS Poker")
-		.setDescription(
-			`Welcome to a game of BS Poker!
-Current players: ${players.map(player => `<@${player}>`).join(", ")}` +
-				(gameStarted
-					? ""
-					: `\n${playerLimit - players.length} more players can join.${
-							players.length >= 2
-								? ""
-								: " Minimum 2 players required to start the game."
-					  }
-
-<@${
-							interaction.user.id
-					  }> is the host of the game and can abort or start it immediately.
-Otherwise, the game will start in ${time(
-							Math.floor(startTime / 1000),
-							TimestampStyles.RelativeTime
-					  )}`)
-		)
-		.addFields({
-			name: "Options",
-			value: `Cards to get out: ${cardsToOut}\nJokers in Deck: ${jokerCount}\nInsurance Cards in Deck: ${insuranceCount}`,
-		})
-		.setTimestamp()
-		.setColor(gameStarted ? 0x58d68d : 0x7289da)
-		.setFooter({ text: interaction.guild.name });
 }

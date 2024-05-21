@@ -64,10 +64,10 @@ function suitToEmoji(suit: string) {
 }
 
 function valueToSymbol(value: number, short = false) {
-	if (!value) return null;
+	if (value == null) return null;
 	switch (value) {
 		case 0:
-			return "Joker";
+			return short ? "Joker" : "X";
 		case 11:
 			return short ? "J" : "Jack";
 		case 12:
@@ -77,7 +77,7 @@ function valueToSymbol(value: number, short = false) {
 		case 14:
 			return short ? "A" : "Ace";
 		case 15:
-			return "Insurance";
+			return short ? "Insurance" : "I";
 		default:
 			return value.toString();
 	}
@@ -119,7 +119,7 @@ export async function gameLogic(
 		if (round > 0 && playerHands.size > 0) {
 			// Print everyone's hands
 			const handsList = playerHands
-				.map((hand, player) => `<@${player}>: **${formatDeck(hand)}**`)
+				.map((hand, player) => `<@${player}>: **${formatDeck(hand, true)}**`)
 				.join("\n");
 
 			interaction.channel
@@ -131,7 +131,7 @@ export async function gameLogic(
 								`Common Cards: ${
 									commonCards.length === 0
 										? "None"
-										: `**${formatDeck(commonCards)}**`
+										: `**${formatDeck(commonCards, true)}**`
 								}\n${handsList}`
 							)
 							.setColor(0x7289da),
@@ -412,7 +412,7 @@ async function handlePlayerTurns(
 		}
 		if (message.author.id !== currentPlayer) return;
 		const call = parseCall(message.content);
-		if (!call || !call.call || (call.call as any) === -1) {
+		if (!call || call.call == undefined || (call.call as any) === -1) {
 			// Call could not be parsed
 			return;
 		}
@@ -793,7 +793,6 @@ function parseCall(call: string): Call | null {
 				call: HandRank.StraightFlush,
 			};
 		}
-
 		return {
 			high: { value: high, suit: "n" },
 			call: RNIKeys.find(key => RNI[key] === callIndex),
@@ -813,6 +812,7 @@ function symbolToValue(textGiven: string): Value | null {
 	if (text === "j" || text === "jack") return 11;
 	if (text === "a" || text === "ace") return 14;
 	const value = parseInt(text);
+	if (value < 0 || value === 1 || value > 15) return null;
 	if (Number.isNaN(value)) return null;
 	if (<Value>value === undefined) return null;
 	return value as Value;
@@ -841,6 +841,14 @@ function isHigherArray(arr1: number[], arr2: number[]) {
 	return true;
 }
 
+function isLowerArray(arr1: number[], arr2: number[]) {
+	for (let i = 0; i < arr1.length; i++) {
+		if (arr1[i] > arr2[i]) return false;
+	}
+	if (arr1.every((x, i) => x === arr2[i])) return false;
+	return true;
+}
+
 // returns whether call1 is a higher call than call2
 function isHigher(call1: Call, call2: Call) {
 	const call_call1 = call1.call;
@@ -860,7 +868,7 @@ function isHigher(call1: Call, call2: Call) {
 	if (call_call1 === HandRank.DoubleFlush) {
 		const arr1 = (call1.high as [Card, Card]).map(card => card.value).sort();
 		const arr2 = (call2.high as [Card, Card]).map(card => card.value).sort();
-		return isHigherArray(arr1, arr2);
+		return isLowerArray(arr1, arr2);
 	}
 	const call1_high = (call1.high as Card).value;
 	const call2_high = (call2.high as Card).value;
