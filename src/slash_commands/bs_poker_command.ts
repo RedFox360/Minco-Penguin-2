@@ -27,7 +27,9 @@ const bsPokerCommand = new SlashCommand()
 			.addIntegerOption(option =>
 				option
 					.setName("player_limit")
-					.setDescription("Player limit for the game (Default: 10)")
+					.setDescription(
+						"Player limit for the game (Default: maximum possible)"
+					)
 					.setRequired(false)
 					.setMinValue(2)
 					.setMaxValue(15)

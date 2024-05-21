@@ -17,8 +17,6 @@ export default async function slashHandler(
 	inDev = false,
 	updateCommands = false
 ) {
-	const mincoPenguinServerId = process.env.TEST_SERVER_ID as Snowflake;
-	const hchId = process.env.HCH_ID as Snowflake;
 	const slashFiles = readdirSync(`./src/slash_commands`).filter(file =>
 		file.endsWith(".ts")
 	);

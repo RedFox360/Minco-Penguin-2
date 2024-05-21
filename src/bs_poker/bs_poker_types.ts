@@ -1,6 +1,6 @@
 import { Collection, Snowflake } from "discord.js";
 
-export type Suit = "H" | "D" | "C" | "S" | "j" | "i";
+export type Suit = "H" | "D" | "C" | "S" | "j" | "i" | "n";
 export type Value =
 	| 0
 	| 2
@@ -18,46 +18,67 @@ export type Value =
 	| 14
 	| 15;
 
-export type Deck = {
+export type Card = {
 	suit: Suit;
 	value: Value;
-}[];
+};
+
+export type Deck = Card[];
 
 export enum HandRank {
 	High = 0,
 	Pair = 1,
 	DoublePair = 2,
-	Triple = 3,
-	Straight = 4,
-	Flush = 5,
-	FlushHearts = 5,
-	FlushDiamonds = 6,
-	FlushClubs = 7,
-	FlushSpades = 8,
-	FullHouse = 9,
-	Quad = 10,
-	StraightFlush = 11,
-	StraightFlushHearts = 11,
-	StraightFlushDiamonds = 12,
-	StraightFlushClubs = 13,
-	StraightFlushSpades = 14,
+	TriplePair = 3,
+	Triple = 4,
+	Straight = 5,
+	Flush = 6,
+	FlushMax = Flush + 3, // 9
+	DoubleFlush = 10,
+	FullHouse = 11,
+	Quad = 12,
+	DoubleTriple = 13,
+	StraightFlush = 14,
+	StraightFlushMax = StraightFlush + 3, // 17
 }
+
+export const RNI = {
+	[HandRank.High]: 0,
+	[HandRank.Pair]: 1,
+	[HandRank.Triple]: 2,
+	[HandRank.Straight]: 3,
+	[HandRank.Flush]: 4,
+	[HandRank.Flush + 1]: 5,
+	[HandRank.Flush + 2]: 6,
+	[HandRank.FlushMax]: 7,
+	[HandRank.Quad]: 8,
+	[HandRank.StraightFlush]: 9,
+	[HandRank.StraightFlush + 1]: 10,
+	[HandRank.StraightFlush + 2]: 11,
+	[HandRank.StraightFlushMax]: 12,
+};
+
+export const RNIKeys = Object.keys(RNI).map(n => parseInt(n));
 
 export type Call =
 	| {
-			high: Value;
+			high: Card;
 			call: HandRank;
 	  }
-	| { high: [Value, Value]; call: HandRank.DoublePair | HandRank.FullHouse };
+	| {
+			high: [Value, Value];
+			call: HandRank.DoublePair | HandRank.FullHouse | HandRank.DoubleTriple;
+	  }
+	| { high: [Value, Value, Value]; call: HandRank.TriplePair }
+	| { high: [Card, Card]; call: HandRank.DoubleFlush };
 
 export type PlayerHands = Collection<Snowflake, Deck>;
 
 export const names = [
 	["high", "high card", "h"],
 	["pair", "double", "p", "d"],
-	["double pair", "two pair", "dp", "tp"],
 	["triple", "t"],
-	["straight", "s", "high straight"],
+	["high straight", "straight", "s"],
 	[
 		"high flush:hearts:",
 		"flush:hearts:",
@@ -98,7 +119,6 @@ export const names = [
 		"fs",
 		"sf",
 	],
-	["full house", "house"],
 	["quad", "q"],
 	[
 		"high straight flush:hearts:",
@@ -145,4 +165,18 @@ export const names = [
 export type PlayerCall = {
 	call: Call;
 	player: Snowflake;
+};
+
+export const emoji = {
+	hearts: ":hearts:",
+	diamonds: ":diamonds:",
+	clubs: "<:clubst:1241960807005425768>",
+	spades: "<:spadest:1241960808305659975>",
+};
+
+export const emojiRaw = {
+	hearts: "❤️",
+	diamonds: "♦️",
+	clubs: "1241960807005425768",
+	spades: "1241960808305659975",
 };

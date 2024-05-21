@@ -20,6 +20,10 @@ import {
 	type Call,
 	names,
 	PlayerCall,
+	Card,
+	RNI,
+	RNIKeys,
+	emoji,
 } from "./bs_poker_types.js";
 import { promisify } from "util";
 const allowedTime = 40_000;
@@ -47,19 +51,20 @@ function createDeck(jokerCount: number, insuranceCount: number) {
 function suitToEmoji(suit: string) {
 	switch (suit) {
 		case "H":
-			return ":hearts:";
+			return emoji.hearts;
 		case "D":
-			return ":diamonds:";
+			return emoji.diamonds;
 		case "C":
-			return "<:clubst:1241960807005425768>";
+			return emoji.clubs;
 		case "S":
-			return "<:spadest:1241960808305659975>";
+			return emoji.spades;
 		default:
 			return "";
 	}
 }
 
 function valueToSymbol(value: number, short = false) {
+	if (!value) return null;
 	switch (value) {
 		case 0:
 			return "Joker";
@@ -226,6 +231,7 @@ export async function gameLogic(
 			cardsToOut,
 			playerHands,
 			playerCardsEntitled, // Will be updated in place.
+			insuranceCount,
 			commonCards,
 			startingIndex
 		);
@@ -258,6 +264,7 @@ async function handlePlayerTurns(
 	cardsToOut: number,
 	playerHands: Collection<Snowflake, Deck>,
 	playerCardsEntitled: Collection<Snowflake, number>,
+	insuranceCount: number,
 	commonCards: Deck = [],
 	i = 0,
 	currentCall: PlayerCall | null = null
@@ -405,7 +412,7 @@ async function handlePlayerTurns(
 		}
 		if (message.author.id !== currentPlayer) return;
 		const call = parseCall(message.content);
-		if (!call || (call.call as any) === -1) {
+		if (!call || !call.call || (call.call as any) === -1) {
 			// Call could not be parsed
 			return;
 		}
@@ -414,6 +421,59 @@ async function handlePlayerTurns(
 				message.reply({
 					content: `Your call is not higher than the current call (${formatCall(
 						currentCall.call
+					)}). Please try again.`,
+				});
+				return;
+			}
+		}
+		if (
+			call.call === HandRank.DoublePair ||
+			call.call === HandRank.DoubleTriple
+		) {
+			const highCards = call.high as [Value, Value];
+			if (highCards[0] === highCards[1]) {
+				message.reply({
+					content: `Double pairs and triples must have different values (Your call: ${formatCall(
+						call
+					)}). Please try again.`,
+				});
+				return;
+			}
+		}
+		if (call.call === HandRank.TriplePair) {
+			const highCards = call.high as [Value, Value, Value];
+			if (
+				highCards[0] === highCards[1] ||
+				highCards[0] === highCards[2] ||
+				highCards[1] === highCards[2]
+			) {
+				message.reply({
+					content: `Triple pairs must have 3 unique values (Your call: ${formatCall(
+						call
+					)}). Please try again.`,
+				});
+				return;
+			}
+		}
+		if (call.call === HandRank.DoubleFlush) {
+			const highCards = call.high as [Card, Card];
+			if (highCards[0].suit === highCards[1].suit) {
+				message.reply({
+					content: `Double flushes must have different suits (Your call: ${formatCall(
+						call
+					)}). Please try again.`,
+				});
+				return;
+			}
+
+			if (
+				insuranceCount < 2 &&
+				highCards[0].value === highCards[1].value &&
+				highCards[0].value === 15
+			) {
+				message.reply({
+					content: `There are not enough insurance cards in the deck for a double insurance call (Your call: ${formatCall(
+						call
 					)}). Please try again.`,
 				});
 				return;
@@ -462,6 +522,7 @@ async function handlePlayerTurns(
 		cardsToOut,
 		playerHands,
 		playerCardsEntitled,
+		insuranceCount,
 		commonCards,
 		i,
 		currentCall
@@ -510,6 +571,10 @@ const royalFlushes = [
 		"srf",
 	],
 ];
+function invalidNumber(x: any) {
+	return Number.isNaN(x) || x == null;
+}
+
 function parseCall(call: string): Call | null {
 	try {
 		call = call.toLowerCase().trim();
@@ -517,46 +582,90 @@ function parseCall(call: string): Call | null {
 		if (royalIndex !== -1) {
 			switch (royalIndex) {
 				case 0:
-					return { high: 14, call: HandRank.StraightFlushHearts };
+					return {
+						high: { value: 14, suit: "H" },
+						call: HandRank.StraightFlush,
+					};
 				case 1:
-					return { high: 14, call: HandRank.StraightFlushDiamonds };
+					return {
+						high: { value: 14, suit: "D" },
+						call: HandRank.StraightFlush,
+					};
 				case 2:
-					return { high: 14, call: HandRank.StraightFlushClubs };
+					return {
+						high: { value: 14, suit: "C" },
+						call: HandRank.StraightFlush,
+					};
 				case 3:
-					return { high: 14, call: HandRank.StraightFlushSpades };
+					return {
+						high: { value: 14, suit: "S" },
+						call: HandRank.StraightFlush,
+					};
 			}
-		}
-		if (names[HandRank.DoublePair].filter(x => call.includes(x)).length > 0) {
-			return null;
 		}
 		const split = call.split(" ");
 
-		if (
-			split.indexOf("pair") !== split.lastIndexOf("pair") ||
-			split.indexOf("p") !== split.lastIndexOf("p")
-		) {
+		const pairAppearances = split.filter(x =>
+			names[RNI[HandRank.Pair]].includes(x)
+		).length;
+
+		if (pairAppearances === 2) {
 			// double pair case
 			// double pairs are asked like this: 2 pair 4 pair
 			const high1 = symbolToValue(split[0]);
-			if (high1 === null) return null;
+			if (invalidNumber(high1)) return null;
 			const high2 = symbolToValue(split[2]);
-			if (high2 === null) return null;
+			if (invalidNumber(high2)) return null;
 			return {
 				high: [high1, high2],
 				call: HandRank.DoublePair,
 			};
 		}
+
+		if (pairAppearances === 3) {
+			// triple pair case
+			// triple pairs are asked like this: 2 pair 4 pair 6 pair
+			const high1 = symbolToValue(split[0]);
+			if (invalidNumber(high1)) return null;
+			const high2 = symbolToValue(split[2]);
+			if (invalidNumber(high2)) return null;
+			const high3 = symbolToValue(split[4]);
+			if (invalidNumber(high3)) return null;
+			return {
+				high: [high1, high2, high3],
+				call: HandRank.TriplePair,
+			};
+		}
+
+		const tripleAppearances = split.filter(x =>
+			names[RNI[HandRank.Triple]].includes(x)
+		).length;
+		if (tripleAppearances === 2) {
+			// double triple case
+			// double triples are asked like this: 2 triple 4 triple
+			const high1 = symbolToValue(split[0]);
+			if (invalidNumber(high1)) return null;
+			const high2 = symbolToValue(split[2]);
+			if (invalidNumber(high2)) return null;
+			return {
+				high: [high1, high2],
+				call: HandRank.DoubleTriple,
+			};
+		}
+
 		// Full Houses
 		const tripleIndex = split.findIndex(x =>
-			names[HandRank.Triple].includes(x)
+			names[RNI[HandRank.Triple]].includes(x)
 		);
-		const pairIndex = split.findIndex(x => names[HandRank.Pair].includes(x));
+		const pairIndex = split.findIndex(x =>
+			names[RNI[HandRank.Pair]].includes(x)
+		);
 		if (tripleIndex !== -1 && pairIndex !== -1) {
 			const indices = tripleIndex < pairIndex ? [0, 2] : [2, 0];
 			const high1 = symbolToValue(split[indices[0]]);
-			if (high1 === null) return null;
+			if (invalidNumber(high1)) return null;
 			const high2 = symbolToValue(split[indices[1]]);
-			if (high2 === null) return null;
+			if (invalidNumber(high2)) return null;
 			return {
 				high: [high1, high2],
 				call: HandRank.FullHouse,
@@ -568,9 +677,126 @@ function parseCall(call: string): Call | null {
 		const callName = split.slice(1).join(" ");
 		const callIndex = names.findIndex(name => name.includes(callName));
 
+		const call1 = split.findIndex(x => symbolToValue(x) !== null);
+		const call2 = split.findLastIndex(x => symbolToValue(x) !== null);
+		const c1c2good = call1 !== -1 && call2 !== -1 && call1 !== call2;
+		// Split the call into 4 sections
+		// Example call: A flush hearts K flush clubs -> ["A", "flush hearts", "K", "flush clubs"]
+		// the indexes of the A and K are given in call1 and call2
+		const newSplit = c1c2good
+			? [
+					split
+						.slice(0, call1 + 1)
+						.join(" ")
+						.trim(),
+					split
+						.slice(call1 + 1, call2)
+						.join(" ")
+						.trim(),
+					split
+						.slice(call2, call2 + 1)
+						.join(" ")
+						.trim(),
+					split
+						.slice(call2 + 1)
+						.join(" ")
+						.trim(),
+			  ]
+			: null;
+		const has = (index: number, x: string) =>
+			names[index].some(y => x.startsWith(y));
+
+		const flushAppearances = newSplit
+			? newSplit
+					.map((x): Suit => {
+						if (has(RNI[HandRank.Flush], x)) return "H";
+						if (has(RNI[HandRank.Flush + 1], x)) return "D";
+						if (has(RNI[HandRank.Flush + 2], x)) return "C";
+						if (has(RNI[HandRank.Flush + 3], x)) return "S";
+						return null;
+					})
+					.filter(x => x !== null)
+			: null;
+		// Flushes
+		if (
+			(flushAppearances && flushAppearances.length > 0) ||
+			(callIndex >= RNI[HandRank.Flush] && callIndex <= RNI[HandRank.FlushMax])
+		) {
+			if (flushAppearances && flushAppearances.length === 2) {
+				// double flush case
+				// double flushes are asked like this: 2 flush 4 flush
+				const suit1 = flushAppearances[0];
+				const suit2 = flushAppearances[1];
+
+				const high1 = symbolToValue(newSplit[0]);
+				if (invalidNumber(high1)) return null;
+				const high2 = symbolToValue(newSplit[2]);
+				if (invalidNumber(high2)) return null;
+
+				return {
+					high: [
+						{ value: high1, suit: suit1 },
+						{ value: high2, suit: suit2 },
+					],
+					call: HandRank.DoubleFlush,
+				};
+			}
+
+			let suit: Suit;
+			switch (callIndex - RNI[HandRank.Flush]) {
+				case 0:
+					suit = "H";
+					break;
+				case 1:
+					suit = "D";
+					break;
+				case 2:
+					suit = "C";
+					break;
+				case 3:
+					suit = "S";
+					break;
+				default:
+					suit = "n";
+					break;
+			}
+			return {
+				high: { value: high, suit },
+				call: HandRank.Flush,
+			};
+		}
+		// Straight Flushes
+		if (
+			callIndex >= RNI[HandRank.StraightFlush] &&
+			callIndex <= RNI[HandRank.StraightFlushMax]
+		) {
+			let suit: Suit;
+			switch (callIndex - RNI[HandRank.StraightFlush]) {
+				case 0:
+					suit = "H";
+					break;
+				case 1:
+					suit = "D";
+					break;
+				case 2:
+					suit = "C";
+					break;
+				case 3:
+					suit = "S";
+					break;
+				default:
+					suit = "n";
+					break;
+			}
+			return {
+				high: { value: high, suit },
+				call: HandRank.StraightFlush,
+			};
+		}
+
 		return {
-			high: high,
-			call: callIndex,
+			high: { value: high, suit: "n" },
+			call: RNIKeys.find(key => RNI[key] === callIndex),
 		};
 	} catch (e) {
 		return null;
@@ -580,8 +806,8 @@ function parseCall(call: string): Call | null {
 // convert text to value, e.g. "2" -> 2, "Joker" -> 0, "K" or "King" -> 13
 function symbolToValue(textGiven: string): Value | null {
 	const text = textGiven.toLowerCase();
-	if (text === "joker") return 0;
-	if (text === "insurance") return 15;
+	if (text === "joker" || text === "x") return 0;
+	if (text === "insurance" || text === "i") return 15;
 	if (text === "k" || text === "king") return 13;
 	if (text === "q" || text === "queen") return 12;
 	if (text === "j" || text === "jack") return 11;
@@ -600,60 +826,61 @@ function capitalize(text: string) {
 		.join(" ");
 }
 function callNumberToName(call: HandRank) {
-	return capitalize(names[call][0]);
+	return capitalize(names[RNI[call]][0]);
+}
+
+// create a function that takes in 2 arrays of equal sizes
+// and returns whether the first array is "higher" than the second array
+// higher means that the elements of the first array are all greater than or equal to the elements of the second array
+// but if all the elements are equal, it is false
+function isHigherArray(arr1: number[], arr2: number[]) {
+	for (let i = 0; i < arr1.length; i++) {
+		if (arr1[i] < arr2[i]) return false;
+	}
+	if (arr1.every((x, i) => x === arr2[i])) return false;
+	return true;
 }
 
 // returns whether call1 is a higher call than call2
 function isHigher(call1: Call, call2: Call) {
-	const call_call1 = fixFlushes(call1.call);
-	const call_call2 = fixFlushes(call2.call);
+	const call_call1 = call1.call;
+	const call_call2 = call2.call;
 	if (call_call1 > call_call2) return true;
 	if (call_call1 < call_call2) return false;
-	if (call_call1 === HandRank.DoublePair || call_call1 === HandRank.FullHouse) {
-		const [high1_1, high1_2] = (call1.high as [Value, Value]).sort();
-		const [high2_1, high2_2] = (call2.high as [Value, Value]).sort();
-		if (high1_1 <= high2_1 && high1_2 <= high2_2) return false;
-		return high1_1 >= high2_1 && high1_2 >= high2_2;
-	}
-	if (call_call1 !== HandRank.Flush) return call1.high > call2.high;
-	return call1.high < call2.high;
-}
-
-function fixFlushes(d: number) {
 	if (
-		[
-			HandRank.FlushHearts,
-			HandRank.FlushDiamonds,
-			HandRank.FlushClubs,
-			HandRank.FlushSpades,
-		].includes(d)
+		call_call1 === HandRank.DoublePair ||
+		call_call1 === HandRank.FullHouse ||
+		call_call1 === HandRank.DoubleTriple ||
+		call_call1 === HandRank.TriplePair
 	) {
-		return HandRank.Flush;
+		const arr1 = (call1.high as Value[]).sort();
+		const arr2 = (call2.high as Value[]).sort();
+		return isHigherArray(arr1, arr2);
 	}
-	if (
-		[
-			HandRank.StraightFlushHearts,
-			HandRank.StraightFlushDiamonds,
-			HandRank.StraightFlushClubs,
-			HandRank.StraightFlushSpades,
-		].includes(d)
-	) {
-		return HandRank.StraightFlush;
+	if (call_call1 === HandRank.DoubleFlush) {
+		const arr1 = (call1.high as [Card, Card]).map(card => card.value).sort();
+		const arr2 = (call2.high as [Card, Card]).map(card => card.value).sort();
+		return isHigherArray(arr1, arr2);
 	}
-	return d;
+	const call1_high = (call1.high as Card).value;
+	const call2_high = (call2.high as Card).value;
+	if (call_call1 !== HandRank.Flush) return call1_high > call2_high;
+	return call1_high < call2_high;
 }
 
 function formatCall(call: Call) {
-	if (fixFlushes(call.call) === HandRank.StraightFlush && call.high === 14) {
-		switch (call.call) {
-			case HandRank.StraightFlushHearts:
-				return "Royal Flush:hearts:";
-			case HandRank.StraightFlushDiamonds:
-				return "Royal Flush:diamonds:";
-			case HandRank.StraightFlushClubs:
-				return "Royal Flush<:clubst:1241960807005425768>";
-			case HandRank.StraightFlushSpades:
-				return "Royal Flush<:spadest:1241960808305659975>";
+	if (call.call === HandRank.StraightFlush && call.high.value === 14) {
+		switch (call.high.suit) {
+			case "H":
+				return `Royal Flush${emoji.hearts}`;
+			case "D":
+				return `Royal Flush${emoji.diamonds}`;
+			case "C":
+				return `Royal Flush${emoji.clubs}`;
+			case "S":
+				return `Royal Flush${emoji.spades}`;
+			default:
+				return "Royal Flush (Unknown Suit)";
 		}
 	}
 	if (call.call === HandRank.DoublePair) {
@@ -666,23 +893,53 @@ function formatCall(call: Call) {
 			call.high[1]
 		)} Pair`;
 	}
-	return `${valueToSymbol(call.high as Value)} ${callNumberToName(call.call)}`;
+	if (call.call === HandRank.TriplePair) {
+		return `${valueToSymbol(call.high[0])} Pair ${valueToSymbol(
+			call.high[1]
+		)} Pair ${valueToSymbol(call.high[2])} Pair`;
+	}
+	if (call.call === HandRank.DoubleTriple) {
+		return `${valueToSymbol(call.high[0])} Triple ${valueToSymbol(
+			call.high[1]
+		)} Triple`;
+	}
+	if (call.call === HandRank.Flush) {
+		return `${valueToSymbol(call.high.value)} Flush${suitToEmoji(
+			call.high.suit
+		)}`;
+	}
+	if (call.call === HandRank.StraightFlush) {
+		return `${valueToSymbol(call.high.value)} Straight Flush${suitToEmoji(
+			call.high.suit
+		)}`;
+	}
+	if (call.call === HandRank.DoubleFlush) {
+		return `${valueToSymbol(
+			(call.high as [Card, Card])[0].value
+		)} Flush${suitToEmoji((call.high as [Card, Card])[0].suit)} ${valueToSymbol(
+			(call.high as [Card, Card])[1].value
+		)} Flush${suitToEmoji((call.high as [Card, Card])[1].suit)}`;
+	}
+
+	return `${valueToSymbol((call.high as Card).value)} ${callNumberToName(
+		call.call
+	)}`;
 }
 
 function callInDeck(call: Call, deck: Deck) {
 	if (call.call === HandRank.High)
-		return deck.some(card => card.value === call.high);
+		return deck.some(card => card.value === call.high.value);
 	if (call.call === HandRank.Pair)
-		return deck.filter(card => card.value === call.high).length >= 2;
+		return deck.filter(card => card.value === call.high.value).length >= 2;
 	if (call.call === HandRank.DoublePair)
 		return (
 			deck.filter(card => card.value === call.high[0]).length >= 2 &&
 			deck.filter(card => card.value === call.high[1]).length >= 2
 		);
 	if (call.call === HandRank.Triple)
-		return deck.filter(card => card.value === call.high).length >= 3;
+		return deck.filter(card => card.value === call.high.value).length >= 3;
 	if (call.call === HandRank.Straight) {
-		const straightCards = straightHighToCards(call.high);
+		const straightCards = straightHighToCards(call.high.value);
 		return straightCards.every(value =>
 			deck.some(card => card.value === value)
 		);
@@ -693,45 +950,46 @@ function callInDeck(call: Call, deck: Deck) {
 			deck.filter(card => card.value === call.high[1]).length >= 2
 		);
 	if (call.call === HandRank.Quad)
-		return deck.filter(card => card.value === call.high).length >= 4;
-	const callFixFlushes = fixFlushes(call.call);
-	if (callFixFlushes === HandRank.Flush) {
-		const suit =
-			call.call === HandRank.FlushHearts
-				? "H"
-				: call.call === HandRank.FlushDiamonds
-				? "D"
-				: call.call === HandRank.FlushClubs
-				? "C"
-				: "S";
-		if (call.high === 15) {
+		return deck.filter(card => card.value === call.high.value).length >= 4;
+	if (call.call === HandRank.Flush) {
+		if (call.high.value === 15) {
 			return (
 				deck.some(card => card.value === 15) &&
-				deck.filter(card => card.suit === suit || card.suit === "j").length >= 4
+				deck.filter(card => card.suit === call.high.suit || card.suit === "j")
+					.length >= 4
 			);
 		}
 		return (
 			deck.filter(
 				card =>
-					(card.suit === suit || card.suit === "j") &&
-					card.value <= (call.high as Value)
+					(card.suit === call.high.suit || card.suit === "j") &&
+					card.value <= call.high.value
 			).length >= 5
 		);
 	}
-	if (callFixFlushes === HandRank.StraightFlush) {
-		const suit =
-			call.call === HandRank.StraightFlushHearts
-				? "H"
-				: call.call === HandRank.StraightFlushDiamonds
-				? "D"
-				: call.call === HandRank.StraightFlushClubs
-				? "C"
-				: "S";
-		const straightCards = straightHighToCards(call.high as Value);
+	if (call.call === HandRank.DoubleFlush) {
+		return (call.high as [Card, Card]).every(card => {
+			if (card.value === 15) {
+				return (
+					deck.some(card => card.value === 15) &&
+					deck.filter(card => card.suit === card.suit || card.suit === "j")
+						.length >= 4
+				);
+			}
+			return (
+				deck.filter(
+					c => (c.suit === card.suit || c.suit === "j") && c.value <= card.value
+				).length >= 5
+			);
+		});
+	}
+	if (call.call === HandRank.StraightFlush) {
+		const straightCards = straightHighToCards(call.high.value);
 		return straightCards.every(value =>
 			deck.some(
 				card =>
-					card.value === value && card.suit === (value === 15 ? "i" : suit)
+					card.value === value &&
+					card.suit === (value === 15 ? "i" : call.high.suit)
 			)
 		);
 	}

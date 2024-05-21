@@ -25,24 +25,23 @@ export default async function run(
 	}
 
 	// Retrieving Options
-	const cardsToOut: number = (interaction.options as any).getInteger(
-		"cards_to_out"
-	);
-	const playerLimit: number =
-		(interaction.options as any).getInteger("player_limit") ?? 10;
+	const cardsToOut: number = interaction.options.getInteger("cards_to_out");
 	const commonCards: number =
-		(interaction.options as any).getInteger("common_cards") ?? -1;
-	const jokerCount: number =
-		(interaction.options as any).getInteger("joker_count") ?? 2;
+		interaction.options.getInteger("common_cards") ?? -1;
+	const jokerCount: number = interaction.options.getInteger("joker_count") ?? 2;
 	const insuranceCount: number =
-		(interaction.options as any).getInteger("insurance_count") ?? 1;
+		interaction.options.getInteger("insurance_count") ?? 1;
+	const deckSize = 52 + jokerCount + insuranceCount;
+	const playerLimit: number =
+		interaction.options.getInteger("player_limit") ??
+		Math.floor(deckSize / (cardsToOut - 1));
 	const players = [interaction.user.id];
 	channelsWithActiveGames.push(interaction.channelId);
 
-	if (cardsToOut * playerLimit > 52 + jokerCount + insuranceCount) {
+	if ((cardsToOut - 1) * playerLimit > deckSize) {
 		await interaction.reply({
 			content:
-				"The maximum number of cards to be dealt is more than the size of the deck.",
+				"The maximum number of cards to be dealt is greater than the size of the deck. Please alter the player limit.",
 			ephemeral: true,
 		});
 		return;
