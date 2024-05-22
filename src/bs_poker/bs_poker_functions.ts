@@ -1,52 +1,17 @@
+import { MessageCollector } from "discord.js";
 import {
-	ActionRowBuilder,
-	ButtonBuilder,
-	ButtonStyle,
-	ChatInputCommandInteraction,
-	Collection,
-	EmbedBuilder,
-	MessageCollector,
-	PermissionFlagsBits,
-	Snowflake,
-	TimestampStyles,
-	time,
-} from "discord.js";
-import {
-	type PlayerHands,
 	type Suit,
 	type Value,
 	type Deck,
 	HandRank,
 	type Call,
 	names,
-	PlayerCall,
 	Card,
 	RNI,
 	RNIKeys,
 	emoji,
+	FlushCall,
 } from "./bs_poker_types.js";
-import { promisify } from "util";
-const allowedTime = 40_000;
-const timeBetweenRounds = 8_000;
-const gameMap = new Collection<Snowflake, number>();
-
-function createDeck(jokerCount: number, insuranceCount: number) {
-	const suits: Suit[] = ["H", "D", "C", "S"];
-	const values: Value[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
-	const deck: Deck = [];
-	for (let i = 0; i < jokerCount; i++) {
-		deck.push({ suit: "j", value: 0 });
-	}
-	for (const suit of suits) {
-		for (const value of values) {
-			deck.push({ suit, value });
-		}
-	}
-	for (let i = 0; i < insuranceCount; i++) {
-		deck.push({ suit: "i", value: 15 });
-	}
-	return deck;
-}
 
 function suitToEmoji(suit: string) {
 	switch (suit) {
@@ -67,7 +32,7 @@ function valueToSymbol(value: number, short = false) {
 	if (value == null) return null;
 	switch (value) {
 		case 0:
-			return short ? "Joker" : "X";
+			return short ? ":black_joker:" : "Joker";
 		case 11:
 			return short ? "J" : "Jack";
 		case 12:
@@ -77,7 +42,7 @@ function valueToSymbol(value: number, short = false) {
 		case 14:
 			return short ? "A" : "Ace";
 		case 15:
-			return short ? "Insurance" : "I";
+			return short ? ":information_source:" : "Insurance";
 		default:
 			return value.toString();
 	}
@@ -89,168 +54,11 @@ function deckToStringArray(deck: Deck, short = false) {
 	});
 }
 
-function formatDeck(deck: Deck, short = false) {
+export function formatDeck(deck: Deck, short = false) {
 	return deckToStringArray(deck, short).join("  ");
 }
 
-export async function gameLogic(
-	interaction: ChatInputCommandInteraction<"cached">,
-	players: string[],
-	cardsToOut: number,
-	commonCardsAmount: number,
-	jokerCount: number,
-	insuranceCount: number
-) {
-	gameMap.set(interaction.id, 0);
-	let deck: Deck;
-	let round = 0;
-	let playerCardsEntitled = new Collection<Snowflake, number>();
-	players.forEach(p => playerCardsEntitled.set(p, 1));
-	const playerHands: PlayerHands = new Collection<Snowflake, Deck>();
-	let commonCards: Deck = [];
-
-	while (players.length > 1) {
-		deck = createDeck(jokerCount, insuranceCount);
-		let startingIndex = gameMap.get(interaction.id) ?? 0;
-		if (startingIndex === -2) {
-			return;
-		}
-		const roundBeginTime = Date.now() + timeBetweenRounds;
-		if (round > 0 && playerHands.size > 0) {
-			// Print everyone's hands
-			const handsList = playerHands
-				.map((hand, player) => `<@${player}>: **${formatDeck(hand, true)}**`)
-				.join("\n");
-
-			interaction.channel
-				.send({
-					embeds: [
-						new EmbedBuilder()
-							.setTitle("Hands from Last Round")
-							.setDescription(
-								`Common Cards: ${
-									commonCards.length === 0
-										? "None"
-										: `**${formatDeck(commonCards, true)}**`
-								}\n${handsList}`
-							)
-							.setColor(0x7289da),
-					],
-				})
-				.then(msg => {
-					setTimeout(() => {
-						msg.edit({ content: "" });
-					}, timeBetweenRounds);
-				});
-		}
-		players.forEach(p => {
-			const entitled = playerCardsEntitled.get(p);
-			if (entitled >= cardsToOut || Number.isNaN(entitled) || !entitled) {
-				interaction.channel.send(`<@${p}> is out of the game.`);
-				playerCardsEntitled.delete(p);
-				players = players.filter(player => player !== p);
-			}
-		});
-		if (players.length <= 1) {
-			break;
-		}
-		if (startingIndex === -1 || startingIndex >= players.length) {
-			startingIndex = 0;
-		}
-		const embedCreator = (x: string) =>
-			new EmbedBuilder()
-				.setTitle("New Round")
-				.setDescription(
-					`Common Cards: ${x}\n<@${players[startingIndex]}> will start the round.`
-				)
-				.addFields({
-					name: "Players",
-					value: `${players
-						.map(p => `<@${p}>: ${playerCardsEntitled.get(p)} cards`)
-						.join("\n")}`,
-				})
-				.setColor(0x58d68d);
-		const newRoundMsg = await interaction.channel.send({
-			embeds: [
-				embedCreator(
-					round > 0
-						? `will be shown ${time(
-								Math.floor(roundBeginTime / 1000),
-								TimestampStyles.RelativeTime
-						  )}`
-						: ""
-				),
-			],
-		});
-		playerHands.clear();
-		commonCards = [];
-		// remove all players from playerHands and playerCardsEntitled whose amount of cards is greater than or equal to the cardsToOut
-		if (players.length <= 1) {
-			break;
-		}
-
-		players.forEach(async p => {
-			const hand: Deck = [];
-			for (let i = 0; i < playerCardsEntitled.get(p); i++) {
-				const cardIndex = Math.floor(Math.random() * deck.length);
-				hand.push(deck[cardIndex]);
-				deck.splice(cardIndex, 1);
-			}
-			playerHands.set(p, hand);
-			// For debugging: Prints the hand of each player
-			// await interaction.channel.send(`<@${p}>\n${formatDeck(hand)}`);
-		});
-
-		if (commonCardsAmount !== 0) {
-			const actualAmount =
-				commonCardsAmount > 0
-					? commonCardsAmount
-					: Math.floor(median(Array.from(playerCardsEntitled.values())));
-			for (let i = 0; i < actualAmount; i++) {
-				const cardIndex = Math.floor(Math.random() * deck.length);
-				commonCards.push(deck[cardIndex]);
-				deck.splice(cardIndex, 1);
-			}
-		}
-
-		if (round > 0) await promisify(setTimeout)(timeBetweenRounds); // wait 5 seconds before starting next round
-
-		await newRoundMsg.edit({
-			embeds: [
-				embedCreator(
-					`${
-						commonCards.length > 0 ? `**${formatDeck(commonCards)}**` : "None"
-					}`
-				),
-			],
-		});
-
-		await handlePlayerTurns(
-			interaction,
-			players,
-			cardsToOut,
-			playerHands,
-			playerCardsEntitled, // Will be updated in place.
-			insuranceCount,
-			commonCards,
-			startingIndex
-		);
-
-		round += 1;
-	}
-
-	await interaction.channel.send({
-		embeds: [
-			new EmbedBuilder()
-				.setTitle("Game Over!")
-				.setDescription(`<@${players[0]}> has won the game! Congratulations!`)
-				.setColor(0x58d68d),
-		],
-	});
-	return;
-}
-
-function median(x: number[]) {
+export function median(x: number[]) {
 	const sorted = x.sort((a, b) => a - b);
 	const mid = Math.floor(sorted.length / 2);
 	return sorted.length % 2 !== 0
@@ -258,278 +66,7 @@ function median(x: number[]) {
 		: (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-async function handlePlayerTurns(
-	interaction: ChatInputCommandInteraction<"cached">,
-	players: string[],
-	cardsToOut: number,
-	playerHands: Collection<Snowflake, Deck>,
-	playerCardsEntitled: Collection<Snowflake, number>,
-	insuranceCount: number,
-	commonCards: Deck = [],
-	i = 0,
-	currentCall: PlayerCall | null = null
-) {
-	if (i >= players.length) i = 0;
-	let currentPlayer = players[i];
-	let roundOver = false;
-	let cardGainer: Snowflake | null = null;
-	let aborted = false;
-	const viewCardsButton = new ButtonBuilder()
-		.setCustomId("view_cards")
-		.setLabel("View Cards")
-		.setStyle(ButtonStyle.Secondary);
-	const bsButton = new ButtonBuilder()
-		.setCustomId("bs")
-		.setLabel("BS")
-		.setStyle(ButtonStyle.Danger);
-
-	const getRow = (disabled: boolean) => {
-		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-			viewCardsButton
-		);
-		if (currentCall) row.addComponents(bsButton.setDisabled(disabled));
-		return row;
-	};
-
-	const timeUp = Date.now() + allowedTime;
-	const msgContent = `${
-		currentCall
-			? `<@${currentCall.player}> has called **${formatCall(
-					currentCall.call
-			  )}**.\n`
-			: ""
-	}<@${currentPlayer}>, it is your turn.`;
-	const msg = await interaction.channel.send({
-		content:
-			msgContent +
-			` Please type your call ${time(
-				Math.floor(timeUp / 1000),
-				TimestampStyles.RelativeTime
-			)}.`,
-		components: [getRow(false)],
-	});
-
-	const buttonCollector = msg.createMessageComponentCollector({
-		filter: i => i.customId === "view_cards" || i.customId === "bs",
-		time: allowedTime,
-	});
-
-	let hasCalled = false;
-	let hasCalledBS = false;
-	const msgCollector = interaction.channel.createMessageCollector({
-		time: allowedTime,
-	});
-
-	buttonCollector.on("collect", async buttonInteraction => {
-		if (!players.includes(buttonInteraction.user.id)) {
-			await buttonInteraction.reply({
-				content: "You are not a player in this game.",
-				ephemeral: true,
-			});
-			return;
-		}
-		if (buttonInteraction.customId === "view_cards") {
-			await buttonInteraction.reply({
-				content: `Your Hand: **${formatDeck(
-					playerHands.get(buttonInteraction.user.id)
-				)}**\nCommon Cards: ${
-					commonCards.length === 0 ? "None" : `**${formatDeck(commonCards)}**`
-				}`,
-				ephemeral: true,
-			});
-			return;
-		}
-
-		// BS button
-		if (hasCalledBS) {
-			await buttonInteraction.reply({
-				content:
-					"Sorry, another player seems to have pressed the BS button before you.",
-				ephemeral: true,
-			});
-			return;
-		}
-		hasCalledBS = true;
-		await msg.edit({
-			content: msgContent,
-			components: [getRow(true)],
-		});
-		if (buttonInteraction.user.id === currentCall.player) {
-			await buttonInteraction.reply({
-				content: "You cannot call BS on your own call.",
-				ephemeral: true,
-			});
-			return;
-		}
-		await buttonInteraction.reply({
-			content: `BS called by <@${buttonInteraction.user.id}>!`,
-		});
-
-		const currentDeck: Deck = [].concat(...Array.from(playerHands.values()));
-		currentDeck.push(...commonCards);
-		const callIsTrue = callInDeck(currentCall.call, currentDeck);
-
-		if (callIsTrue) {
-			await interaction.channel.send({
-				content: `<@${currentCall.player}> was telling the truth! <@${buttonInteraction.user.id}> gains 1 card.`,
-			});
-			cardGainer = buttonInteraction.user.id;
-			playerCardsEntitled.set(
-				buttonInteraction.user.id,
-				playerCardsEntitled.get(buttonInteraction.user.id) + 1
-			);
-		} else {
-			await interaction.channel.send({
-				content: `<@${currentCall.player}> was lying! They gain 1 card.`,
-			});
-			cardGainer = currentCall.player;
-			playerCardsEntitled.set(
-				currentCall.player,
-				playerCardsEntitled.get(currentCall.player) + 1
-			);
-		}
-		roundOver = true;
-		hasCalled = true;
-		msgCollector.stop();
-
-		return;
-	});
-
-	msgCollector.on("collect", async message => {
-		if (
-			(message.author.id === interaction.user.id ||
-				message.member.permissions.has(PermissionFlagsBits.ManageMessages)) &&
-			!message.author.bot &&
-			message.content.includes("abort")
-		) {
-			await message.reply({
-				content: "Game aborted.",
-			});
-			aborted = true;
-			hasCalled = true;
-			msgCollector.stop();
-			return;
-		}
-		if (message.author.id !== currentPlayer) return;
-		const call = parseCall(message.content);
-		if (!call || call.call == undefined || (call.call as any) === -1) {
-			// Call could not be parsed
-			return;
-		}
-		if (currentCall) {
-			if (!isHigher(call, currentCall.call)) {
-				message.reply({
-					content: `Your call is not higher than the current call (${formatCall(
-						currentCall.call
-					)}). Please try again.`,
-				});
-				return;
-			}
-		}
-		if (
-			call.call === HandRank.DoublePair ||
-			call.call === HandRank.DoubleTriple
-		) {
-			const highCards = call.high as [Value, Value];
-			if (highCards[0] === highCards[1]) {
-				message.reply({
-					content: `Double pairs and triples must have different values (Your call: ${formatCall(
-						call
-					)}). Please try again.`,
-				});
-				return;
-			}
-		}
-		if (call.call === HandRank.TriplePair) {
-			const highCards = call.high as [Value, Value, Value];
-			if (
-				highCards[0] === highCards[1] ||
-				highCards[0] === highCards[2] ||
-				highCards[1] === highCards[2]
-			) {
-				message.reply({
-					content: `Triple pairs must have 3 unique values (Your call: ${formatCall(
-						call
-					)}). Please try again.`,
-				});
-				return;
-			}
-		}
-		if (call.call === HandRank.DoubleFlush) {
-			const highCards = call.high as [Card, Card];
-			if (highCards[0].suit === highCards[1].suit) {
-				message.reply({
-					content: `Double flushes must have different suits (Your call: ${formatCall(
-						call
-					)}). Please try again.`,
-				});
-				return;
-			}
-
-			if (
-				insuranceCount < 2 &&
-				highCards[0].value === highCards[1].value &&
-				highCards[0].value === 15
-			) {
-				message.reply({
-					content: `There are not enough insurance cards in the deck for a double insurance call (Your call: ${formatCall(
-						call
-					)}). Please try again.`,
-				});
-				return;
-			}
-		}
-		await msg.edit({
-			content: msgContent,
-			components: [getRow(true)],
-		});
-		currentCall = { call, player: currentPlayer };
-		hasCalled = true;
-		msgCollector.stop();
-	});
-
-	await collectorEnd(msgCollector);
-
-	if (aborted) {
-		gameMap.set(interaction.id, -2);
-		return;
-	}
-	if (roundOver) {
-		gameMap.set(interaction.id, players.indexOf(cardGainer));
-		return;
-	}
-
-	if (!hasCalled) {
-		await interaction.channel.send({
-			content: `<@${currentPlayer}> failed to make a call in time. They gain a card and a new round will start now.`,
-		});
-		await msg.edit(msgContent);
-
-		playerCardsEntitled.set(
-			currentPlayer,
-			playerCardsEntitled.get(currentPlayer) + 1
-		);
-
-		gameMap.set(interaction.id, players.indexOf(currentPlayer));
-		return;
-	}
-	if (i >= players.length - 1) i = 0;
-	else i++;
-
-	await handlePlayerTurns(
-		interaction,
-		players,
-		cardsToOut,
-		playerHands,
-		playerCardsEntitled,
-		insuranceCount,
-		commonCards,
-		i,
-		currentCall
-	);
-}
-
-function collectorEnd(collector: MessageCollector) {
+export function collectorEnd(collector: MessageCollector) {
 	return new Promise<void>(resolve =>
 		collector.on("end", () => {
 			resolve();
@@ -575,7 +112,7 @@ function invalidNumber(x: any) {
 	return Number.isNaN(x) || x == null;
 }
 
-function parseCall(call: string): Call | null {
+export function parseCall(call: string): Call | null {
 	try {
 		call = call.toLowerCase().trim();
 		const royalIndex = royalFlushes.findIndex(x => x.includes(call));
@@ -829,28 +366,21 @@ function callNumberToName(call: HandRank) {
 	return capitalize(names[RNI[call]][0]);
 }
 
-// create a function that takes in 2 arrays of equal sizes
-// and returns whether the first array is "higher" than the second array
-// higher means that the elements of the first array are all greater than or equal to the elements of the second array
-// but if all the elements are equal, it is false
 function isHigherArray(arr1: number[], arr2: number[]) {
-	for (let i = 0; i < arr1.length; i++) {
+	for (let i = arr1.length - 1; i >= 0; i--) {
+		if (arr1[i] > arr2[i]) return true;
 		if (arr1[i] < arr2[i]) return false;
 	}
-	if (arr1.every((x, i) => x === arr2[i])) return false;
-	return true;
+	return false;
 }
 
 function isLowerArray(arr1: number[], arr2: number[]) {
-	for (let i = 0; i < arr1.length; i++) {
-		if (arr1[i] > arr2[i]) return false;
-	}
-	if (arr1.every((x, i) => x === arr2[i])) return false;
-	return true;
+	if (arr1.join(" ") === arr2.join(" ")) return false;
+	return !isHigherArray(arr1, arr2);
 }
 
 // returns whether call1 is a higher call than call2
-function isHigher(call1: Call, call2: Call) {
+export function isHigher(call1: Call, call2: Call) {
 	const call_call1 = call1.call;
 	const call_call2 = call2.call;
 	if (call_call1 > call_call2) return true;
@@ -861,13 +391,17 @@ function isHigher(call1: Call, call2: Call) {
 		call_call1 === HandRank.DoubleTriple ||
 		call_call1 === HandRank.TriplePair
 	) {
-		const arr1 = (call1.high as Value[]).sort();
-		const arr2 = (call2.high as Value[]).sort();
+		const arr1 = (call1.high as Value[]).sort((a, b) => a - b);
+		const arr2 = (call2.high as Value[]).sort((a, b) => a - b);
 		return isHigherArray(arr1, arr2);
 	}
 	if (call_call1 === HandRank.DoubleFlush) {
-		const arr1 = (call1.high as [Card, Card]).map(card => card.value).sort();
-		const arr2 = (call2.high as [Card, Card]).map(card => card.value).sort();
+		const arr1 = (call1.high as [Card, Card])
+			.map(card => card.value)
+			.sort((a, b) => a - b);
+		const arr2 = (call2.high as [Card, Card])
+			.map(card => card.value)
+			.sort((a, b) => a - b);
 		return isLowerArray(arr1, arr2);
 	}
 	const call1_high = (call1.high as Card).value;
@@ -876,7 +410,7 @@ function isHigher(call1: Call, call2: Call) {
 	return call1_high < call2_high;
 }
 
-function formatCall(call: Call) {
+export function formatCall(call: Call) {
 	if (call.call === HandRank.StraightFlush && call.high.value === 14) {
 		switch (call.high.suit) {
 			case "H":
@@ -934,7 +468,7 @@ function formatCall(call: Call) {
 	)}`;
 }
 
-function callInDeck(call: Call, deck: Deck) {
+export function callInDeck(call: Call, deck: Deck) {
 	if (call.call === HandRank.High)
 		return deck.some(card => card.value === call.high.value);
 	if (call.call === HandRank.Pair)
@@ -943,6 +477,12 @@ function callInDeck(call: Call, deck: Deck) {
 		return (
 			deck.filter(card => card.value === call.high[0]).length >= 2 &&
 			deck.filter(card => card.value === call.high[1]).length >= 2
+		);
+	if (call.call === HandRank.TriplePair)
+		return (
+			deck.filter(card => card.value === call.high[0]).length >= 2 &&
+			deck.filter(card => card.value === call.high[1]).length >= 2 &&
+			deck.filter(card => card.value === call.high[2]).length >= 2
 		);
 	if (call.call === HandRank.Triple)
 		return deck.filter(card => card.value === call.high.value).length >= 3;
@@ -956,6 +496,11 @@ function callInDeck(call: Call, deck: Deck) {
 		return (
 			deck.filter(card => card.value === call.high[0]).length >= 3 &&
 			deck.filter(card => card.value === call.high[1]).length >= 2
+		);
+	if (call.call === HandRank.DoubleTriple)
+		return (
+			deck.filter(card => card.value === call.high[0]).length >= 3 &&
+			deck.filter(card => card.value === call.high[1]).length >= 3
 		);
 	if (call.call === HandRank.Quad)
 		return deck.filter(card => card.value === call.high.value).length >= 4;
@@ -976,20 +521,53 @@ function callInDeck(call: Call, deck: Deck) {
 		);
 	}
 	if (call.call === HandRank.DoubleFlush) {
-		return (call.high as [Card, Card]).every(card => {
-			if (card.value === 15) {
+		const flushCall = call as FlushCall;
+		const insurances = deck.filter(card => card.value === 15).length;
+		const [flush1, flush2] = flushCall.high;
+		if (flush1.value === 15 && flush2.value === 15) {
+			if (insurances < 2) return false; // need 2 insurances
+			return flushCall.high.every(card => {
 				return (
-					deck.some(card => card.value === 15) &&
-					deck.filter(card => card.suit === card.suit || card.suit === "j")
+					deck.filter(c => c.suit === card.suit && c.value <= card.value)
 						.length >= 4
 				);
-			}
-			return (
-				deck.filter(
-					c => (c.suit === card.suit || c.suit === "j") && c.value <= card.value
-				).length >= 5
+			});
+		}
+
+		const jokers = deck.filter(card => card.value === 0).length;
+		if (jokers >= 2) {
+			return flushCall.high.every(card => {
+				return (
+					deck.filter(
+						c =>
+							(c.suit === card.suit || c.suit === "i") && c.value <= card.value
+					).length >= 3
+				);
+			});
+		}
+		if (jokers === 1) {
+			const countsForEachFlush = flushCall.high.map(
+				card =>
+					deck.filter(
+						c =>
+							(c.suit === card.suit || c.suit === "i") && c.value <= card.value
+					).length
 			);
-		});
+			const count1 = countsForEachFlush[0];
+			const count2 = countsForEachFlush[1];
+			return (count1 >= 4 && count2 >= 3) || (count1 >= 3 && count2 >= 4);
+		}
+		if (jokers === 0) {
+			return flushCall.high.every(card => {
+				return (
+					deck.filter(
+						c =>
+							(c.suit === card.suit || c.suit === "i") && c.value <= card.value
+					).length >= 4
+				);
+			});
+		}
+		return false;
 	}
 	if (call.call === HandRank.StraightFlush) {
 		const straightCards = straightHighToCards(call.high.value);

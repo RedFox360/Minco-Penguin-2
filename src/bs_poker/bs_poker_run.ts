@@ -9,7 +9,7 @@ import {
 	TimestampStyles,
 	time,
 } from "discord.js";
-import { gameLogic } from "../bs_poker/bs_poker_functions.js";
+import BSPoker from "./bs_poker_class.js";
 const collectorTime = 30_000;
 const channelsWithActiveGames: Snowflake[] = [];
 
@@ -32,13 +32,22 @@ export default async function run(
 	const insuranceCount: number =
 		interaction.options.getInteger("insurance_count") ?? 1;
 	const deckSize = 52 + jokerCount + insuranceCount;
+	const beginCards: number = interaction.options.getInteger("begin_cards") ?? 1;
+	const maxCommonCards = commonCards === -1 ? cardsToOut - 1 : commonCards;
 	const playerLimit: number =
 		interaction.options.getInteger("player_limit") ??
-		Math.floor(deckSize / (cardsToOut - 1));
-	const players = [interaction.user.id];
-	channelsWithActiveGames.push(interaction.channelId);
+		Math.floor((deckSize - maxCommonCards) / (cardsToOut - 1));
 
-	if ((cardsToOut - 1) * playerLimit > deckSize) {
+	if (beginCards > cardsToOut) {
+		await interaction.reply({
+			content:
+				"The beginning number of cards must be less than the number of cards to be out.",
+			ephemeral: true,
+		});
+		return;
+	}
+
+	if ((cardsToOut - 1) * playerLimit + maxCommonCards > deckSize) {
 		await interaction.reply({
 			content:
 				"The maximum number of cards to be dealt is greater than the size of the deck. Please alter the player limit.",
@@ -46,6 +55,9 @@ export default async function run(
 		});
 		return;
 	}
+
+	const players = [interaction.user.id];
+	channelsWithActiveGames.push(interaction.channelId);
 
 	// Game Start
 
@@ -105,7 +117,7 @@ Otherwise, the game will start in ${time(
 			)
 			.addFields({
 				name: "Options",
-				value: `Cards to get out: ${cardsToOut}\nJokers in Deck: ${jokerCount}\nInsurance Cards in Deck: ${insuranceCount}\nCommon Cards: ${
+				value: `Cards to get out: ${cardsToOut}\nJokers in Deck: ${jokerCount}\nInsurance Cards in Deck: ${insuranceCount}\nStarting Cards: ${beginCards}\nCommon Cards: ${
 					commonCards === -1 ? "Median" : commonCards
 				}`,
 			})
@@ -223,14 +235,18 @@ Otherwise, the game will start in ${time(
 		});
 		shuffleArrayInPlace(players);
 
-		gameLogic(
+		const game = new BSPoker(
 			interaction,
 			players,
 			cardsToOut,
 			commonCards,
 			jokerCount,
-			insuranceCount
-		)
+			insuranceCount,
+			beginCards
+		);
+
+		game
+			.gameLogic()
 			.catch(() => {
 				interaction.channel.send(
 					"Sorry, but an unknown error occured while running the game and the game has aborted."

@@ -1,10 +1,13 @@
-const helpEmbeds = [
+import { APIEmbed } from "discord.js";
+
+const helpEmbeds: APIEmbed[] = [
 	{
 		color: 0x7289da,
 		title: "BS Poker Help & Rules",
 		description: `Welcome to BS Poker! Here you can find information on how to play the game.
 To start a game: use </bs_poker:1241939571202064415> command with the specified options.
 The host may type "abort" at any time to end an ongoing game.`,
+		footer: { text: "Bot made by @obvsam" },
 	},
 	{
 		color: 0x7289da,
@@ -14,6 +17,7 @@ The host may type "abort" at any time to end an ongoing game.`,
 * The game is played in rounds. At the beginning of the game, the order of the players is randomly shuffled. Each player is dealt one card, which can be seen by clicking the "View Cards" button at any time.
 * The first player must make a Poker Call (Information in the next section). The next player must either make a higher call or call BS. If a player calls BS, the cards are revealed. Taking all players' cards into account (and common cards if the game has them), if the call was there, the player who called BS gains a card. If it was not there, the player who made the call gains a card.
 Once a player reaches a certain amount of cards (specified by the host), they are out of the game. Play continues until there is 1 player left, who becomes the winner.`,
+		footer: { text: "Bot made by @obvsam" },
 	},
 	{
 		color: 0x7289da,
@@ -38,6 +42,7 @@ Once a player reaches a certain amount of cards (specified by the host), they ar
 1. **Straight Flush** e.g. \`Queen High Hearts Straight Flush\` - A straight flush refers to 5 cards of the same suit in a sequence. The Queen is the highest card in the straight flush. Therefore, the deck must include Queen:hearts:, Jack:hearts:, 10:hearts:, 9:hearts:, and 8:hearts:. Note that if the highest card in a straight flush is an Ace, it may be called as \`Royal Flush [suit]\`.
 
 Within each call, you can increase the rank of the card to make the call higher. For example, \`5 High\` is higher than \`2 High\`.`,
+		footer: { text: "Bot made by @obvsam" },
 	},
 	{
 		color: 0x7289da,
@@ -59,6 +64,7 @@ King: \`k\`
 Queen: \`q\`
 Jack: \`j\`
 Joker: \`x\``,
+		footer: { text: "Bot made by @obvsam" },
 	},
 ];
 

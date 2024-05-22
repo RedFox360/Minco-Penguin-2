@@ -50,6 +50,16 @@ const bsPokerCommand = new SlashCommand()
 					.setMinValue(0)
 					.setMaxValue(4)
 			)
+			.addIntegerOption(option =>
+				option
+					.setName("begin_cards")
+					.setDescription(
+						"Number of cards given to each player at the beginning (Default: 1)"
+					)
+					.setMinValue(1)
+					.setMaxValue(8)
+					.setRequired(false)
+			)
 	)
 	.setRun(bsPokerRun);
 

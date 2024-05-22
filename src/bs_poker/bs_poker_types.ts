@@ -18,10 +18,10 @@ export type Value =
 	| 14
 	| 15;
 
-export type Card = {
+export interface Card {
 	suit: Suit;
 	value: Value;
-};
+}
 
 export type Deck = Card[];
 
@@ -60,17 +60,24 @@ export const RNI = {
 
 export const RNIKeys = Object.keys(RNI).map(n => parseInt(n));
 
-export type Call =
-	| {
-			high: Card;
-			call: HandRank;
-	  }
-	| {
-			high: [Value, Value];
-			call: HandRank.DoublePair | HandRank.FullHouse | HandRank.DoubleTriple;
-	  }
-	| { high: [Value, Value, Value]; call: HandRank.TriplePair }
-	| { high: [Card, Card]; call: HandRank.DoubleFlush };
+export type Call = OneCall | TwoCall | ThreeCall | FlushCall;
+
+interface OneCall {
+	high: Card;
+	call: HandRank;
+}
+interface TwoCall {
+	high: [Value, Value];
+	call: HandRank.DoublePair | HandRank.FullHouse | HandRank.DoubleTriple;
+}
+interface ThreeCall {
+	high: [Value, Value, Value];
+	call: HandRank.TriplePair;
+}
+export interface FlushCall {
+	high: [Card, Card];
+	call: HandRank.DoubleFlush;
+}
 
 export type PlayerHands = Collection<Snowflake, Deck>;
 

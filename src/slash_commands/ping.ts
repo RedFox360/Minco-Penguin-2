@@ -53,7 +53,7 @@ const ping = new SlashCommand()
 			)
 			.setTimestamp()
 			.setFooter({
-				text: interaction.guild?.name ?? interaction.user.username,
+				text: "Bot made by @obvsam",
 			});
 
 		await interaction.editReply({ embeds: [pingEmbed] });
