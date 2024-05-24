@@ -591,72 +591,72 @@ function straightHighToCards(high: Value): Value[] {
 export async function highestCallInDeck(deck: Deck): Promise<Call> {
 	const suits: Suit[] = ["H", "D", "C", "S"];
 
-	// // Straight Flush
-	// if (deck.length >= 5) {
-	// 	for (const suit of suits) {
-	// 		for (let value = 14; value >= 2; value--) {
-	// 			const straight = straightHighToCards(value as Value);
-	// 			if (
-	// 				straight.every(value =>
-	// 					deck.some(card => card.value === value && card.suit === suit)
-	// 				)
-	// 			) {
-	// 				return {
-	// 					high: { value: value as Value, suit },
-	// 					call: HandRank.StraightFlush,
-	// 				};
-	// 			}
-	// 		}
-	// 	}
-	// }
+	// Straight Flush
+	if (deck.length >= 5) {
+		for (const suit of suits) {
+			for (let value = 14; value >= 2; value--) {
+				const straight = straightHighToCards(value as Value);
+				if (
+					straight.every(value =>
+						deck.some(card => card.value === value && card.suit === suit)
+					)
+				) {
+					return {
+						high: { value: value as Value, suit },
+						call: HandRank.StraightFlush,
+					};
+				}
+			}
+		}
+	}
 
-	// // Quad
-	// if (deck.length >= 4) {
-	// 	for (let value = 15; value >= 0; value--) {
-	// 		if (value === 1) continue;
-	// 		if (deck.filter(card => card.value === value).length >= 4) {
-	// 			return {
-	// 				high: { value: value as Value, suit: "n" },
-	// 				call: HandRank.Quad,
-	// 			};
-	// 		}
-	// 	}
-	// }
+	// Quad
+	if (deck.length >= 4) {
+		for (let value = 15; value >= 0; value--) {
+			if (value === 1) continue;
+			if (deck.filter(card => card.value === value).length >= 4) {
+				return {
+					high: { value: value as Value, suit: "n" },
+					call: HandRank.Quad,
+				};
+			}
+		}
+	}
 
-	// // Double Triple
-	// if (deck.length >= 6) {
-	// 	for (let i = 15; i >= 0; i--) {
-	// 		if (i === 1) continue;
-	// 		if (deck.filter(card => card.value === i).length >= 3) {
-	// 			for (let j = i - 1; j >= 2; j--) {
-	// 				if (deck.filter(card => card.value === j).length >= 3) {
-	// 					return {
-	// 						high: [i as Value, j as Value],
-	// 						call: HandRank.DoubleTriple,
-	// 					};
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
+	// Double Triple
+	if (deck.length >= 6) {
+		for (let i = 15; i >= 0; i--) {
+			if (i === 1) continue;
+			if (deck.filter(card => card.value === i).length >= 3) {
+				for (let j = i - 1; j >= 2; j--) {
+					if (deck.filter(card => card.value === j).length >= 3) {
+						return {
+							high: [i as Value, j as Value],
+							call: HandRank.DoubleTriple,
+						};
+					}
+				}
+			}
+		}
+	}
 
-	// // Full House
-	// if (deck.length >= 5) {
-	// 	for (let i = 15; i >= 0; i--) {
-	// 		if (i === 1) continue;
-	// 		if (deck.filter(card => card.value === i).length >= 3) {
-	// 			for (let j = i - 1; j >= 0; j--) {
-	// 				if (j === 1 || j === i) continue;
-	// 				if (deck.filter(card => card.value === j).length >= 2) {
-	// 					return {
-	// 						high: [i as Value, j as Value],
-	// 						call: HandRank.FullHouse,
-	// 					};
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
+	// Full House
+	if (deck.length >= 5) {
+		for (let i = 15; i >= 0; i--) {
+			if (i === 1) continue;
+			if (deck.filter(card => card.value === i).length >= 3) {
+				for (let j = i - 1; j >= 0; j--) {
+					if (j === 1 || j === i) continue;
+					if (deck.filter(card => card.value === j).length >= 2) {
+						return {
+							high: [i as Value, j as Value],
+							call: HandRank.FullHouse,
+						};
+					}
+				}
+			}
+		}
+	}
 
 	// Double Flush
 	// if there are 2 flushes of 4 or more cards, return those flushes
