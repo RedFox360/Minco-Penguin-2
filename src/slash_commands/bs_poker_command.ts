@@ -60,6 +60,12 @@ const bsPokerCommand = new SlashCommand()
 					.setMaxValue(8)
 					.setRequired(false)
 			)
+			.addBooleanOption(option =>
+				option
+					.setName("allow_join_mid_game")
+					.setDescription("Allow players to join mid-game (Default: true)")
+					.setRequired(false)
+			)
 	)
 	.setRun(bsPokerRun);
 

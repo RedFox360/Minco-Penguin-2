@@ -10,7 +10,7 @@ import {
 	RNI,
 	RNIKeys,
 	emoji,
-	FlushCall,
+	DoubleFlushCall,
 } from "./bs_poker_types.js";
 
 function suitToEmoji(suit: string) {
@@ -387,13 +387,15 @@ export function isHigher(call1: Call, call2: Call) {
 	if (call_call1 < call_call2) return false;
 	if (
 		call_call1 === HandRank.DoublePair ||
-		call_call1 === HandRank.FullHouse ||
 		call_call1 === HandRank.DoubleTriple ||
 		call_call1 === HandRank.TriplePair
 	) {
 		const arr1 = (call1.high as Value[]).sort((a, b) => a - b);
 		const arr2 = (call2.high as Value[]).sort((a, b) => a - b);
 		return isHigherArray(arr1, arr2);
+	}
+	if (call_call1 === HandRank.FullHouse) {
+		return call1.high[0] > call2.high[0];
 	}
 	if (call_call1 === HandRank.DoubleFlush) {
 		const arr1 = (call1.high as [Card, Card])
@@ -505,69 +507,61 @@ export function callInDeck(call: Call, deck: Deck) {
 	if (call.call === HandRank.Quad)
 		return deck.filter(card => card.value === call.high.value).length >= 4;
 	if (call.call === HandRank.Flush) {
-		if (call.high.value === 15) {
-			return (
-				deck.some(card => card.value === 15) &&
-				deck.filter(card => card.suit === call.high.suit || card.suit === "j")
-					.length >= 4
-			);
-		}
+		if (
+			!deck.some(
+				card => card.suit === call.high.suit && card.value === call.high.value
+			)
+		)
+			return false;
+
 		return (
 			deck.filter(
 				card =>
 					(card.suit === call.high.suit || card.suit === "j") &&
-					card.value <= call.high.value
-			).length >= 5
+					card.value < call.high.value
+			).length >= 4
 		);
 	}
 	if (call.call === HandRank.DoubleFlush) {
-		const flushCall = call as FlushCall;
+		const flushCall = call as DoubleFlushCall;
 		const insurances = deck.filter(card => card.value === 15).length;
 		const [flush1, flush2] = flushCall.high;
+
+		if (
+			!deck.some(
+				card => card.suit === flush1.suit && card.value === flush1.value
+			) ||
+			!deck.some(
+				card => card.suit === flush2.suit && card.value === flush2.value
+			)
+		)
+			return false;
+
 		if (flush1.value === 15 && flush2.value === 15) {
 			if (insurances < 2) return false; // need 2 insurances
+
 			return flushCall.high.every(card => {
 				return (
-					deck.filter(c => c.suit === card.suit && c.value <= card.value)
-						.length >= 4
+					deck.filter(c => c.suit === card.suit && c.value < card.value)
+						.length >= 3
 				);
 			});
 		}
 
-		const jokers = deck.filter(card => card.value === 0).length;
-		if (jokers >= 2) {
-			return flushCall.high.every(card => {
-				return (
-					deck.filter(
-						c =>
-							(c.suit === card.suit || c.suit === "i") && c.value <= card.value
-					).length >= 3
-				);
-			});
-		}
-		if (jokers === 1) {
-			const countsForEachFlush = flushCall.high.map(
-				card =>
-					deck.filter(
-						c =>
-							(c.suit === card.suit || c.suit === "i") && c.value <= card.value
-					).length
-			);
-			const count1 = countsForEachFlush[0];
-			const count2 = countsForEachFlush[1];
-			return (count1 >= 4 && count2 >= 3) || (count1 >= 3 && count2 >= 4);
-		}
-		if (jokers === 0) {
-			return flushCall.high.every(card => {
-				return (
-					deck.filter(
-						c =>
-							(c.suit === card.suit || c.suit === "i") && c.value <= card.value
-					).length >= 4
-				);
-			});
-		}
-		return false;
+		const jokerLength = deck.filter(card => card.value === 0).length;
+		let jokersUsed = 0;
+		return flushCall.high.every(card => {
+			const length = deck.filter(
+				c => (c.suit === card.suit || c.suit === "i") && c.value <= card.value
+			).length;
+
+			if (length < 4) {
+				jokersUsed += 4 - length;
+				if (jokersUsed > jokerLength) return false;
+			}
+
+			return true;
+		});
 	}
 	if (call.call === HandRank.StraightFlush) {
 		const straightCards = straightHighToCards(call.high.value);
@@ -592,4 +586,199 @@ function straightHighToCards(high: Value): Value[] {
 		cards.push(<Value>(((high - 1 - i + 13) % 13 || 13) + 1));
 	}
 	return cards;
+}
+
+export async function highestCallInDeck(deck: Deck): Promise<Call> {
+	const suits: Suit[] = ["H", "D", "C", "S"];
+
+	// // Straight Flush
+	// if (deck.length >= 5) {
+	// 	for (const suit of suits) {
+	// 		for (let value = 14; value >= 2; value--) {
+	// 			const straight = straightHighToCards(value as Value);
+	// 			if (
+	// 				straight.every(value =>
+	// 					deck.some(card => card.value === value && card.suit === suit)
+	// 				)
+	// 			) {
+	// 				return {
+	// 					high: { value: value as Value, suit },
+	// 					call: HandRank.StraightFlush,
+	// 				};
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+	// // Quad
+	// if (deck.length >= 4) {
+	// 	for (let value = 15; value >= 0; value--) {
+	// 		if (value === 1) continue;
+	// 		if (deck.filter(card => card.value === value).length >= 4) {
+	// 			return {
+	// 				high: { value: value as Value, suit: "n" },
+	// 				call: HandRank.Quad,
+	// 			};
+	// 		}
+	// 	}
+	// }
+
+	// // Double Triple
+	// if (deck.length >= 6) {
+	// 	for (let i = 15; i >= 0; i--) {
+	// 		if (i === 1) continue;
+	// 		if (deck.filter(card => card.value === i).length >= 3) {
+	// 			for (let j = i - 1; j >= 2; j--) {
+	// 				if (deck.filter(card => card.value === j).length >= 3) {
+	// 					return {
+	// 						high: [i as Value, j as Value],
+	// 						call: HandRank.DoubleTriple,
+	// 					};
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+	// // Full House
+	// if (deck.length >= 5) {
+	// 	for (let i = 15; i >= 0; i--) {
+	// 		if (i === 1) continue;
+	// 		if (deck.filter(card => card.value === i).length >= 3) {
+	// 			for (let j = i - 1; j >= 0; j--) {
+	// 				if (j === 1 || j === i) continue;
+	// 				if (deck.filter(card => card.value === j).length >= 2) {
+	// 					return {
+	// 						high: [i as Value, j as Value],
+	// 						call: HandRank.FullHouse,
+	// 					};
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+	// Double Flush
+	// if there are 2 flushes of 4 or more cards, return those flushes
+	// find the lowest two flushes in teh deck
+	if (deck.length >= 8) {
+		for (let i = 2; i <= 15; i++) {
+			for (const suit1 of suits) {
+				for (let j = 2; j <= 15; j++) {
+					if (j === i) continue;
+					for (const suit2 of suits) {
+						if (suit1 === suit2) continue;
+						const dfCall: DoubleFlushCall = {
+							high: [
+								{
+									value: i as Value,
+									suit: suit1,
+								},
+								{
+									value: j as Value,
+									suit: suit2,
+								},
+							],
+							call: HandRank.DoubleFlush,
+						};
+						if (callInDeck(dfCall, deck)) return dfCall;
+					}
+				}
+			}
+		}
+	}
+
+	if (deck.length >= 5) {
+		for (let i = 6; i <= 15; i++) {
+			for (const suit of suits) {
+				const call_flush = {
+					call: HandRank.Flush,
+					high: { value: i as Value, suit },
+				};
+				if (callInDeck(call_flush, deck)) {
+					return call_flush;
+				}
+			}
+		}
+
+		// Straight
+		for (let i = 15; i >= 2; i--) {
+			const straight = straightHighToCards(i as Value);
+			if (straight.every(value => deck.some(card => card.value === value))) {
+				return {
+					high: { value: i as Value, suit: "n" },
+					call: HandRank.Straight,
+				};
+			}
+		}
+	}
+
+	// Triple
+	if (deck.length >= 3) {
+		for (let i = 15; i >= 0; i--) {
+			if (i === 1) continue;
+			if (deck.filter(card => card.value === i).length >= 3) {
+				return {
+					high: { value: i as Value, suit: "n" },
+					call: HandRank.Triple,
+				};
+			}
+		}
+	}
+
+	// Triple Pair
+	if (deck.length >= 6) {
+		for (let i = 15; i >= 0; i--) {
+			if (i === 1) continue;
+			if (deck.filter(card => card.value === i).length >= 2) {
+				for (let j = i - 1; j >= 0; j--) {
+					if (j === 1 || j === i) continue;
+					if (deck.filter(card => card.value === j).length >= 2) {
+						for (let k = j - 1; k >= 0; k--) {
+							if (k === 1 || k === j) continue;
+							if (deck.filter(card => card.value === k).length >= 2) {
+								return {
+									high: [i as Value, j as Value, k as Value],
+									call: HandRank.TriplePair,
+								};
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Double Pair
+	if (deck.length >= 4) {
+		for (let i = 15; i >= 0; i--) {
+			if (i === 1) continue;
+			if (deck.filter(card => card.value === i).length >= 2) {
+				for (let j = i - 1; j >= 0; j--) {
+					if (j === 1 || j === i) continue;
+					if (deck.filter(card => card.value === j).length >= 2) {
+						return {
+							high: [i as Value, j as Value],
+							call: HandRank.DoublePair,
+						};
+					}
+				}
+			}
+		}
+	}
+
+	// Pair
+	for (let i = 15; i >= 0; i--) {
+		if (i === 1) continue;
+		if (deck.filter(card => card.value === i).length >= 2) {
+			return { high: { value: i as Value, suit: "n" }, call: HandRank.Pair };
+		}
+	}
+
+	// High
+	const high = deck.reduce((high, card) => {
+		if (card.value > high.value) return card;
+		return high;
+	});
+	return { high, call: HandRank.High };
 }

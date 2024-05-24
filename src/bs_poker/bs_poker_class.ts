@@ -24,6 +24,7 @@ import {
 	collectorEnd,
 	formatCall,
 	formatDeck,
+	highestCallInDeck,
 	isHigher,
 	median,
 	parseCall,
@@ -32,20 +33,51 @@ import { promisify } from "util";
 
 const allowedTime = 60_000;
 const timeBetweenRounds = 12_000;
+const joinMidGame = new ButtonBuilder()
+	.setStyle(ButtonStyle.Success)
+	.setLabel("Join")
+	.setCustomId("join_mid_game");
+const leaveMidGame = new ButtonBuilder()
+	.setStyle(ButtonStyle.Danger)
+	.setLabel("Leave")
+	.setCustomId("leave_mid_game");
+
+const joinMidGameDisabled = new ButtonBuilder(
+	joinMidGame.toJSON()
+).setDisabled();
+const leaveMidGameDisabled = new ButtonBuilder(
+	leaveMidGame.toJSON()
+).setDisabled();
+
+const jrow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+	joinMidGame,
+	leaveMidGame
+);
+const lrow = new ActionRowBuilder<ButtonBuilder>().addComponents(leaveMidGame);
+const djrow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+	joinMidGameDisabled,
+	leaveMidGameDisabled
+);
+const dlrow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+	leaveMidGameDisabled
+);
 
 class BSPoker {
-	interaction: ChatInputCommandInteraction<"cached">;
-	players: string[];
-	cardsToOut: number;
-	commonCardsAmount: number;
-	jokerCount: number;
-	insuranceCount: number;
-	beginCards: number;
-	gameStatus: number = 0;
-	playerHands: PlayerHands;
-	playerCardsEntitled: Collection<Snowflake, number>;
-	currentCall: PlayerCall | null = null;
-	commonCards: Deck;
+	private interaction: ChatInputCommandInteraction<"cached">;
+	private everPlayers: string[];
+	private players: string[];
+	private cardsToOut: number;
+	private commonCardsAmount: number;
+	private jokerCount: number;
+	private insuranceCount: number;
+	private beginCards: number;
+	private playerLimit: number;
+	private _gameStatus: number = 0;
+	private allowJoinMidGame: boolean;
+	private playerHands: PlayerHands;
+	private playerCardsEntitled: Collection<Snowflake, number>;
+	private currentCall: PlayerCall | null = null;
+	private commonCards: Deck;
 
 	constructor(
 		interaction: ChatInputCommandInteraction<"cached">,
@@ -54,19 +86,42 @@ class BSPoker {
 		commonCardsAmount: number,
 		jokerCount: number,
 		insuranceCount: number,
-		beginCards: number
+		beginCards: number,
+		allowJoinMidGame: boolean,
+		playerLimit: number
 	) {
 		this.interaction = interaction;
 		this.players = players;
+		this.everPlayers = players;
 		this.cardsToOut = cardsToOut;
 		this.commonCardsAmount = commonCardsAmount;
 		this.jokerCount = jokerCount;
 		this.insuranceCount = insuranceCount;
 		this.beginCards = beginCards;
+		this.allowJoinMidGame = allowJoinMidGame;
+		this.playerLimit = playerLimit;
 
 		this.playerHands = new Collection<Snowflake, Deck>();
 		this.playerCardsEntitled = new Collection<Snowflake, number>();
 		this.commonCards = [];
+	}
+
+	get gameStatus() {
+		if (this._gameStatus === -1) return 0;
+		if (this._gameStatus >= this.players.length) return 0;
+		return this._gameStatus;
+	}
+
+	set gameStatus(status: number) {
+		this._gameStatus = status;
+	}
+
+	currentDeck() {
+		const currentDeck: Deck = [].concat(
+			...Array.from(this.playerHands.values())
+		);
+		currentDeck.push(...this.commonCards);
+		return currentDeck;
 	}
 
 	createDeck() {
@@ -104,20 +159,31 @@ class BSPoker {
 					.map((hand, player) => `<@${player}>: **${formatDeck(hand, true)}**`)
 					.join("\n");
 
-				this.interaction.channel.send({
-					embeds: [
-						new EmbedBuilder()
-							.setTitle("Hands from Last Round")
-							.setDescription(
-								`Common Cards: ${
-									this.commonCards.length === 0
-										? "None"
-										: `**${formatDeck(this.commonCards, true)}**`
-								}\n${handsList}`
-							)
-							.setColor(0x7289da),
-					],
-				});
+				const getHandsEmbed = (x: string | null = null) =>
+					new EmbedBuilder()
+						.setTitle("Hands from Last Round")
+						.setDescription(
+							`Common Cards: ${
+								this.commonCards.length === 0
+									? "None"
+									: `**${formatDeck(this.commonCards, true)}**`
+							}\n${handsList}${x ? `\n\n${x}` : ""}`
+						)
+						.setColor(0x7289da);
+
+				this.interaction.channel
+					.send({
+						embeds: [getHandsEmbed()],
+					})
+					.then(handsMsg => {
+						highestCallInDeck(this.currentDeck()).then(call => {
+							handsMsg.edit({
+								embeds: [
+									getHandsEmbed(`Highest Call: **${formatCall(call)}**`),
+								],
+							});
+						});
+					});
 			}
 			this.players.forEach(p => {
 				const entitled = this.playerCardsEntitled.get(p);
@@ -134,11 +200,9 @@ class BSPoker {
 			if (this.players.length <= 1) {
 				break;
 			}
-			if (this.gameStatus === -1 || this.gameStatus >= this.players.length) {
-				this.gameStatus = 0;
-			}
-			const embedCreator = (x: string) =>
-				new EmbedBuilder()
+
+			const embedCreator = (x: string) => {
+				return new EmbedBuilder()
 					.setTitle("New Round")
 					.setDescription(
 						`Common Cards: ${x}\n<@${
@@ -152,21 +216,10 @@ class BSPoker {
 							.join("\n")}`,
 					})
 					.setColor(0x58d68d);
-			const joinMidGame = new ButtonBuilder()
-				.setStyle(ButtonStyle.Success)
-				.setLabel("Join")
-				.setCustomId("join_mid_game");
-			const leaveMidGame = new ButtonBuilder()
-				.setStyle(ButtonStyle.Danger)
-				.setLabel("Leave")
-				.setCustomId("leave_mid_game");
+			};
 
 			const roundBeginTime = Date.now() + timeBetweenRounds;
 
-			const jrow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-				joinMidGame,
-				leaveMidGame
-			);
 			const newRoundMsg = await this.interaction.channel.send({
 				embeds: [
 					embedCreator(
@@ -178,12 +231,13 @@ class BSPoker {
 							: ""
 					),
 				],
-				components: round === 0 ? [] : [jrow],
+				components: round === 0 ? [] : this.allowJoinMidGame ? [jrow] : [lrow],
 			});
 
 			const joinCollector = newRoundMsg.createMessageComponentCollector({
 				filter: i =>
-					i.customId === "join_mid_game" || i.customId === "leave_mid_game",
+					(this.allowJoinMidGame && i.customId === "join_mid_game") ||
+					i.customId === "leave_mid_game",
 				time: timeBetweenRounds,
 			});
 
@@ -196,7 +250,22 @@ class BSPoker {
 						});
 						return;
 					}
+					if (this.everPlayers.includes(buttonInteraction.user.id)) {
+						await buttonInteraction.reply({
+							content: "You have already played in this game.",
+							ephemeral: true,
+						});
+						return;
+					}
+					if (this.players.length >= this.playerLimit) {
+						await buttonInteraction.reply({
+							content: `Sorry, the player limit of ${this.playerLimit} has been reached.`,
+							ephemeral: true,
+						});
+						return;
+					}
 					this.players.push(buttonInteraction.user.id);
+					this.everPlayers.push(buttonInteraction.user.id);
 					const startingAmount = Math.max(...this.playerCardsEntitled.values());
 					this.playerCardsEntitled.set(
 						buttonInteraction.user.id,
@@ -224,6 +293,13 @@ class BSPoker {
 					if (!this.players.includes(buttonInteraction.user.id)) {
 						await buttonInteraction.reply({
 							content: "You are not in the game.",
+							ephemeral: true,
+						});
+						return;
+					}
+					if (buttonInteraction.user.id === this.interaction.user.id) {
+						await buttonInteraction.reply({
+							content: "You cannot leave as you are the host of the game.",
 							ephemeral: true,
 						});
 						return;
@@ -260,6 +336,13 @@ class BSPoker {
 
 			if (round > 0) await promisify(setTimeout)(timeBetweenRounds); // wait 5 seconds before starting next round
 
+			if (this.players.length <= 1) {
+				break;
+			}
+
+			// Remove duplicates from players
+			this.players = [...new Set(this.players)];
+
 			this.players.forEach(async p => {
 				const hand: Deck = [];
 				for (let i = 0; i < this.playerCardsEntitled.get(p); i++) {
@@ -294,12 +377,8 @@ class BSPoker {
 						}`
 					),
 				],
-				components: [
-					new ActionRowBuilder<ButtonBuilder>().addComponents(
-						joinMidGame.setDisabled(),
-						leaveMidGame.setDisabled()
-					),
-				],
+				components:
+					round === 0 ? [] : this.allowJoinMidGame ? [djrow] : [dlrow],
 			});
 
 			await this.handlePlayerTurns();
@@ -376,7 +455,11 @@ class BSPoker {
 		buttonCollector.on("collect", async buttonInteraction => {
 			if (!this.players.includes(buttonInteraction.user.id)) {
 				await buttonInteraction.reply({
-					content: "You are not a player in this game.",
+					content: `*You are not a player in this game. Here are the common cards:*\nCommon Cards: ${
+						this.commonCards.length === 0
+							? "None"
+							: `**${formatDeck(this.commonCards)}**`
+					}`,
 					ephemeral: true,
 				});
 				return;
@@ -420,11 +503,7 @@ class BSPoker {
 				content: `BS called by <@${buttonInteraction.user.id}>!`,
 			});
 
-			const currentDeck: Deck = [].concat(
-				...Array.from(this.playerHands.values())
-			);
-			currentDeck.push(...this.commonCards);
-			const callIsTrue = callInDeck(this.currentCall.call, currentDeck);
+			const callIsTrue = callInDeck(this.currentCall.call, this.currentDeck());
 
 			if (callIsTrue) {
 				await this.interaction.channel.send({
@@ -468,6 +547,7 @@ class BSPoker {
 				return;
 			}
 			if (message.author.id !== currentPlayer) return;
+			if (hasCalledBS) return;
 			const call = parseCall(message.content);
 			if (!call || call.call == undefined || (call.call as any) === -1) {
 				// Call could not be parsed
@@ -485,12 +565,13 @@ class BSPoker {
 			}
 			if (
 				call.call === HandRank.DoublePair ||
-				call.call === HandRank.DoubleTriple
+				call.call === HandRank.DoubleTriple ||
+				call.call === HandRank.FullHouse
 			) {
 				const highCards = call.high as [Value, Value];
 				if (highCards[0] === highCards[1]) {
 					message.reply({
-						content: `Double pairs and triples must have different values (Your call: ${formatCall(
+						content: `Double pairs, triples, and full houses must have different values (Your call: ${formatCall(
 							call
 						)}). Please try again.`,
 					});

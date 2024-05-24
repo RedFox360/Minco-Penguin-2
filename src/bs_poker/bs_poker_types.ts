@@ -60,7 +60,7 @@ export const RNI = {
 
 export const RNIKeys = Object.keys(RNI).map(n => parseInt(n));
 
-export type Call = OneCall | TwoCall | ThreeCall | FlushCall;
+export type Call = OneCall | TwoCall | ThreeCall | DoubleFlushCall;
 
 interface OneCall {
 	high: Card;
@@ -74,7 +74,7 @@ interface ThreeCall {
 	high: [Value, Value, Value];
 	call: HandRank.TriplePair;
 }
-export interface FlushCall {
+export interface DoubleFlushCall {
 	high: [Card, Card];
 	call: HandRank.DoubleFlush;
 }

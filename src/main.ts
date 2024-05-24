@@ -13,8 +13,7 @@ import slashHandler from "./handlers/slash_handler.js";
 import eventHandler from "./handlers/event_handler.js";
 
 const inDev = !process.argv.includes("--prod");
-const updateCommands =
-	process.argv.includes("--update") || process.argv.includes("--prod");
+const updateCommands = process.argv.includes("--update");
 console.log(chalk.red(`In dev: ${inDev}`));
 loadenv();
 
@@ -51,7 +50,7 @@ client.on("ready", async readyClient => {
 	console.timeEnd(readyEventName);
 });
 
-const token = process.env.TOKEN as string;
+const token = inDev ? process.env.CANARY_TOKEN : process.env.TOKEN;
 const rest = new REST().setToken(token);
 
 client.login(token);

@@ -37,8 +37,10 @@ export default async function run(
 	const playerLimit: number =
 		interaction.options.getInteger("player_limit") ??
 		Math.floor((deckSize - maxCommonCards) / (cardsToOut - 1));
+	const allowJoinMidGame =
+		interaction.options.getBoolean("allow_join_mid_game") ?? true;
 
-	if (beginCards > cardsToOut) {
+	if (beginCards >= cardsToOut) {
 		await interaction.reply({
 			content:
 				"The beginning number of cards must be less than the number of cards to be out.",
@@ -242,7 +244,9 @@ Otherwise, the game will start in ${time(
 			commonCards,
 			jokerCount,
 			insuranceCount,
-			beginCards
+			beginCards,
+			allowJoinMidGame,
+			playerLimit
 		);
 
 		game

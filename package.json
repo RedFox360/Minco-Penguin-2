@@ -6,9 +6,10 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "ts-node --esm ./src/main.ts",
-    "dev-update": "ts-node --esm ./src/main.ts --update",
-    "start": "node ./compiled/main.js --prod"
+    "dev": "npx tsx ./src/main.ts",
+    "dev-update": "npx tsx ./src/main.ts --update",
+    "start": "npx tsx ./src/main.ts --prod",
+    "startu": "npx tsx ./src/main.ts --prod --update"
   },
   "dependencies": {
     "chalk": "^5.3.0",
@@ -18,6 +19,7 @@
     "pretty-ms": "^9.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20.12.12"
+    "@types/node": "^20.12.12",
+    "tsx": "^4.10.5"
   }
 }
