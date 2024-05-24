@@ -509,7 +509,9 @@ export function callInDeck(call: Call, deck: Deck) {
 	if (call.call === HandRank.Flush) {
 		if (
 			!deck.some(
-				card => card.suit === call.high.suit && card.value === call.high.value
+				card =>
+					(card.suit === call.high.suit || card.suit === "i") &&
+					card.value === call.high.value
 			)
 		)
 			return false;
@@ -529,10 +531,14 @@ export function callInDeck(call: Call, deck: Deck) {
 
 		if (
 			!deck.some(
-				card => card.suit === flush1.suit && card.value === flush1.value
+				card =>
+					(card.suit === flush1.suit || card.suit === "i") &&
+					card.value === flush1.value
 			) ||
 			!deck.some(
-				card => card.suit === flush2.suit && card.value === flush2.value
+				card =>
+					(card.suit === flush2.suit || card.suit === "i") &&
+					card.value === flush2.value
 			)
 		)
 			return false;
