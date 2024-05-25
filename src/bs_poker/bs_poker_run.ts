@@ -39,6 +39,8 @@ export default async function run(
 		Math.floor((deckSize - maxCommonCards) / (cardsToOut - 1));
 	const allowJoinMidGame =
 		interaction.options.getBoolean("allow_join_mid_game") ?? true;
+	const useSpecialCards =
+		interaction.options.getBoolean("use_special_cards") ?? false;
 
 	if (beginCards >= cardsToOut) {
 		await interaction.reply({
@@ -119,9 +121,13 @@ Otherwise, the game will start in ${time(
 			)
 			.addFields({
 				name: "Options",
-				value: `Cards to get out: ${cardsToOut}\nJokers in Deck: ${jokerCount}\nInsurance Cards in Deck: ${insuranceCount}\nStarting Cards: ${beginCards}\nCommon Cards: ${
-					commonCards === -1 ? "Median" : commonCards
-				}`,
+				value: `Cards to get out: **${cardsToOut}**
+Jokers in Deck: **${jokerCount}**
+Insurance Cards in Deck: **${insuranceCount}**
+Starting Cards: **${beginCards}**
+Common Cards: **${commonCards === -1 ? "Median" : commonCards}**
+Allow Join mid-game: **${allowJoinMidGame ? "True" : "False"}**
+Use Special Cards: **${useSpecialCards ? "True" : "False"}**`,
 			})
 			.setTimestamp()
 			.setColor(gameStarted ? 0x58d68d : 0x7289da)
@@ -246,15 +252,17 @@ Otherwise, the game will start in ${time(
 			insuranceCount,
 			beginCards,
 			allowJoinMidGame,
-			playerLimit
+			playerLimit,
+			useSpecialCards
 		);
 
 		game
 			.gameLogic()
-			.catch(() => {
+			.catch(e => {
 				interaction.channel.send(
 					"Sorry, but an unknown error occured while running the game and the game has aborted."
 				);
+				console.error(e);
 			})
 			.finally(() => {
 				channelsWithActiveGames.splice(

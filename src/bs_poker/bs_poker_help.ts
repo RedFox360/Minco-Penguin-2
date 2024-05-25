@@ -66,6 +66,17 @@ Jack: \`j\`
 Joker: \`x\``,
 		footer: { text: "Bot made by @obvsam" },
 	},
+	{
+		color: 0x7289da,
+		title: "Special Cards",
+		description: `If you start a game with the "use_special_cards" option set to True, these 2 cards will be added to the deck:
+
+:black_large_square: **Black Joker** (\`Black X\`): A player with this card can remove any card from the Common Cards after a BS is called (by any player).
+
+:red_square: **Red Joker** (\`Red X\`): If a player with this card calls a BS when it is *not their turn*, they will lose a card if their BS was correct. If incorrect, they will gain a card as usual.
+
+These cards are *publicly visible* to all players throughout the game. The players which have a Special Card are shown in the "New Round" message at the beginning of every round, and when a player clicks "View Cards". However, it is not written which Special Card they have.`,
+	},
 ];
 
 export default helpEmbeds;

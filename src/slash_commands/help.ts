@@ -1,10 +1,10 @@
 import SlashCommand from "../core/SlashCommand.js";
 import helpEmbeds from "../bs_poker/bs_poker_help.js";
-import { ComponentType, StringSelectMenuBuilder } from "discord.js";
 import {
+	ComponentType,
+	StringSelectMenuBuilder,
 	ActionRowBuilder,
-	StringSelectMenuOptionBuilder,
-} from "@discordjs/builders";
+} from "discord.js";
 import { emojiRaw } from "../bs_poker/bs_poker_types.js";
 
 const time = 10_000;
@@ -36,6 +36,10 @@ const help = new SlashCommand()
 						{
 							name: "How to Make A Call",
 							value: "3",
+						},
+						{
+							name: "Special Cards",
+							value: "4",
 						},
 					])
 			)
@@ -78,6 +82,12 @@ const help = new SlashCommand()
 					description: "How to make a call in BS Poker",
 					value: "3",
 					emoji: emojiRaw.spades,
+				},
+				{
+					label: "Special Cards",
+					description: "Special cards in BS Poker",
+					value: "4",
+					emoji: emojiRaw.joker,
 				},
 			])
 			.setMinValues(1)

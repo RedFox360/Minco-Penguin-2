@@ -1,4 +1,4 @@
-import { MessageCollector } from "discord.js";
+import { Message, MessageCollector } from "discord.js";
 import {
 	type Suit,
 	type Value,
@@ -32,7 +32,7 @@ function valueToSymbol(value: number, short = false) {
 	if (value == null) return null;
 	switch (value) {
 		case 0:
-			return short ? ":black_joker:" : "Joker";
+			return short ? emoji.joker : "Joker";
 		case 11:
 			return short ? "J" : "Jack";
 		case 12:
@@ -42,16 +42,20 @@ function valueToSymbol(value: number, short = false) {
 		case 14:
 			return short ? "A" : "Ace";
 		case 15:
-			return short ? ":information_source:" : "Insurance";
+			return short ? emoji.insurance : "Insurance";
 		default:
 			return value.toString();
 	}
 }
 
+export function formatCard(card: Card, short = false) {
+	if (card.value === 0 && card.suit === "bj") return short ? "BX" : "Black X";
+	if (card.value === 0 && card.suit === "rj") return short ? "RX" : "Red X";
+	return `${valueToSymbol(card.value, short)}${suitToEmoji(card.suit)}`;
+}
+
 function deckToStringArray(deck: Deck, short = false) {
-	return deck.map(card => {
-		return `${valueToSymbol(card.value, short)}${suitToEmoji(card.suit)}`;
-	});
+	return deck.map(card => formatCard(card, short));
 }
 
 export function formatDeck(deck: Deck, short = false) {
@@ -108,7 +112,7 @@ const royalFlushes = [
 		"srf",
 	],
 ];
-function invalidNumber(x: any) {
+export function invalidNumber(x: any) {
 	return Number.isNaN(x) || x == null;
 }
 
@@ -519,7 +523,7 @@ export function callInDeck(call: Call, deck: Deck) {
 		return (
 			deck.filter(
 				card =>
-					(card.suit === call.high.suit || card.suit === "j") &&
+					(card.suit === call.high.suit || card.value === 0) &&
 					card.value < call.high.value
 			).length >= 4
 		);
@@ -572,11 +576,7 @@ export function callInDeck(call: Call, deck: Deck) {
 	if (call.call === HandRank.StraightFlush) {
 		const straightCards = straightHighToCards(call.high.value);
 		return straightCards.every(value =>
-			deck.some(
-				card =>
-					card.value === value &&
-					card.suit === (value === 15 ? "i" : call.high.suit)
-			)
+			deck.some(card => card.value === value && card.suit === call.high.suit)
 		);
 	}
 }
@@ -787,4 +787,16 @@ export async function highestCallInDeck(deck: Deck): Promise<Call> {
 		return high;
 	});
 	return { high, call: HandRank.High };
+}
+
+export function replyThenDelete(message: Message, text: string) {
+	message
+		.reply({
+			content: text,
+		})
+		.then(msg => {
+			setTimeout(() => {
+				msg.delete();
+			}, 20_000);
+		});
 }

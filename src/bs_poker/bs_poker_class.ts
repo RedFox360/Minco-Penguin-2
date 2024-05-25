@@ -23,11 +23,14 @@ import {
 	callInDeck,
 	collectorEnd,
 	formatCall,
+	formatCard,
 	formatDeck,
 	highestCallInDeck,
+	invalidNumber,
 	isHigher,
 	median,
 	parseCall,
+	replyThenDelete,
 } from "./bs_poker_functions.js";
 import { promisify } from "util";
 
@@ -78,6 +81,7 @@ class BSPoker {
 	private playerCardsEntitled: Collection<Snowflake, number>;
 	private currentCall: PlayerCall | null = null;
 	private commonCards: Deck;
+	private useSpecialCards: boolean;
 
 	constructor(
 		interaction: ChatInputCommandInteraction<"cached">,
@@ -88,7 +92,8 @@ class BSPoker {
 		insuranceCount: number,
 		beginCards: number,
 		allowJoinMidGame: boolean,
-		playerLimit: number
+		playerLimit: number,
+		useSpecialCards: boolean
 	) {
 		this.interaction = interaction;
 		this.players = players;
@@ -100,6 +105,7 @@ class BSPoker {
 		this.beginCards = beginCards;
 		this.allowJoinMidGame = allowJoinMidGame;
 		this.playerLimit = playerLimit;
+		this.useSpecialCards = useSpecialCards;
 
 		this.playerHands = new Collection<Snowflake, Deck>();
 		this.playerCardsEntitled = new Collection<Snowflake, number>();
@@ -113,6 +119,7 @@ class BSPoker {
 	}
 
 	set gameStatus(status: number) {
+		if (status === -1 || status >= this.players.length) this._gameStatus = 0;
 		this._gameStatus = status;
 	}
 
@@ -131,6 +138,10 @@ class BSPoker {
 		for (let i = 0; i < this.jokerCount; i++) {
 			deck.push({ suit: "j", value: 0 });
 		}
+		if (this.useSpecialCards) {
+			deck.push({ suit: "bj", value: 0 });
+			deck.push({ suit: "rj", value: 0 });
+		}
 		for (const suit of suits) {
 			for (const value of values) {
 				deck.push({ suit, value });
@@ -140,6 +151,17 @@ class BSPoker {
 			deck.push({ suit: "i", value: 15 });
 		}
 		return deck;
+	}
+
+	formatPWSC() {
+		if (!this.useSpecialCards) return "";
+		if (this.playerHands.size === 0) return "";
+		const pwsc = this.players.filter(p =>
+			this.playerHands.get(p).some(c => c.suit === "bj" || c.suit === "rj")
+		);
+		return `Players with Special Cards: ${
+			pwsc.length === 0 ? "None" : pwsc.map(p => `<@${p}>`).join(" ")
+		}`;
 	}
 
 	async gameLogic() {
@@ -201,11 +223,11 @@ class BSPoker {
 				break;
 			}
 
-			const embedCreator = (x: string) => {
+			const embedCreator = (x = "", y = "") => {
 				return new EmbedBuilder()
 					.setTitle("New Round")
 					.setDescription(
-						`Common Cards: ${x}\n<@${
+						`Common Cards: ${x}\n${y}\n<@${
 							this.players[this.gameStatus]
 						}> will start the round.`
 					)
@@ -218,14 +240,16 @@ class BSPoker {
 					.setColor(0x58d68d);
 			};
 
-			const roundBeginTime = Date.now() + timeBetweenRounds;
+			const roundBeginTime = Math.floor(
+				(Date.now() + timeBetweenRounds) / 1000
+			);
 
 			const newRoundMsg = await this.interaction.channel.send({
 				embeds: [
 					embedCreator(
 						round > 0
 							? `will be shown ${time(
-									Math.floor(roundBeginTime / 1000),
+									roundBeginTime,
 									TimestampStyles.RelativeTime
 							  )}`
 							: ""
@@ -279,7 +303,7 @@ class BSPoker {
 							embedCreator(
 								round > 0
 									? `will be shown ${time(
-											Math.floor(roundBeginTime / 1000),
+											roundBeginTime,
 											TimestampStyles.RelativeTime
 									  )}`
 									: ""
@@ -316,7 +340,7 @@ class BSPoker {
 							embedCreator(
 								round > 0
 									? `will be shown ${time(
-											Math.floor(roundBeginTime / 1000),
+											roundBeginTime,
 											TimestampStyles.RelativeTime
 									  )}`
 									: ""
@@ -343,6 +367,7 @@ class BSPoker {
 			// Remove duplicates from players
 			this.players = [...new Set(this.players)];
 
+			// GIVE CARDS TO PLAYERS
 			this.players.forEach(async p => {
 				const hand: Deck = [];
 				for (let i = 0; i < this.playerCardsEntitled.get(p); i++) {
@@ -351,8 +376,6 @@ class BSPoker {
 					deck.splice(cardIndex, 1);
 				}
 				this.playerHands.set(p, hand);
-				// For debugging: Prints the hand of each player
-				// await interaction.channel.send(`<@${p}>\n${formatDeck(hand)}`);
 			});
 
 			if (this.commonCardsAmount !== 0) {
@@ -374,7 +397,8 @@ class BSPoker {
 							this.commonCards.length > 0
 								? `**${formatDeck(this.commonCards)}**`
 								: "None"
-						}`
+						}`,
+						this.formatPWSC()
 					),
 				],
 				components:
@@ -401,11 +425,11 @@ class BSPoker {
 	}
 
 	async handlePlayerTurns() {
-		if (this.gameStatus >= this.players.length) this.gameStatus = 0;
 		let currentPlayer = this.players[this.gameStatus];
 		let roundOver = false;
 		let cardGainer: Snowflake | null = null;
 		let aborted = false;
+
 		const viewCardsButton = new ButtonBuilder()
 			.setCustomId("view_cards")
 			.setLabel("View Cards")
@@ -423,7 +447,7 @@ class BSPoker {
 			return row;
 		};
 
-		const timeUp = Date.now() + allowedTime;
+		const timeUp = Math.floor((Date.now() + allowedTime) / 1000);
 		const msgContent = `${
 			this.currentCall
 				? `<@${this.currentCall.player}> has called **${formatCall(
@@ -434,10 +458,7 @@ class BSPoker {
 		const msg = await this.interaction.channel.send({
 			content:
 				msgContent +
-				` Please type your call ${time(
-					Math.floor(timeUp / 1000),
-					TimestampStyles.RelativeTime
-				)}.`,
+				` Please type your call ${time(timeUp, TimestampStyles.RelativeTime)}.`,
 			components: [getRow(false)],
 		});
 
@@ -472,7 +493,7 @@ class BSPoker {
 						this.commonCards.length === 0
 							? "None"
 							: `**${formatDeck(this.commonCards)}**`
-					}`,
+					}\n\n${this.formatPWSC()}`,
 					ephemeral: true,
 				});
 				return;
@@ -499,9 +520,89 @@ class BSPoker {
 				content: msgContent,
 				components: [getRow(true)],
 			});
+
+			const bserHand = this.playerHands.get(buttonInteraction.user.id);
+			const playersWBJ = this.playerHands.filter(hand =>
+				hand.some(card => card.suit === "bj")
+			);
+			const bserHasRJ =
+				this.useSpecialCards && bserHand.some(card => card.suit === "rj");
+
 			await buttonInteraction.reply({
 				content: `BS called by <@${buttonInteraction.user.id}>!`,
 			});
+
+			if (playersWBJ.size > 0 && this.commonCards.length > 0) {
+				const playerWithBJ = playersWBJ.firstKey();
+				// Black Joker
+
+				if (this.commonCards.length === 1) {
+					await this.interaction.channel.send({
+						content: `<@${playerWithBJ}> had a black joker! As there was only 1 common card, they will take that card (**${formatCard(
+							this.commonCards[0]
+						)}**).`,
+					});
+					this.commonCards = [];
+				} else {
+					const timeUpToTakeCard = Math.floor((Date.now() + 20_000) / 1000);
+					const commonCardsFormattedWithNumbers = this.commonCards
+						.map((card, i) => `\`${i + 1}\` **${formatCard(card)}**`)
+						.join("\n");
+					const mainContent = `<@${playerWithBJ}>, you had a black joker! You get to take 1 card from the common cards for yourself.\n${commonCardsFormattedWithNumbers}`;
+					const blackJokerMsg = await this.interaction.channel.send({
+						content:
+							mainContent +
+							`\n*Please type the number of the card you want to take* ${time(
+								timeUpToTakeCard,
+								TimestampStyles.RelativeTime
+							)}.\nIf you do not want to take any card, type \`0\`.`,
+					});
+					let hasMadeBJCall = false;
+					const bsBjCollector = this.interaction.channel.createMessageCollector(
+						{
+							time: 20_000,
+							filter: m => m.author.id === playerWithBJ,
+						}
+					);
+
+					bsBjCollector.on("collect", async message => {
+						if (hasMadeBJCall) return;
+						const cardNumber = parseInt(message.content);
+						if (
+							invalidNumber(cardNumber) ||
+							cardNumber < 0 ||
+							cardNumber > this.commonCards.length
+						)
+							return;
+						if (cardNumber === 0) {
+							await message.reply({
+								content: "You have chosen not to take any card.",
+							});
+						} else {
+							const card = this.commonCards.splice(cardNumber - 1, 1)[0];
+							await message.reply({
+								content: `You have taken the card **${formatCard(card)}**.`,
+							});
+						}
+						hasMadeBJCall = true;
+						await blackJokerMsg.edit({ content: mainContent });
+						bsBjCollector.stop();
+					});
+
+					await collectorEnd(bsBjCollector);
+
+					if (!hasMadeBJCall) {
+						await this.interaction.channel.send({
+							content: `<@${playerWithBJ}> failed to take a card in time. They will not take any card.`,
+						});
+						await blackJokerMsg.edit({ content: mainContent });
+					}
+
+					setTimeout(() => {
+						blackJokerMsg.edit({ content: mainContent });
+					});
+				}
+			}
 
 			const callIsTrue = callInDeck(this.currentCall.call, this.currentDeck());
 
@@ -523,6 +624,21 @@ class BSPoker {
 					this.currentCall.player,
 					this.playerCardsEntitled.get(this.currentCall.player) + 1
 				);
+				if (bserHasRJ && buttonInteraction.user.id !== currentPlayer) {
+					if (bserHand.length === 1) {
+						await this.interaction.channel.send({
+							content: `<@${buttonInteraction.user.id}> had a red joker and cross-BSed! However, they only had 1 card, so they do not lose any cards.`,
+						});
+					} else {
+						await this.interaction.channel.send({
+							content: `<@${buttonInteraction.user.id}> had a red joker! Since they cross-BSed, they lose 1 card.`,
+						});
+						this.playerCardsEntitled.set(
+							buttonInteraction.user.id,
+							this.playerCardsEntitled.get(buttonInteraction.user.id) - 1
+						);
+					}
+				}
 			}
 			roundOver = true;
 			hasCalled = true;
@@ -570,11 +686,12 @@ class BSPoker {
 			) {
 				const highCards = call.high as [Value, Value];
 				if (highCards[0] === highCards[1]) {
-					message.reply({
-						content: `Double pairs, triples, and full houses must have different values (Your call: ${formatCall(
+					replyThenDelete(
+						message,
+						`Double pairs, triples, and full houses must have different values (Your call: ${formatCall(
 							call
-						)}). Please try again.`,
-					});
+						)}). Please try again.`
+					);
 					return;
 				}
 			}
@@ -585,22 +702,34 @@ class BSPoker {
 					highCards[0] === highCards[2] ||
 					highCards[1] === highCards[2]
 				) {
-					message.reply({
-						content: `Triple pairs must have 3 unique values (Your call: ${formatCall(
+					replyThenDelete(
+						message,
+						`Triple pairs must have 3 unique values (Your call: ${formatCall(
 							call
-						)}). Please try again.`,
-					});
+						)}). Please try again.`
+					);
+
 					return;
 				}
+			}
+			if (call.call === HandRank.StraightFlush && call.high.value === 15) {
+				replyThenDelete(
+					message,
+					`Sorry, but Insurance-High Straight Flushes are not allowed (Your call: ${formatCall(
+						call
+					)}). Please try again.`
+				);
+				return;
 			}
 			if (call.call === HandRank.DoubleFlush) {
 				const highCards = call.high as [Card, Card];
 				if (highCards[0].suit === highCards[1].suit) {
-					message.reply({
-						content: `Double flushes must have different suits (Your call: ${formatCall(
+					replyThenDelete(
+						message,
+						`Double flushes must have different suits (Your call: ${formatCall(
 							call
-						)}). Please try again.`,
-					});
+						)}). Please try again.`
+					);
 					return;
 				}
 
@@ -609,11 +738,12 @@ class BSPoker {
 					highCards[0].value === highCards[1].value &&
 					highCards[0].value === 15
 				) {
-					message.reply({
-						content: `There are not enough insurance cards in the deck for a double insurance call (Your call: ${formatCall(
+					replyThenDelete(
+						message,
+						`There are not enough insurance cards in the deck for a double insurance call (Your call: ${formatCall(
 							call
-						)}). Please try again.`,
-					});
+						)}). Please try again.`
+					);
 					return;
 				}
 			}
@@ -651,8 +781,8 @@ class BSPoker {
 			this.gameStatus = this.players.indexOf(currentPlayer);
 			return;
 		}
-		if (this.gameStatus >= this.players.length - 1) this.gameStatus = 0;
-		else this.gameStatus++;
+
+		this.gameStatus += 1;
 
 		await this.handlePlayerTurns();
 	}

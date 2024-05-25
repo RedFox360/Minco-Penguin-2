@@ -7,3 +7,5 @@ testing.ts
 private
 .yarn
 compiled
+package-lock.json
+yarn.lock

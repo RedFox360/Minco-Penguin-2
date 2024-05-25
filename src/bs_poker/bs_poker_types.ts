@@ -1,6 +1,9 @@
 import { Collection, Snowflake } from "discord.js";
 
-export type Suit = "H" | "D" | "C" | "S" | "j" | "i" | "n";
+export type Suit = "H" | "D" | "C" | "S" | "j" | "i" | "n" | "bj" | "rj";
+// bj = black joker (take a common card)
+// rj = red joker (cross bs-ing = -1 card)
+
 export type Value =
 	| 0
 	| 2
@@ -179,6 +182,8 @@ export const emoji = {
 	diamonds: ":diamonds:",
 	clubs: "<:clubst:1241960807005425768>",
 	spades: "<:spadest:1241960808305659975>",
+	joker: ":black_joker:",
+	insurance: ":information_source:",
 };
 
 export const emojiRaw = {
@@ -186,4 +191,6 @@ export const emojiRaw = {
 	diamonds: "♦️",
 	clubs: "1241960807005425768",
 	spades: "1241960808305659975",
+	joker: "🃏",
+	insurance: "ℹ️",
 };
