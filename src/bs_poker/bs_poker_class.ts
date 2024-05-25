@@ -480,7 +480,7 @@ class BSPoker {
 						this.commonCards.length === 0
 							? "None"
 							: `**${formatDeck(this.commonCards)}**`
-					}`,
+					}\n${this.formatPWSC()}`,
 					ephemeral: true,
 				});
 				return;

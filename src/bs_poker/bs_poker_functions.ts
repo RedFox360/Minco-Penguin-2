@@ -355,7 +355,7 @@ function symbolToValue(textGiven: string): Value | null {
 	const value = parseInt(text);
 	if (value < 0 || value === 1 || value > 15) return null;
 	if (Number.isNaN(value)) return null;
-	if (<Value>value === undefined) return null;
+	if (<Value>value == null) return null;
 	return value as Value;
 }
 
