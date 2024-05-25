@@ -5,7 +5,6 @@ import {
 	Partials,
 	GatewayIntentBits,
 	REST,
-	Snowflake,
 } from "discord.js";
 import { config as loadenv } from "dotenv";
 import chalk from "chalk";
@@ -36,7 +35,7 @@ const readyEventName = "⏰ Ready Event";
 client.on("ready", async readyClient => {
 	console.time(readyEventName);
 	await eventHandler(readyClient);
-	await slashHandler(readyClient, inDev, updateCommands);
+	await slashHandler(readyClient, updateCommands);
 	console.log(
 		`${chalk.green(readyClient.user.tag)} is online in ${chalk.blue(
 			readyClient.guilds.cache.size

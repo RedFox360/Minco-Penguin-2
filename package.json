@@ -6,10 +6,11 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "npx tsx ./src/main.ts",
-    "dev-update": "npx tsx ./src/main.ts --update",
-    "start": "npx tsx ./src/main.ts --prod",
-    "startu": "npx tsx ./src/main.ts --prod --update"
+    "dev": "tsx ./src/main.ts",
+    "dev-update": "tsx ./src/main.ts --update",
+    "start": "tsx ./src/main.ts --prod",
+    "startu": "tsx ./src/main.ts --prod --update",
+    "lint": "eslint ./src"
   },
   "dependencies": {
     "chalk": "^5.3.0",
@@ -20,6 +21,11 @@
   },
   "devDependencies": {
     "@types/node": "^20.12.12",
-    "tsx": "^4.10.5"
+    "@typescript-eslint/eslint-plugin": "^7.10.0",
+    "@typescript-eslint/parser": "^7.10.0",
+    "eslint": "^9.3.0",
+    "tsx": "^4.10.5",
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^7.10.0"
   }
 }

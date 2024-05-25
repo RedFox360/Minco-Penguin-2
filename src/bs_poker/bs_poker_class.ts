@@ -425,7 +425,7 @@ class BSPoker {
 	}
 
 	async handlePlayerTurns() {
-		let currentPlayer = this.players[this.gameStatus];
+		const currentPlayer = this.players[this.gameStatus];
 		let roundOver = false;
 		let cardGainer: Snowflake | null = null;
 		let aborted = false;
@@ -665,7 +665,7 @@ class BSPoker {
 			if (message.author.id !== currentPlayer) return;
 			if (hasCalledBS) return;
 			const call = parseCall(message.content);
-			if (!call || call.call == undefined || (call.call as any) === -1) {
+			if (!call || call.call == null || (call.call as any) === -1) {
 				// Call could not be parsed
 				return;
 			}

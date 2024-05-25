@@ -4,8 +4,6 @@ import {
 	Client,
 	RESTPostAPIChatInputApplicationCommandsJSONBody,
 	RESTPostAPIContextMenuApplicationCommandsJSONBody,
-	Guild,
-	Snowflake,
 } from "discord.js";
 import { readdirSync } from "fs";
 import chalk from "chalk";
@@ -14,7 +12,6 @@ import UserContextMenu from "../core/UserContextMenu.js";
 
 export default async function slashHandler(
 	client: Client<true>,
-	inDev = false,
 	updateCommands = false
 ) {
 	const slashFiles = readdirSync(`./src/slash_commands`).filter(file =>

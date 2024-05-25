@@ -116,9 +116,9 @@ export function invalidNumber(x: any) {
 	return Number.isNaN(x) || x == null;
 }
 
-export function parseCall(call: string): Call | null {
+export function parseCall(givenCall: string): Call | null {
 	try {
-		call = call.toLowerCase().trim();
+		const call = givenCall.toLowerCase().trim();
 		const royalIndex = royalFlushes.findIndex(x => x.includes(call));
 		if (royalIndex !== -1) {
 			switch (royalIndex) {
