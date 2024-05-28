@@ -41,6 +41,8 @@ export default [
 			"no-param-reassign": "error",
 			"no-undef-init": "error",
 			"prefer-rest-params": "error",
+			"no-unused-vars": "off",
+			"@typescript-eslint/no-unused-vars": "warn",
 		},
 	},
 ];

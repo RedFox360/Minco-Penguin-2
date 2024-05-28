@@ -6,14 +6,32 @@ import {
 	HandRank,
 	type Call,
 	names,
-	Card,
+	type Card,
 	RNI,
 	RNIKeys,
 	emoji,
+	newEmoji,
+	newEmojiSuits,
 	DoubleFlushCall,
+	StrictSuit,
 } from "./bs_poker_types.js";
 
 function suitToEmoji(suit: string) {
+	switch (suit) {
+		case "H":
+			return newEmojiSuits.hearts;
+		case "D":
+			return newEmojiSuits.diamonds;
+		case "C":
+			return newEmojiSuits.clubs;
+		case "S":
+			return newEmojiSuits.spades;
+		default:
+			return "";
+	}
+}
+
+function suitToBasicEmoji(suit: string) {
 	switch (suit) {
 		case "H":
 			return emoji.hearts;
@@ -48,17 +66,56 @@ function valueToSymbol(value: number, short = false) {
 	}
 }
 
-export function formatCard(card: Card, short = false) {
+function emojiFromValue(value: Value) {
+	if (value < 2 || value > 14) return null;
+	return newEmoji[value - 2];
+}
+
+function cardToEmoji(card: Card): [string, string] | null {
+	if (card.value === 0) {
+		if (card.suit === "bj") return [newEmojiSuits.joker, newEmojiSuits.black];
+		if (card.suit === "rj") return [newEmojiSuits.joker, newEmojiSuits.red];
+		return [newEmojiSuits.joker, newEmojiSuits.blankBottom];
+	}
+	if (card.value === 15)
+		return [newEmojiSuits.insurance, newEmojiSuits.blankBottom];
+
+	const cardEmojis = emojiFromValue(card.value);
+	if (!cardEmojis) return null;
+	if (card.suit === "H") return [cardEmojis[1], newEmojiSuits.hearts];
+	if (card.suit === "D") return [cardEmojis[1], newEmojiSuits.diamonds];
+	if (card.suit === "C") return [cardEmojis[0], newEmojiSuits.clubs];
+	if (card.suit === "S") return [cardEmojis[0], newEmojiSuits.spades];
+	return null;
+}
+
+export function formatDeckLines(deck: Deck) {
+	const line1: string[] = [];
+	const line2: string[] = [];
+	for (const card of deck) {
+		const cardEmojis = cardToEmoji(card);
+		line1.push(cardEmojis[0]);
+		line2.push(cardEmojis[1]);
+	}
+	return [line1, line2];
+}
+
+export function formatDeck(deck: Deck) {
+	const formatted = formatDeckLines(deck);
+	return `${formatted[0].join(" ")}\n${formatted[1].join(" ")}`;
+}
+
+export function formatCardSideways(card: Card, short = false) {
 	if (card.value === 0 && card.suit === "bj") return short ? "BX" : "Black X";
 	if (card.value === 0 && card.suit === "rj") return short ? "RX" : "Red X";
-	return `${valueToSymbol(card.value, short)}${suitToEmoji(card.suit)}`;
+	return `${valueToSymbol(card.value, short)}${suitToBasicEmoji(card.suit)}`;
 }
 
 function deckToStringArray(deck: Deck, short = false) {
-	return deck.map(card => formatCard(card, short));
+	return deck.map(card => formatCardSideways(card, short));
 }
 
-export function formatDeck(deck: Deck, short = false) {
+export function formatDeckSideways(deck: Deck, short = false) {
 	return deckToStringArray(deck, short).join("  ");
 }
 
@@ -345,13 +402,14 @@ export function parseCall(givenCall: string): Call | null {
 
 // convert text to value, e.g. "2" -> 2, "Joker" -> 0, "K" or "King" -> 13
 function symbolToValue(textGiven: string): Value | null {
-	const text = textGiven.toLowerCase();
+	const text = textGiven.toLowerCase().trim();
 	if (text === "joker" || text === "x") return 0;
 	if (text === "insurance" || text === "i") return 15;
 	if (text === "k" || text === "king") return 13;
 	if (text === "q" || text === "queen") return 12;
-	if (text === "j" || text === "jack") return 11;
+	if (text === "j" || text === "jack" || text === "knave") return 11;
 	if (text === "a" || text === "ace") return 14;
+	if (text === "deuce") return 2;
 	const value = parseInt(text);
 	if (value < 0 || value === 1 || value > 15) return null;
 	if (Number.isNaN(value)) return null;
@@ -399,7 +457,9 @@ export function isHigher(call1: Call, call2: Call) {
 		return isHigherArray(arr1, arr2);
 	}
 	if (call_call1 === HandRank.FullHouse) {
-		return call1.high[0] > call2.high[0];
+		if (call1.high[0] > call2.high[0]) return true;
+		if (call1.high[0] < call2.high[0]) return false;
+		return call1.high[1] > call2.high[1];
 	}
 	if (call_call1 === HandRank.DoubleFlush) {
 		const arr1 = (call1.high as [Card, Card])
@@ -452,21 +512,23 @@ export function formatCall(call: Call) {
 		)} Triple`;
 	}
 	if (call.call === HandRank.Flush) {
-		return `${valueToSymbol(call.high.value)} Flush${suitToEmoji(
+		return `${valueToSymbol(call.high.value)} Flush${suitToBasicEmoji(
 			call.high.suit
 		)}`;
 	}
 	if (call.call === HandRank.StraightFlush) {
-		return `${valueToSymbol(call.high.value)} Straight Flush${suitToEmoji(
+		return `${valueToSymbol(call.high.value)} Straight Flush${suitToBasicEmoji(
 			call.high.suit
 		)}`;
 	}
 	if (call.call === HandRank.DoubleFlush) {
 		return `${valueToSymbol(
 			(call.high as [Card, Card])[0].value
-		)} Flush${suitToEmoji((call.high as [Card, Card])[0].suit)} ${valueToSymbol(
+		)} Flush${suitToBasicEmoji(
+			(call.high as [Card, Card])[0].suit
+		)} ${valueToSymbol(
 			(call.high as [Card, Card])[1].value
-		)} Flush${suitToEmoji((call.high as [Card, Card])[1].suit)}`;
+		)} Flush${suitToBasicEmoji((call.high as [Card, Card])[1].suit)}`;
 	}
 
 	return `${valueToSymbol((call.high as Card).value)} ${callNumberToName(
@@ -595,12 +657,12 @@ function straightHighToCards(high: Value): Value[] {
 }
 
 export async function highestCallInDeck(deck: Deck): Promise<Call> {
-	const suits: Suit[] = ["H", "D", "C", "S"];
+	const suits: StrictSuit[] = ["H", "D", "C", "S"];
 
 	// Straight Flush
 	if (deck.length >= 5) {
-		for (const suit of suits) {
-			for (let value = 14; value >= 2; value--) {
+		for (let value = 14; value >= 2; value--) {
+			for (const suit of suits) {
 				const straight = straightHighToCards(value as Value);
 				if (
 					straight.every(value =>
@@ -651,7 +713,7 @@ export async function highestCallInDeck(deck: Deck): Promise<Call> {
 		for (let i = 15; i >= 0; i--) {
 			if (i === 1) continue;
 			if (deck.filter(card => card.value === i).length >= 3) {
-				for (let j = i - 1; j >= 0; j--) {
+				for (let j = 15; j >= 0; j--) {
 					if (j === 1 || j === i) continue;
 					if (deck.filter(card => card.value === j).length >= 2) {
 						return {

@@ -73,6 +73,7 @@ const bsPokerCommand = new SlashCommand()
 					.setRequired(false)
 			)
 	)
+	.setCooldown(15)
 	.setRun(bsPokerRun);
 
 export default bsPokerCommand;

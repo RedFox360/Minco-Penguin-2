@@ -12,6 +12,7 @@ import SlashCommand from "../core/SlashCommand.js";
 import UserContextMenu from "../core/UserContextMenu.js";
 import prettyMs from "pretty-ms";
 const cooldowns = new Map();
+const developerIds = process.env.OWNER_ID.split(",");
 
 export default (client: Client<true>) => {
 	client.on("interactionCreate", async (interaction: Interaction) => {
@@ -44,14 +45,9 @@ export default (client: Client<true>) => {
 			"commands"
 		].get(interaction.commandName);
 
-		if (isCommand && command instanceof SlashCommand)
-			handlePermissionsCooldowns(interaction, command);
-
-		// Interaction will be run by the SlashCommand or UserContextMenu.
-		// Errors will be caught and handled by the catch block.
-		(command as any).run(interaction).catch(async err => {
+		const handleError = async err => {
 			if (err.code !== 10062) console.error(err);
-			if (interaction.user.id === process.env.OWNER_ID) {
+			if (developerIds.includes(interaction.user.id)) {
 				const errorEmbed = new EmbedBuilder()
 					.setTitle("**ERROR** ")
 					.setDescription("```xl\n" + clean(err) + "\n```")
@@ -74,7 +70,17 @@ export default (client: Client<true>) => {
 						console.error("Unknown interaction");
 					});
 			}
-		});
+		};
+		if (isCommand && command instanceof SlashCommand) {
+			const mayContinue = await handlePermissionsCooldowns(
+				interaction,
+				command
+			).catch(handleError);
+
+			// Interaction will be run by the SlashCommand or UserContextMenu.
+			// Errors will be caught and handled by the catch block.
+			if (mayContinue) (command as any).run(interaction).catch(handleError);
+		}
 	});
 };
 
@@ -89,7 +95,7 @@ async function handlePermissionsCooldowns(
 				content: cooldown.content,
 				ephemeral: true,
 			});
-			return;
+			return false;
 		}
 	}
 	if (command.botPermissions?.length > 0) {
@@ -102,9 +108,10 @@ async function handlePermissionsCooldowns(
 				content: botPermissions.content,
 				ephemeral: true,
 			});
-			return;
+			return false;
 		}
 	}
+	return true;
 }
 
 function handleCooldowns(

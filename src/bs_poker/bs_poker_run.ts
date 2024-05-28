@@ -96,7 +96,7 @@ export default async function run(
 		startButton
 	);
 
-	const startTime = Date.now() + collectorTime;
+	const startTime = Math.floor((Date.now() + collectorTime) / 1000);
 	const createEmbed = (gameStarted = false) =>
 		new EmbedBuilder()
 			.setTitle(gameStarted ? "BS Poker Game Starting" : "BS Poker")
@@ -115,7 +115,7 @@ Current players: ${players.map(player => `<@${player}>`).join(", ")}` +
 								interaction.user.id
 						  }> is the host of the game and can abort or start it immediately.
 Otherwise, the game will start in ${time(
-								Math.floor(startTime / 1000),
+								startTime,
 								TimestampStyles.RelativeTime
 						  )}`)
 			)

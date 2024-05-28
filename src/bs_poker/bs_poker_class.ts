@@ -23,7 +23,7 @@ import {
 	callInDeck,
 	collectorEnd,
 	formatCall,
-	formatCard,
+	formatCardSideways,
 	formatDeck,
 	highestCallInDeck,
 	invalidNumber,
@@ -36,6 +36,7 @@ import { promisify } from "util";
 
 const allowedTime = 60_000;
 const timeBetweenRounds = 12_000;
+const timeToTakeCard = 20_000;
 const joinMidGame = new ButtonBuilder()
 	.setStyle(ButtonStyle.Success)
 	.setLabel("Join")
@@ -69,19 +70,23 @@ class BSPoker {
 	private interaction: ChatInputCommandInteraction<"cached">;
 	private everPlayers: string[];
 	private players: string[];
+
+	// OPTIONS
 	private cardsToOut: number;
 	private commonCardsAmount: number;
 	private jokerCount: number;
 	private insuranceCount: number;
 	private beginCards: number;
 	private playerLimit: number;
-	private _gameStatus: number = 0;
 	private allowJoinMidGame: boolean;
+	private useSpecialCards: boolean;
+
+	private _gameStatus: number = 0;
 	private playerHands: PlayerHands;
 	private playerCardsEntitled: Collection<Snowflake, number>;
 	private currentCall: PlayerCall | null = null;
 	private commonCards: Deck;
-	private useSpecialCards: boolean;
+	private hostId: string;
 
 	constructor(
 		interaction: ChatInputCommandInteraction<"cached">,
@@ -110,6 +115,7 @@ class BSPoker {
 		this.playerHands = new Collection<Snowflake, Deck>();
 		this.playerCardsEntitled = new Collection<Snowflake, number>();
 		this.commonCards = [];
+		this.hostId = interaction.user.id;
 	}
 
 	get gameStatus() {
@@ -178,7 +184,7 @@ class BSPoker {
 			if (round > 0 && this.playerHands.size > 0) {
 				// Print everyone's hands
 				const handsList = this.playerHands
-					.map((hand, player) => `<@${player}>: **${formatDeck(hand, true)}**`)
+					.map((hand, player) => `<@${player}>\n${formatDeck(hand)}`)
 					.join("\n");
 
 				const getHandsEmbed = (x: string | null = null) =>
@@ -188,7 +194,7 @@ class BSPoker {
 							`Common Cards: ${
 								this.commonCards.length === 0
 									? "None"
-									: `**${formatDeck(this.commonCards, true)}**`
+									: `\n${formatDeck(this.commonCards)}`
 							}\n${handsList}${x ? `\n\n${x}` : ""}`
 						)
 						.setColor(0x7289da);
@@ -321,19 +327,18 @@ class BSPoker {
 						});
 						return;
 					}
-					if (buttonInteraction.user.id === this.interaction.user.id) {
-						await buttonInteraction.reply({
-							content: "You cannot leave as you are the host of the game.",
-							ephemeral: true,
-						});
-						return;
-					}
+					let toAppend = "";
 					this.players = this.players.filter(
 						player => player !== buttonInteraction.user.id
 					);
+					if (buttonInteraction.user.id === this.interaction.user.id) {
+						this.hostId = this.players[0];
+						toAppend = ` They were the host, so the host has been transferred to <@${this.hostId}>.`;
+						return;
+					}
 					this.playerCardsEntitled.delete(buttonInteraction.user.id);
 					await buttonInteraction.reply({
-						content: `<@${buttonInteraction.user.id}> has left the game.`,
+						content: `<@${buttonInteraction.user.id}> has left the game.${toAppend}`,
 					});
 					await newRoundMsg.edit({
 						embeds: [
@@ -395,7 +400,7 @@ class BSPoker {
 					embedCreator(
 						`${
 							this.commonCards.length > 0
-								? `**${formatDeck(this.commonCards)}**`
+								? `\n${formatDeck(this.commonCards)}`
 								: "None"
 						}`,
 						this.formatPWSC()
@@ -474,26 +479,28 @@ class BSPoker {
 		});
 
 		buttonCollector.on("collect", async buttonInteraction => {
+			const cd = this.currentDeck();
+			if (!cd || cd.length === 0) return;
 			if (!this.players.includes(buttonInteraction.user.id)) {
+				let toSendN = "*You are not a player in this game.*";
+				if (this.commonCards.length > 0)
+					toSendN += `\nCommon Cards:\n${formatDeck(this.commonCards)}`;
+				if (this.useSpecialCards) toSendN += `\n${this.formatPWSC()}`;
 				await buttonInteraction.reply({
-					content: `*You are not a player in this game. Here are the common cards:*\nCommon Cards: ${
-						this.commonCards.length === 0
-							? "None"
-							: `**${formatDeck(this.commonCards)}**`
-					}\n${this.formatPWSC()}`,
+					content: toSendN,
 					ephemeral: true,
 				});
 				return;
 			}
 			if (buttonInteraction.customId === "view_cards") {
 				await buttonInteraction.reply({
-					content: `Your Hand: **${formatDeck(
+					content: `**Your Hand:**\n${formatDeck(
 						this.playerHands.get(buttonInteraction.user.id)
-					)}**\nCommon Cards: ${
+					)}\n**Common Cards:** ${
 						this.commonCards.length === 0
 							? "None"
-							: `**${formatDeck(this.commonCards)}**`
-					}\n\n${this.formatPWSC()}`,
+							: `\n${formatDeck(this.commonCards)}`
+					}${this.useSpecialCards ? `\n\n${this.formatPWSC()}` : ""}`,
 					ephemeral: true,
 				});
 				return;
@@ -522,9 +529,9 @@ class BSPoker {
 			});
 
 			const bserHand = this.playerHands.get(buttonInteraction.user.id);
-			const playersWBJ = this.playerHands.filter(hand =>
-				hand.some(card => card.suit === "bj")
-			);
+			const playerWBJ = this.playerHands
+				.filter(hand => hand.some(card => card.suit === "bj"))
+				.firstKey();
 			const bserHasRJ =
 				this.useSpecialCards && bserHand.some(card => card.suit === "rj");
 
@@ -532,27 +539,32 @@ class BSPoker {
 				content: `BS called by <@${buttonInteraction.user.id}>!`,
 			});
 
-			if (playersWBJ.size > 0 && this.commonCards.length > 0) {
-				const playerWithBJ = playersWBJ.firstKey();
+			if (
+				playerWBJ &&
+				playerWBJ !== this.currentCall.player &&
+				this.commonCards.length > 0
+			) {
 				// Black Joker
 
 				if (this.commonCards.length === 1) {
 					await this.interaction.channel.send({
-						content: `<@${playerWithBJ}> had a black joker! As there was only 1 common card, they will take that card (**${formatCard(
+						content: `<@${playerWBJ}> had a black joker. There is 1 common card, so they will take it: **${formatCardSideways(
 							this.commonCards[0]
-						)}**).`,
+						)}**.`,
 					});
 					this.commonCards = [];
 				} else {
-					const timeUpToTakeCard = Math.floor((Date.now() + 20_000) / 1000);
+					const timeUpToTakeCard = Math.floor(
+						(Date.now() + timeToTakeCard) / 1000
+					);
 					const commonCardsFormattedWithNumbers = this.commonCards
-						.map((card, i) => `\`${i + 1}\` **${formatCard(card)}**`)
+						.map((card, i) => `\`${i + 1}\` **${formatCardSideways(card)}**`)
 						.join("\n");
-					const mainContent = `<@${playerWithBJ}>, you had a black joker! You get to take 1 card from the common cards for yourself.\n${commonCardsFormattedWithNumbers}`;
+					const mainContent = `<@${playerWBJ}>, you had a black joker! You get to remove 1 common card from the deck.\n${commonCardsFormattedWithNumbers}`;
 					const blackJokerMsg = await this.interaction.channel.send({
 						content:
 							mainContent +
-							`\n*Please type the number of the card you want to take* ${time(
+							`\n*Please type the number of the card you want to remove* ${time(
 								timeUpToTakeCard,
 								TimestampStyles.RelativeTime
 							)}.\nIf you do not want to take any card, type \`0\`.`,
@@ -560,8 +572,8 @@ class BSPoker {
 					let hasMadeBJCall = false;
 					const bsBjCollector = this.interaction.channel.createMessageCollector(
 						{
-							time: 20_000,
-							filter: m => m.author.id === playerWithBJ,
+							time: timeToTakeCard,
+							filter: m => m.author.id === playerWBJ,
 						}
 					);
 
@@ -581,7 +593,9 @@ class BSPoker {
 						} else {
 							const card = this.commonCards.splice(cardNumber - 1, 1)[0];
 							await message.reply({
-								content: `You have taken the card **${formatCard(card)}**.`,
+								content: `You have taken the card **${formatCardSideways(
+									card
+								)}**.`,
 							});
 						}
 						hasMadeBJCall = true;
@@ -593,7 +607,7 @@ class BSPoker {
 
 					if (!hasMadeBJCall) {
 						await this.interaction.channel.send({
-							content: `<@${playerWithBJ}> failed to take a card in time. They will not take any card.`,
+							content: `<@${playerWBJ}> failed to take a card in time. They will not take any card.`,
 						});
 						await blackJokerMsg.edit({ content: mainContent });
 					}
@@ -649,7 +663,7 @@ class BSPoker {
 
 		msgCollector.on("collect", async message => {
 			if (
-				(message.author.id === this.interaction.user.id ||
+				(message.author.id === this.hostId ||
 					message.member.permissions.has(PermissionFlagsBits.ManageMessages)) &&
 				!message.author.bot &&
 				message.content.toLowerCase() === "abort"
