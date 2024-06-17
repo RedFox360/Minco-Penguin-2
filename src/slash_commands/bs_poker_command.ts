@@ -1,5 +1,5 @@
 import SlashCommand from "../core/SlashCommand.js";
-import bsPokerRun from "../bs_poker/bs_poker_run.js";
+import bsPokerRun from "../functions/bs_poker/bs_poker_run.js";
 
 const bsPokerCommand = new SlashCommand()
 	.setCommandData(builder =>
@@ -9,10 +9,20 @@ const bsPokerCommand = new SlashCommand()
 			.addIntegerOption(option =>
 				option
 					.setName("cards_to_out")
-					.setDescription("Number of cards to be out")
+					.setDescription("Number of cards to get out")
 					.setRequired(true)
 					.setMinValue(2)
 					.setMaxValue(15)
+			)
+			.addIntegerOption(option =>
+				option
+					.setName("bet")
+					.setDescription(
+						"Every player must bet this to join the game, and the winner will take all. (Default: No bet)"
+					)
+					.setRequired(false)
+					.setMinValue(25)
+					.setMaxValue(2000)
 			)
 			.addIntegerOption(option =>
 				option
@@ -28,7 +38,7 @@ const bsPokerCommand = new SlashCommand()
 				option
 					.setName("player_limit")
 					.setDescription(
-						"Player limit for the game (Default: maximum possible)"
+						"Player limit for the game (Default: maximum possible number)"
 					)
 					.setRequired(false)
 					.setMinValue(2)

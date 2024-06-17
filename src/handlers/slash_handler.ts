@@ -1,4 +1,4 @@
-import { rest } from "../main.js";
+import { rest, slashCommands } from "../main.js";
 import {
 	Routes,
 	Client,
@@ -9,13 +9,18 @@ import { readdirSync } from "fs";
 import chalk from "chalk";
 import SlashCommand from "../core/SlashCommand.js";
 import UserContextMenu from "../core/UserContextMenu.js";
+import path, { dirname } from "path";
+import { fileURLToPath } from "url";
 
 export default async function slashHandler(
 	client: Client<true>,
-	updateCommands = false
+	updateCommands = false,
+	inDev = false
 ) {
-	const slashFiles = readdirSync(`./src/slash_commands`).filter(file =>
-		file.endsWith(".ts")
+	const dir = dirname(fileURLToPath(import.meta.url));
+	const slashPath = path.join(dir, "..", "slash_commands");
+	const slashFiles = readdirSync(slashPath).filter(
+		file => file.endsWith(".ts") || file.endsWith(".js")
 	);
 	const commandPromises: Array<
 		Promise<{ default: SlashCommand | UserContextMenu }>
@@ -25,11 +30,11 @@ export default async function slashHandler(
 		| RESTPostAPIContextMenuApplicationCommandsJSONBody
 	)[] = [];
 	slashFiles.forEach(fileName => {
-		commandPromises.push(import(`../slash_commands/${fileName}`));
+		commandPromises.push(import(path.join(slashPath, fileName)));
 	});
 	(await Promise.all(commandPromises)).forEach(({ default: command }) => {
 		const commandData = command.builder.toJSON();
-		client["commands"].set(commandData.name, command);
+		slashCommands.set(commandData.name, command);
 		console.log(
 			`${chalk.blue(commandData.name)} | dmp: ${
 				commandData.default_member_permissions
@@ -42,6 +47,15 @@ export default async function slashHandler(
 	);
 	if (!updateCommands) return;
 	console.log(chalk.yellow("Updating commands..."));
+
+	if (inDev) {
+		await rest.put(
+			Routes.applicationGuildCommands(client.user.id, "999133276478373919"),
+			{
+				body: data,
+			}
+		);
+	}
 	await rest.put(Routes.applicationCommands(client.user.id), {
 		body: data,
 	});

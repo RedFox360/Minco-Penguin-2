@@ -11,20 +11,21 @@ const ping = new SlashCommand()
 			fetchReply: true,
 		});
 		const latency = Math.round(interaction.client.ws.ping);
-		const ping = deferredReply.createdTimestamp - interaction.createdTimestamp;
+		const execTime =
+			deferredReply.createdTimestamp - interaction.createdTimestamp;
 
 		let status: string;
 		let color: ColorResolvable;
-		if (ping <= 200) {
+		if (execTime <= 200) {
 			status = "speed";
 			color = 0x117864;
-		} else if (ping <= 500) {
+		} else if (execTime <= 500) {
 			status = "online";
 			color = 0x48c9b0;
-		} else if (ping <= 2000) {
+		} else if (execTime <= 2000) {
 			status = "slightly lagging";
 			color = 0xf7dc6f;
-		} else if (ping <= 5000) {
+		} else if (execTime <= 5000) {
 			status = "lagging";
 			color = 0xff9433;
 		} else {
@@ -43,7 +44,7 @@ const ping = new SlashCommand()
 				{ name: "Status", value: status },
 				{
 					name: "Execution Time",
-					value: prettyMs(ping),
+					value: prettyMs(execTime),
 				},
 				{ name: "Client Latency", value: prettyMs(latency) },
 				{

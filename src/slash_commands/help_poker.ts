@@ -1,20 +1,17 @@
 import SlashCommand from "../core/SlashCommand.js";
-import helpEmbeds from "../bs_poker/bs_poker_help.js";
+import { emojiRaw } from "../functions/basic_card_types.js";
+import helpEmbeds from "../functions/bs_poker/bs_poker_help.js";
 import {
 	ComponentType,
 	StringSelectMenuBuilder,
 	ActionRowBuilder,
 } from "discord.js";
-import { emojiRaw } from "../bs_poker/bs_poker_types.js";
 
-const time = 10_000;
 const help = new SlashCommand()
 	.setCommandData(builder =>
 		builder
-			.setName("help")
-			.setDescription(
-				"Get information on how to use the bot and how to play BS Poker."
-			)
+			.setName("help_poker")
+			.setDescription("Get information on how to play BS Poker.")
 			.addStringOption(option =>
 				option
 					.setName("category")
@@ -105,7 +102,7 @@ const help = new SlashCommand()
 
 		const collector = msg.createMessageComponentCollector({
 			componentType: ComponentType.StringSelect,
-			time,
+			time: 60_000,
 		});
 
 		collector.on("collect", selectInteraction => {

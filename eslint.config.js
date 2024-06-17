@@ -26,7 +26,7 @@ export default [
 			"no-var": "error",
 			"spaced-comment": ["warn", "always", { exceptions: ["?"] }],
 			"max-lines": ["error", { max: 2000, skipBlankLines: true }],
-			"no-await-in-loop": "off",
+			"no-await-in-loop": "error",
 			"class-methods-use-this": "error",
 			"no-template-curly-in-string": "warn",
 			"no-extra-semi": "off",

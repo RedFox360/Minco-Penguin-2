@@ -5,15 +5,20 @@ import {
 	ChatInputCommandInteraction,
 	ComponentType,
 	EmbedBuilder,
-	Snowflake,
-	TimestampStyles,
-	time,
+	userMention,
 } from "discord.js";
 import BSPoker from "./bs_poker_class.js";
+import {
+	removeByValue,
+	timeToRelativeTimestamp,
+	shuffleArrayInPlace,
+} from "../util.js";
+import { getProfile } from "../../prisma/models.js";
+import { colors } from "../util.js";
+import { bsPokerTeams, channelsWithActiveGames } from "../../main.js";
 const collectorTime = 30_000;
-const channelsWithActiveGames: Snowflake[] = [];
 
-export default async function run(
+export default async function bsPokerRun(
 	interaction: ChatInputCommandInteraction<"cached">
 ) {
 	if (channelsWithActiveGames.includes(interaction.channelId)) {
@@ -28,19 +33,22 @@ export default async function run(
 	const cardsToOut: number = interaction.options.getInteger("cards_to_out");
 	const commonCards: number =
 		interaction.options.getInteger("common_cards") ?? -1;
+	const startingBet: number = interaction.options.getInteger("bet") ?? 0;
 	const jokerCount: number = interaction.options.getInteger("joker_count") ?? 2;
 	const insuranceCount: number =
 		interaction.options.getInteger("insurance_count") ?? 1;
-	const deckSize = 52 + jokerCount + insuranceCount;
-	const beginCards: number = interaction.options.getInteger("begin_cards") ?? 1;
-	const maxCommonCards = commonCards === -1 ? cardsToOut - 1 : commonCards;
-	const playerLimit: number =
-		interaction.options.getInteger("player_limit") ??
-		Math.floor((deckSize - maxCommonCards) / (cardsToOut - 1));
-	const allowJoinMidGame =
-		interaction.options.getBoolean("allow_join_mid_game") ?? true;
 	const useSpecialCards =
 		interaction.options.getBoolean("use_special_cards") ?? false;
+	const deckSize = 52 + jokerCount + insuranceCount + (useSpecialCards ? 2 : 0);
+	const beginCards: number = interaction.options.getInteger("begin_cards") ?? 1;
+	const maxCommonCards = commonCards === -1 ? cardsToOut - 1 : commonCards;
+	const maxPlayerLimit = Math.floor(
+		(deckSize - maxCommonCards) / (cardsToOut - 1)
+	);
+	const playerLimit: number =
+		interaction.options.getInteger("player_limit") ?? maxPlayerLimit;
+	const allowJoinMidGame =
+		interaction.options.getBoolean("allow_join_mid_game") ?? true;
 
 	if (beginCards >= cardsToOut) {
 		await interaction.reply({
@@ -51,10 +59,19 @@ export default async function run(
 		return;
 	}
 
-	if ((cardsToOut - 1) * playerLimit + maxCommonCards > deckSize) {
+	if (playerLimit > maxPlayerLimit) {
 		await interaction.reply({
 			content:
 				"The maximum number of cards to be dealt is greater than the size of the deck. Please alter the player limit.",
+			ephemeral: true,
+		});
+		return;
+	}
+
+	const hostProfile = await getProfile(interaction.user.id);
+	if (hostProfile.mincoDollars < startingBet) {
+		await interaction.reply({
+			content: `You do not have enough Minco Dollars to start this game with a bet of ${startingBet}.`,
 			ephemeral: true,
 		});
 		return;
@@ -85,7 +102,7 @@ export default async function run(
 		.setLabel("Start Now")
 		.setStyle(ButtonStyle.Success)
 		.setEmoji("⏩")
-		.setDisabled();
+		.setDisabled(true);
 
 	const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
 		joinButton,
@@ -96,45 +113,49 @@ export default async function run(
 		startButton
 	);
 
-	const startTime = Math.floor((Date.now() + collectorTime) / 1000);
-	const createEmbed = (gameStarted = false) =>
+	const betDisplay = startingBet
+		? `Bet to Join: **${startingBet} MD**`
+		: "**No bet required.**";
+
+	const startTime = timeToRelativeTimestamp(collectorTime);
+	const gameStartEmbed = (gameStarted = false) =>
 		new EmbedBuilder()
-			.setTitle(gameStarted ? "BS Poker Game Starting" : "BS Poker")
+			.setTitle(gameStarted ? "BS Poker Game Started" : "BS Poker")
 			.setDescription(
 				`Welcome to a game of BS Poker!
-Current players: ${players.map(player => `<@${player}>`).join(", ")}` +
+Current players: ${players.map(userMention).join(", ")}\n` +
 					(gameStarted
-						? ""
-						: `\n${playerLimit - players.length} more players can join.${
+						? betDisplay
+						: `${playerLimit - players.length} more players can join.${
 								players.length >= 2
 									? ""
 									: " Minimum 2 players required to start the game."
 						  }
-
+${betDisplay}
 <@${
 								interaction.user.id
 						  }> is the host of the game and can abort or start it immediately.
-Otherwise, the game will start in ${time(
-								startTime,
-								TimestampStyles.RelativeTime
-						  )}`)
+Otherwise, the game will start ${startTime}`)
 			)
 			.addFields({
 				name: "Options",
 				value: `Cards to get out: **${cardsToOut}**
-Jokers in Deck: **${jokerCount}**
-Insurance Cards in Deck: **${insuranceCount}**
-Starting Cards: **${beginCards}**
-Common Cards: **${commonCards === -1 ? "Median" : commonCards}**
-Allow Join mid-game: **${allowJoinMidGame ? "True" : "False"}**
-Use Special Cards: **${useSpecialCards ? "True" : "False"}**`,
+Jokers in deck: **${jokerCount}**
+Insurance cards in deck: **${insuranceCount}**
+Starting cards: **${beginCards}**
+Common cards: **${commonCards === -1 ? "Median" : commonCards}**
+Allow join mid-game: **${allowJoinMidGame ? "True" : "False"}**
+Use special cards: **${useSpecialCards ? "True" : "False"}**`,
 			})
 			.setTimestamp()
-			.setColor(gameStarted ? 0x58d68d : 0x7289da)
-			.setFooter({ text: interaction.guild.name });
+			.setColor(gameStarted ? colors.blurple : colors.green)
+			.setFooter({
+				text: interaction.guild.name,
+				iconURL: interaction.member.displayAvatarURL(),
+			});
 
 	const msg = await interaction.reply({
-		embeds: [createEmbed()],
+		embeds: [gameStartEmbed()],
 		components: [row1, row2],
 	});
 
@@ -147,7 +168,7 @@ Use Special Cards: **${useSpecialCards ? "True" : "False"}**`,
 		time: collectorTime,
 		componentType: ComponentType.Button,
 	});
-	let handleGameLogic = true;
+	let startGame = true;
 	collector.on("collect", async buttonInteraction => {
 		if (buttonInteraction.customId === "join") {
 			if (players.length >= playerLimit) {
@@ -157,19 +178,27 @@ Use Special Cards: **${useSpecialCards ? "True" : "False"}**`,
 				});
 				return;
 			}
+			const joinerProfile = await getProfile(buttonInteraction.user.id);
+			if (joinerProfile.mincoDollars < startingBet) {
+				await buttonInteraction.reply({
+					content: `You do not have enough Minco Dollars to join this game (the bet is ${startingBet}).`,
+					ephemeral: true,
+				});
+				return;
+			}
 			if (!players.includes(buttonInteraction.user.id)) {
 				players.push(buttonInteraction.user.id);
 				startButton.setDisabled(false);
 			}
 			await buttonInteraction.update({
-				embeds: [createEmbed()],
+				embeds: [gameStartEmbed()],
 				components: [row1, row2],
 			});
 		}
 		if (buttonInteraction.customId === "leave") {
 			if (buttonInteraction.user.id === interaction.user.id) {
 				await buttonInteraction.reply({
-					content: "You cannot leave as you are the host of the game.",
+					content: "You may not leave as you are the host of the game.",
 					ephemeral: true,
 				});
 				return;
@@ -182,7 +211,7 @@ Use Special Cards: **${useSpecialCards ? "True" : "False"}**`,
 				startButton.setDisabled(true);
 			}
 			await buttonInteraction.update({
-				embeds: [createEmbed()],
+				embeds: [gameStartEmbed()],
 				components: [row1, row2],
 			});
 		}
@@ -199,7 +228,7 @@ Use Special Cards: **${useSpecialCards ? "True" : "False"}**`,
 				embeds: [],
 				components: [],
 			});
-			handleGameLogic = false;
+			startGame = false;
 			collector.stop();
 		}
 		if (buttonInteraction.customId === "start") {
@@ -211,18 +240,15 @@ Use Special Cards: **${useSpecialCards ? "True" : "False"}**`,
 				return;
 			}
 			await buttonInteraction.update({
-				embeds: [createEmbed(true)],
+				embeds: [gameStartEmbed(true)],
 				components: [],
 			});
 			collector.stop();
 		}
 	});
 	collector.on("end", async () => {
-		if (!handleGameLogic) {
-			channelsWithActiveGames.splice(
-				channelsWithActiveGames.indexOf(interaction.channelId),
-				1
-			);
+		if (!startGame) {
+			removeByValue(channelsWithActiveGames, interaction.channelId);
 			return;
 		}
 		if (players.length <= 1) {
@@ -231,22 +257,24 @@ Use Special Cards: **${useSpecialCards ? "True" : "False"}**`,
 				embeds: [],
 				components: [],
 			});
-			channelsWithActiveGames.splice(
-				channelsWithActiveGames.indexOf(interaction.channelId),
-				1
-			);
+			removeByValue(channelsWithActiveGames, interaction.channelId);
 			return;
 		}
 		await msg.edit({
-			embeds: [createEmbed(true)],
+			embeds: [gameStartEmbed(true)],
 			components: [],
 		});
 		shuffleArrayInPlace(players);
+		bsPokerTeams.set(
+			interaction.channelId,
+			players.map(x => [x])
+		);
 
 		const game = new BSPoker(
 			interaction,
 			players,
 			cardsToOut,
+			startingBet,
 			commonCards,
 			jokerCount,
 			insuranceCount,
@@ -256,26 +284,13 @@ Use Special Cards: **${useSpecialCards ? "True" : "False"}**`,
 			useSpecialCards
 		);
 
-		game
-			.gameLogic()
-			.catch(e => {
-				interaction.channel.send(
-					"Sorry, but an unknown error occured while running the game and the game has aborted."
-				);
-				console.error(e);
-			})
-			.finally(() => {
-				channelsWithActiveGames.splice(
-					channelsWithActiveGames.indexOf(interaction.channelId),
-					1
-				);
-			});
-	});
-}
+		game.gameLogic().catch(e => {
+			interaction.channel.send(
+				"Sorry, but an unknown error occured while running the game and the game has aborted."
+			);
+			console.error(e);
 
-function shuffleArrayInPlace(arr: any[]) {
-	for (let i = arr.length - 1; i > 0; i--) {
-		const j = Math.floor(Math.random() * (i + 1));
-		[arr[i], arr[j]] = [arr[j], arr[i]];
-	}
+			removeByValue(channelsWithActiveGames, interaction.channelId);
+		});
+	});
 }

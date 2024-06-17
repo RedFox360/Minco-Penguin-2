@@ -3,19 +3,19 @@ import {
 	Client,
 	Collection,
 	EmbedBuilder,
-	GuildMember,
+	Events,
 	Interaction,
-	PermissionResolvable,
-	PermissionsBitField,
 } from "discord.js";
 import SlashCommand from "../core/SlashCommand.js";
 import UserContextMenu from "../core/UserContextMenu.js";
 import prettyMs from "pretty-ms";
+import { colors } from "../functions/util.js";
+import { slashCommands } from "../main.js";
 const cooldowns = new Map();
 const developerIds = process.env.OWNER_ID.split(",");
 
 export default (client: Client<true>) => {
-	client.on("interactionCreate", async (interaction: Interaction) => {
+	client.on(Events.InteractionCreate, async (interaction: Interaction) => {
 		const isCommand = interaction.isChatInputCommand();
 		const isContextMenu = interaction.isUserContextMenuCommand();
 
@@ -41,9 +41,9 @@ export default (client: Client<true>) => {
 			}
 		}
 
-		const command: SlashCommand | UserContextMenu = interaction.client[
-			"commands"
-		].get(interaction.commandName);
+		const command: SlashCommand | UserContextMenu = slashCommands.get(
+			interaction.commandName
+		);
 
 		const handleError = async err => {
 			if (err.code !== 10062) console.error(err);
@@ -51,7 +51,7 @@ export default (client: Client<true>) => {
 				const errorEmbed = new EmbedBuilder()
 					.setTitle("**ERROR** ")
 					.setDescription("```xl\n" + clean(err) + "\n```")
-					.setColor(0xe48383);
+					.setColor(colors.red);
 				interaction
 					.reply({
 						embeds: [errorEmbed],
@@ -72,19 +72,18 @@ export default (client: Client<true>) => {
 			}
 		};
 		if (isCommand && command instanceof SlashCommand) {
-			const mayContinue = await handlePermissionsCooldowns(
-				interaction,
-				command
-			).catch(handleError);
+			const mayContinue = await displayCooldowns(interaction, command).catch(
+				handleError
+			);
 
 			// Interaction will be run by the SlashCommand or UserContextMenu.
 			// Errors will be caught and handled by the catch block.
-			if (mayContinue) (command as any).run(interaction).catch(handleError);
+			if (mayContinue) command.run(interaction).catch(handleError);
 		}
 	});
 };
 
-async function handlePermissionsCooldowns(
+async function displayCooldowns(
 	interaction: ChatInputCommandInteraction<"cached">,
 	command: SlashCommand
 ) {
@@ -98,19 +97,6 @@ async function handlePermissionsCooldowns(
 			return false;
 		}
 	}
-	if (command.botPermissions?.length > 0) {
-		const botPermissions = handleBotPermissions(
-			interaction,
-			command.botPermissions
-		);
-		if (!botPermissions.success) {
-			await interaction.reply({
-				content: botPermissions.content,
-				ephemeral: true,
-			});
-			return false;
-		}
-	}
 	return true;
 }
 
@@ -119,12 +105,12 @@ function handleCooldowns(
 	command: SlashCommand
 ) {
 	const {
-		builder: { name },
+		builder: { name: commandName },
 		cooldown: cooldown,
 	} = command;
-	if (!cooldowns.has(name)) cooldowns.set(name, new Collection());
+	if (!cooldowns.has(commandName)) cooldowns.set(commandName, new Collection());
 	const currentTime = Date.now();
-	const timeStamps = cooldowns.get(name);
+	const timeStamps = cooldowns.get(commandName);
 	if (timeStamps.has(interaction.user.id)) {
 		const expTime = timeStamps.get(interaction.user.id) + cooldown;
 		if (currentTime < expTime) {
@@ -132,7 +118,7 @@ function handleCooldowns(
 			return {
 				content: `:clock: Please wait ${prettyMs(
 					timeLeft
-				)} before using command /${name}`,
+				)} before using command /${commandName}`,
 				cooldown: true,
 			};
 		}
@@ -141,35 +127,10 @@ function handleCooldowns(
 	return { cooldown: false };
 }
 
-function handleBotPermissions(
-	interaction: ChatInputCommandInteraction<"cached">,
-	botPermissions: PermissionResolvable[]
-) {
-	const me = interaction.guild.members.me as GuildMember;
-	const missingPermissions = botPermissions.filter(
-		permission => !me.permissions.has(permission)
-	);
-	if (missingPermissions.length > 0) {
-		const formattedPermissions = new PermissionsBitField(missingPermissions)
-			.toArray()
-			.map(a => "`" + pascalCaseToWords(a) + "`")
-			.join(", ");
-		return {
-			success: false,
-			content: `Minco Penguin needs the following permissions to run this command: ${formattedPermissions}`,
-		};
-	}
-	return { success: true };
-}
-
 function clean(text: any) {
 	if (typeof text === "string")
 		return text
 			.replace(/`/g, "`" + String.fromCharCode(8203))
 			.replace(/@/g, "@" + String.fromCharCode(8203));
 	else return text;
-}
-
-function pascalCaseToWords(str: string) {
-	return str.replace(/([A-Z])/g, " $1").trim();
 }

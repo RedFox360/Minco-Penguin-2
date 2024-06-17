@@ -1,123 +1,18 @@
-import { Message, MessageCollector } from "discord.js";
+import { MessageCollector } from "discord.js";
 import {
-	type Suit,
-	type Value,
-	type Deck,
+	type ExtSuit,
+	type ExtValue,
 	HandRank,
 	type Call,
 	names,
-	type Card,
+	type ExtCard,
 	RNI,
 	RNIKeys,
-	emoji,
-	newEmoji,
-	newEmojiSuits,
 	DoubleFlushCall,
-	StrictSuit,
+	royalFlushes,
 } from "./bs_poker_types.js";
-
-function suitToEmoji(suit: string) {
-	switch (suit) {
-		case "H":
-			return newEmojiSuits.hearts;
-		case "D":
-			return newEmojiSuits.diamonds;
-		case "C":
-			return newEmojiSuits.clubs;
-		case "S":
-			return newEmojiSuits.spades;
-		default:
-			return "";
-	}
-}
-
-function suitToBasicEmoji(suit: string) {
-	switch (suit) {
-		case "H":
-			return emoji.hearts;
-		case "D":
-			return emoji.diamonds;
-		case "C":
-			return emoji.clubs;
-		case "S":
-			return emoji.spades;
-		default:
-			return "";
-	}
-}
-
-function valueToSymbol(value: number, short = false) {
-	if (value == null) return null;
-	switch (value) {
-		case 0:
-			return short ? emoji.joker : "Joker";
-		case 11:
-			return short ? "J" : "Jack";
-		case 12:
-			return short ? "Q" : "Queen";
-		case 13:
-			return short ? "K" : "King";
-		case 14:
-			return short ? "A" : "Ace";
-		case 15:
-			return short ? emoji.insurance : "Insurance";
-		default:
-			return value.toString();
-	}
-}
-
-function emojiFromValue(value: Value) {
-	if (value < 2 || value > 14) return null;
-	return newEmoji[value - 2];
-}
-
-function cardToEmoji(card: Card): [string, string] | null {
-	if (card.value === 0) {
-		if (card.suit === "bj") return [newEmojiSuits.joker, newEmojiSuits.black];
-		if (card.suit === "rj") return [newEmojiSuits.joker, newEmojiSuits.red];
-		return [newEmojiSuits.joker, newEmojiSuits.blankBottom];
-	}
-	if (card.value === 15)
-		return [newEmojiSuits.insurance, newEmojiSuits.blankBottom];
-
-	const cardEmojis = emojiFromValue(card.value);
-	if (!cardEmojis) return null;
-	if (card.suit === "H") return [cardEmojis[1], newEmojiSuits.hearts];
-	if (card.suit === "D") return [cardEmojis[1], newEmojiSuits.diamonds];
-	if (card.suit === "C") return [cardEmojis[0], newEmojiSuits.clubs];
-	if (card.suit === "S") return [cardEmojis[0], newEmojiSuits.spades];
-	return null;
-}
-
-export function formatDeckLines(deck: Deck) {
-	const line1: string[] = [];
-	const line2: string[] = [];
-	for (const card of deck) {
-		const cardEmojis = cardToEmoji(card);
-		line1.push(cardEmojis[0]);
-		line2.push(cardEmojis[1]);
-	}
-	return [line1, line2];
-}
-
-export function formatDeck(deck: Deck) {
-	const formatted = formatDeckLines(deck);
-	return `${formatted[0].join(" ")}\n${formatted[1].join(" ")}`;
-}
-
-export function formatCardSideways(card: Card, short = false) {
-	if (card.value === 0 && card.suit === "bj") return short ? "BX" : "Black X";
-	if (card.value === 0 && card.suit === "rj") return short ? "RX" : "Red X";
-	return `${valueToSymbol(card.value, short)}${suitToBasicEmoji(card.suit)}`;
-}
-
-function deckToStringArray(deck: Deck, short = false) {
-	return deck.map(card => formatCardSideways(card, short));
-}
-
-export function formatDeckSideways(deck: Deck, short = false) {
-	return deckToStringArray(deck, short).join("  ");
-}
+import { emoji, suits } from "../basic_card_types.js";
+import { suitToBasicEmoji, valueToSymbol } from "../basic_card_functions.js";
 
 export function median(x: number[]) {
 	const sorted = x.sort((a, b) => a - b);
@@ -135,40 +30,6 @@ export function collectorEnd(collector: MessageCollector) {
 	);
 }
 
-const royalFlushes = [
-	[
-		"hearts royal flush",
-		"royal flush hearts",
-		"royal hearts flush",
-		"rfh",
-		"rhf",
-		"hrf",
-	],
-	[
-		"diamonds royal flush",
-		"royal flush diamonds",
-		"royal diamonds flush",
-		"rfd",
-		"rdf",
-		"drf",
-	],
-	[
-		"clubs royal flush",
-		"royal flush clubs",
-		"royal clubs flush",
-		"rfc",
-		"rcf",
-		"crf",
-	],
-	[
-		"spades royal flush",
-		"royal flush spades",
-		"royal spades flush",
-		"rfs",
-		"rsf",
-		"srf",
-	],
-];
 export function invalidNumber(x: any) {
 	return Number.isNaN(x) || x == null;
 }
@@ -252,13 +113,13 @@ export function parseCall(givenCall: string): Call | null {
 		}
 
 		// Full Houses
-		const tripleIndex = split.findIndex(x =>
-			names[RNI[HandRank.Triple]].includes(x)
-		);
-		const pairIndex = split.findIndex(x =>
-			names[RNI[HandRank.Pair]].includes(x)
-		);
-		if (tripleIndex !== -1 && pairIndex !== -1) {
+		if (pairAppearances === 1 && tripleAppearances === 1) {
+			const tripleIndex = split.findIndex(x =>
+				names[RNI[HandRank.Triple]].includes(x)
+			);
+			const pairIndex = split.findIndex(x =>
+				names[RNI[HandRank.Pair]].includes(x)
+			);
 			const indices = tripleIndex < pairIndex ? [0, 2] : [2, 0];
 			const high1 = symbolToValue(split[indices[0]]);
 			if (invalidNumber(high1)) return null;
@@ -306,7 +167,7 @@ export function parseCall(givenCall: string): Call | null {
 
 		const flushAppearances = newSplit
 			? newSplit
-					.map((x): Suit => {
+					.map((x): ExtSuit => {
 						if (has(RNI[HandRank.Flush], x)) return "H";
 						if (has(RNI[HandRank.Flush + 1], x)) return "D";
 						if (has(RNI[HandRank.Flush + 2], x)) return "C";
@@ -325,6 +186,7 @@ export function parseCall(givenCall: string): Call | null {
 				// double flushes are asked like this: 2 flush 4 flush
 				const suit1 = flushAppearances[0];
 				const suit2 = flushAppearances[1];
+				if (!suit1 || !suit2) return null;
 
 				const high1 = symbolToValue(newSplit[0]);
 				if (invalidNumber(high1)) return null;
@@ -340,7 +202,7 @@ export function parseCall(givenCall: string): Call | null {
 				};
 			}
 
-			let suit: Suit;
+			let suit: ExtSuit;
 			switch (callIndex - RNI[HandRank.Flush]) {
 				case 0:
 					suit = "H";
@@ -355,8 +217,7 @@ export function parseCall(givenCall: string): Call | null {
 					suit = "S";
 					break;
 				default:
-					suit = "n";
-					break;
+					return null;
 			}
 			return {
 				high: { value: high, suit },
@@ -368,7 +229,7 @@ export function parseCall(givenCall: string): Call | null {
 			callIndex >= RNI[HandRank.StraightFlush] &&
 			callIndex <= RNI[HandRank.StraightFlushMax]
 		) {
-			let suit: Suit;
+			let suit: ExtSuit;
 			switch (callIndex - RNI[HandRank.StraightFlush]) {
 				case 0:
 					suit = "H";
@@ -383,7 +244,7 @@ export function parseCall(givenCall: string): Call | null {
 					suit = "S";
 					break;
 				default:
-					suit = "n";
+					suit = null;
 					break;
 			}
 			return {
@@ -392,18 +253,18 @@ export function parseCall(givenCall: string): Call | null {
 			};
 		}
 		return {
-			high: { value: high, suit: "n" },
+			high: { value: high, suit: null },
 			call: RNIKeys.find(key => RNI[key] === callIndex),
 		};
-	} catch (e) {
+	} catch {
 		return null;
 	}
 }
 
 // convert text to value, e.g. "2" -> 2, "Joker" -> 0, "K" or "King" -> 13
-function symbolToValue(textGiven: string): Value | null {
+function symbolToValue(textGiven: string): ExtValue | null {
 	const text = textGiven.toLowerCase().trim();
-	if (text === "joker" || text === "x") return 0;
+	if (text === "joker" || text === "x") return 1;
 	if (text === "insurance" || text === "i") return 15;
 	if (text === "k" || text === "king") return 13;
 	if (text === "q" || text === "queen") return 12;
@@ -411,10 +272,9 @@ function symbolToValue(textGiven: string): Value | null {
 	if (text === "a" || text === "ace") return 14;
 	if (text === "deuce") return 2;
 	const value = parseInt(text);
-	if (value < 0 || value === 1 || value > 15) return null;
-	if (Number.isNaN(value)) return null;
-	if (<Value>value == null) return null;
-	return value as Value;
+	if (value < 1 || value > 15) return null;
+	if (invalidNumber(value)) return null;
+	return value as ExtValue;
 }
 
 // make every word in a string start with a capital
@@ -428,19 +288,6 @@ function callNumberToName(call: HandRank) {
 	return capitalize(names[RNI[call]][0]);
 }
 
-function isHigherArray(arr1: number[], arr2: number[]) {
-	for (let i = arr1.length - 1; i >= 0; i--) {
-		if (arr1[i] > arr2[i]) return true;
-		if (arr1[i] < arr2[i]) return false;
-	}
-	return false;
-}
-
-function isLowerArray(arr1: number[], arr2: number[]) {
-	if (arr1.join(" ") === arr2.join(" ")) return false;
-	return !isHigherArray(arr1, arr2);
-}
-
 // returns whether call1 is a higher call than call2
 export function isHigher(call1: Call, call2: Call) {
 	const call_call1 = call1.call;
@@ -452,9 +299,9 @@ export function isHigher(call1: Call, call2: Call) {
 		call_call1 === HandRank.DoubleTriple ||
 		call_call1 === HandRank.TriplePair
 	) {
-		const arr1 = (call1.high as Value[]).sort((a, b) => a - b);
-		const arr2 = (call2.high as Value[]).sort((a, b) => a - b);
-		return isHigherArray(arr1, arr2);
+		const arr1 = (call1.high as ExtValue[]).sort((a, b) => a - b);
+		const arr2 = (call2.high as ExtValue[]).sort((a, b) => a - b);
+		return Math.max(...arr1) > Math.max(...arr2);
 	}
 	if (call_call1 === HandRank.FullHouse) {
 		if (call1.high[0] > call2.high[0]) return true;
@@ -462,16 +309,16 @@ export function isHigher(call1: Call, call2: Call) {
 		return call1.high[1] > call2.high[1];
 	}
 	if (call_call1 === HandRank.DoubleFlush) {
-		const arr1 = (call1.high as [Card, Card])
+		const arr1 = (call1.high as [ExtCard, ExtCard])
 			.map(card => card.value)
 			.sort((a, b) => a - b);
-		const arr2 = (call2.high as [Card, Card])
+		const arr2 = (call2.high as [ExtCard, ExtCard])
 			.map(card => card.value)
 			.sort((a, b) => a - b);
-		return isLowerArray(arr1, arr2);
+		return Math.min(...arr1) < Math.min(...arr2);
 	}
-	const call1_high = (call1.high as Card).value;
-	const call2_high = (call2.high as Card).value;
+	const call1_high = (call1.high as ExtCard).value;
+	const call2_high = (call2.high as ExtCard).value;
 	if (call_call1 !== HandRank.Flush) return call1_high > call2_high;
 	return call1_high < call2_high;
 }
@@ -488,7 +335,7 @@ export function formatCall(call: Call) {
 			case "S":
 				return `Royal Flush${emoji.spades}`;
 			default:
-				return "Royal Flush (Unknown Suit)";
+				return "Unknown Call";
 		}
 	}
 	if (call.call === HandRank.DoublePair) {
@@ -523,20 +370,20 @@ export function formatCall(call: Call) {
 	}
 	if (call.call === HandRank.DoubleFlush) {
 		return `${valueToSymbol(
-			(call.high as [Card, Card])[0].value
+			(call.high as [ExtCard, ExtCard])[0].value
 		)} Flush${suitToBasicEmoji(
-			(call.high as [Card, Card])[0].suit
+			(call.high as [ExtCard, ExtCard])[0].suit
 		)} ${valueToSymbol(
-			(call.high as [Card, Card])[1].value
-		)} Flush${suitToBasicEmoji((call.high as [Card, Card])[1].suit)}`;
+			(call.high as [ExtCard, ExtCard])[1].value
+		)} Flush${suitToBasicEmoji((call.high as [ExtCard, ExtCard])[1].suit)}`;
 	}
 
-	return `${valueToSymbol((call.high as Card).value)} ${callNumberToName(
+	return `${valueToSymbol((call.high as ExtCard).value)} ${callNumberToName(
 		call.call
 	)}`;
 }
 
-export function callInDeck(call: Call, deck: Deck) {
+export function callInDeck(call: Call, deck: ExtCard[]) {
 	if (call.call === HandRank.High)
 		return deck.some(card => card.value === call.high.value);
 	if (call.call === HandRank.Pair)
@@ -585,7 +432,7 @@ export function callInDeck(call: Call, deck: Deck) {
 		return (
 			deck.filter(
 				card =>
-					(card.suit === call.high.suit || card.value === 0) &&
+					(card.suit === call.high.suit || card.value === 1) &&
 					card.value < call.high.value
 			).length >= 4
 		);
@@ -620,7 +467,7 @@ export function callInDeck(call: Call, deck: Deck) {
 			});
 		}
 
-		const jokerLength = deck.filter(card => card.value === 0).length;
+		const jokerLength = deck.filter(card => card.value === 1).length;
 		let jokersUsed = 0;
 		return flushCall.high.every(card => {
 			const length = deck.filter(
@@ -646,31 +493,29 @@ export function callInDeck(call: Call, deck: Deck) {
 // create a function to convert the high card of a straight to a list of 5 cards for the straight
 // e.g. if the top value is 14, it should return 14, 13, 12, 11, 10
 // if the top value is 2, it will return 2, 14, 13, 12, 11 (wrap-around)
-function straightHighToCards(high: Value): Value[] {
+function straightHighToCards(high: ExtValue): ExtValue[] {
 	if (high === 15) return [15, 14, 13, 12, 11];
-	if (high === 0) return [0, 14, 13, 12, 11];
-	const cards: Value[] = [];
+	if (high === 1) return [1, 14, 13, 12, 11];
+	const cards: ExtValue[] = [];
 	for (let i = 0; i < 5; i++) {
-		cards.push(<Value>(((high - 1 - i + 13) % 13 || 13) + 1));
+		cards.push(<ExtValue>(((high - 1 - i + 13) % 13 || 13) + 1));
 	}
 	return cards;
 }
 
-export async function highestCallInDeck(deck: Deck): Promise<Call> {
-	const suits: StrictSuit[] = ["H", "D", "C", "S"];
-
+export async function highestCallInDeck(deck: ExtCard[]): Promise<Call> {
 	// Straight Flush
 	if (deck.length >= 5) {
 		for (let value = 14; value >= 2; value--) {
 			for (const suit of suits) {
-				const straight = straightHighToCards(value as Value);
+				const straight = straightHighToCards(value as ExtValue);
 				if (
 					straight.every(value =>
 						deck.some(card => card.value === value && card.suit === suit)
 					)
 				) {
 					return {
-						high: { value: value as Value, suit },
+						high: { value: value as ExtValue, suit },
 						call: HandRank.StraightFlush,
 					};
 				}
@@ -680,11 +525,10 @@ export async function highestCallInDeck(deck: Deck): Promise<Call> {
 
 	// Quad
 	if (deck.length >= 4) {
-		for (let value = 15; value >= 0; value--) {
-			if (value === 1) continue;
+		for (let value = 15; value >= 1; value--) {
 			if (deck.filter(card => card.value === value).length >= 4) {
 				return {
-					high: { value: value as Value, suit: "n" },
+					high: { value: value as ExtValue, suit: null },
 					call: HandRank.Quad,
 				};
 			}
@@ -693,13 +537,12 @@ export async function highestCallInDeck(deck: Deck): Promise<Call> {
 
 	// Double Triple
 	if (deck.length >= 6) {
-		for (let i = 15; i >= 0; i--) {
-			if (i === 1) continue;
+		for (let i = 15; i >= 1; i--) {
 			if (deck.filter(card => card.value === i).length >= 3) {
 				for (let j = i - 1; j >= 2; j--) {
 					if (deck.filter(card => card.value === j).length >= 3) {
 						return {
-							high: [i as Value, j as Value],
+							high: [i as ExtValue, j as ExtValue],
 							call: HandRank.DoubleTriple,
 						};
 					}
@@ -710,14 +553,13 @@ export async function highestCallInDeck(deck: Deck): Promise<Call> {
 
 	// Full House
 	if (deck.length >= 5) {
-		for (let i = 15; i >= 0; i--) {
-			if (i === 1) continue;
+		for (let i = 15; i >= 1; i--) {
 			if (deck.filter(card => card.value === i).length >= 3) {
 				for (let j = 15; j >= 0; j--) {
-					if (j === 1 || j === i) continue;
+					if (j === i) continue;
 					if (deck.filter(card => card.value === j).length >= 2) {
 						return {
-							high: [i as Value, j as Value],
+							high: [i as ExtValue, j as ExtValue],
 							call: HandRank.FullHouse,
 						};
 					}
@@ -739,11 +581,11 @@ export async function highestCallInDeck(deck: Deck): Promise<Call> {
 						const dfCall: DoubleFlushCall = {
 							high: [
 								{
-									value: i as Value,
+									value: i as ExtValue,
 									suit: suit1,
 								},
 								{
-									value: j as Value,
+									value: j as ExtValue,
 									suit: suit2,
 								},
 							],
@@ -761,7 +603,7 @@ export async function highestCallInDeck(deck: Deck): Promise<Call> {
 			for (const suit of suits) {
 				const call_flush = {
 					call: HandRank.Flush,
-					high: { value: i as Value, suit },
+					high: { value: i as ExtValue, suit },
 				};
 				if (callInDeck(call_flush, deck)) {
 					return call_flush;
@@ -770,11 +612,11 @@ export async function highestCallInDeck(deck: Deck): Promise<Call> {
 		}
 
 		// Straight
-		for (let i = 15; i >= 2; i--) {
-			const straight = straightHighToCards(i as Value);
+		for (let i = 15; i >= 1; i--) {
+			const straight = straightHighToCards(i as ExtValue);
 			if (straight.every(value => deck.some(card => card.value === value))) {
 				return {
-					high: { value: i as Value, suit: "n" },
+					high: { value: i as ExtValue, suit: null },
 					call: HandRank.Straight,
 				};
 			}
@@ -783,11 +625,10 @@ export async function highestCallInDeck(deck: Deck): Promise<Call> {
 
 	// Triple
 	if (deck.length >= 3) {
-		for (let i = 15; i >= 0; i--) {
-			if (i === 1) continue;
+		for (let i = 15; i >= 1; i--) {
 			if (deck.filter(card => card.value === i).length >= 3) {
 				return {
-					high: { value: i as Value, suit: "n" },
+					high: { value: i as ExtValue, suit: null },
 					call: HandRank.Triple,
 				};
 			}
@@ -796,17 +637,16 @@ export async function highestCallInDeck(deck: Deck): Promise<Call> {
 
 	// Triple Pair
 	if (deck.length >= 6) {
-		for (let i = 15; i >= 0; i--) {
-			if (i === 1) continue;
+		for (let i = 15; i >= 1; i--) {
 			if (deck.filter(card => card.value === i).length >= 2) {
-				for (let j = i - 1; j >= 0; j--) {
-					if (j === 1 || j === i) continue;
+				for (let j = i - 1; j >= 1; j--) {
+					if (j === i) continue;
 					if (deck.filter(card => card.value === j).length >= 2) {
-						for (let k = j - 1; k >= 0; k--) {
-							if (k === 1 || k === j) continue;
+						for (let k = j - 1; k >= 1; k--) {
+							if (k === j) continue;
 							if (deck.filter(card => card.value === k).length >= 2) {
 								return {
-									high: [i as Value, j as Value, k as Value],
+									high: [i as ExtValue, j as ExtValue, k as ExtValue],
 									call: HandRank.TriplePair,
 								};
 							}
@@ -819,14 +659,13 @@ export async function highestCallInDeck(deck: Deck): Promise<Call> {
 
 	// Double Pair
 	if (deck.length >= 4) {
-		for (let i = 15; i >= 0; i--) {
-			if (i === 1) continue;
+		for (let i = 15; i >= 1; i--) {
 			if (deck.filter(card => card.value === i).length >= 2) {
-				for (let j = i - 1; j >= 0; j--) {
-					if (j === 1 || j === i) continue;
+				for (let j = i - 1; j >= 1; j--) {
+					if (j === i) continue;
 					if (deck.filter(card => card.value === j).length >= 2) {
 						return {
-							high: [i as Value, j as Value],
+							high: [i as ExtValue, j as ExtValue],
 							call: HandRank.DoublePair,
 						};
 					}
@@ -836,10 +675,12 @@ export async function highestCallInDeck(deck: Deck): Promise<Call> {
 	}
 
 	// Pair
-	for (let i = 15; i >= 0; i--) {
-		if (i === 1) continue;
+	for (let i = 15; i >= 1; i--) {
 		if (deck.filter(card => card.value === i).length >= 2) {
-			return { high: { value: i as Value, suit: "n" }, call: HandRank.Pair };
+			return {
+				high: { value: i as ExtValue, suit: null },
+				call: HandRank.Pair,
+			};
 		}
 	}
 
@@ -849,16 +690,4 @@ export async function highestCallInDeck(deck: Deck): Promise<Call> {
 		return high;
 	});
 	return { high, call: HandRank.High };
-}
-
-export function replyThenDelete(message: Message, text: string) {
-	message
-		.reply({
-			content: text,
-		})
-		.then(msg => {
-			setTimeout(() => {
-				msg.delete();
-			}, 20_000);
-		});
 }
