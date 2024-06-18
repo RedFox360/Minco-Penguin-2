@@ -9,10 +9,10 @@ import {
 import SlashCommand from "../core/SlashCommand.js";
 import UserContextMenu from "../core/UserContextMenu.js";
 import prettyMs from "pretty-ms";
-import { colors } from "../functions/util.js";
+import { clean, colors } from "../functions/util.js";
 import { slashCommands } from "../main.js";
 const cooldowns = new Map();
-const developerIds = process.env.OWNER_ID.split(",");
+const ownerId = process.env.OWNER_ID;
 
 export default (client: Client<true>) => {
 	client.on(Events.InteractionCreate, async (interaction: Interaction) => {
@@ -47,7 +47,7 @@ export default (client: Client<true>) => {
 
 		const handleError = async err => {
 			if (err.code !== 10062) console.error(err);
-			if (developerIds.includes(interaction.user.id)) {
+			if (interaction.user.id === ownerId) {
 				const errorEmbed = new EmbedBuilder()
 					.setTitle("**ERROR** ")
 					.setDescription("```xl\n" + clean(err) + "\n```")
@@ -125,12 +125,4 @@ function handleCooldowns(
 	}
 	timeStamps.set(interaction.user.id, currentTime);
 	return { cooldown: false };
-}
-
-function clean(text: any) {
-	if (typeof text === "string")
-		return text
-			.replace(/`/g, "`" + String.fromCharCode(8203))
-			.replace(/@/g, "@" + String.fromCharCode(8203));
-	else return text;
 }

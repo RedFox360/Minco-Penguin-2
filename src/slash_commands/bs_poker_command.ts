@@ -73,13 +73,15 @@ const bsPokerCommand = new SlashCommand()
 			.addBooleanOption(option =>
 				option
 					.setName("allow_join_mid_game")
-					.setDescription("Allow players to join mid-game (Default: true)")
+					.setDescription("Allow players to join mid-game (Default: True)")
 					.setRequired(false)
 			)
 			.addBooleanOption(option =>
 				option
 					.setName("use_special_cards")
-					.setDescription("/help Special Cards for more info (Default: False)")
+					.setDescription(
+						"/help poker Special Cards for more info (Default: False)"
+					)
 					.setRequired(false)
 			)
 	)

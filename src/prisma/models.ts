@@ -9,6 +9,10 @@ export function getProfile(userId: string) {
 		update: {},
 		create: {
 			userId: userId,
+			mincoDollars: 1000,
+			bank: 0,
+			bsPokerWins: 0,
+			bsPokerGamesPlayed: 0,
 		},
 	});
 }

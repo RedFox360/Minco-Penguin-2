@@ -1,6 +1,7 @@
 import { EmbedBuilder } from "discord.js";
 import SlashCommand from "../core/SlashCommand.js";
 import { getProfile } from "../prisma/models.js";
+import { colors } from "../functions/util.js";
 
 const balanceCommand = new SlashCommand()
 	.setCommandData(builder =>
@@ -24,7 +25,7 @@ const balanceCommand = new SlashCommand()
 				name: `${member.displayName}'s Balance`,
 				iconURL: avatar,
 			})
-			.setColor(0xb8ff8b)
+			.setColor(colors.brightGreen)
 			.setDescription(
 				`🪙 Wallet: **${profile.mincoDollars.toLocaleString(
 					interaction.locale

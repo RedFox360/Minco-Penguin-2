@@ -1,5 +1,5 @@
 import { Snowflake } from "discord.js";
-import { Suit, Value } from "../basic_card_types";
+import { Suit, Value } from "../basic_card_types.js";
 
 export type ExtSuit = Suit | "j" | "i" | "bj" | "rj" | null;
 // Hearts, Diamonds, Clubs, Spades, Joker, Insurance, Black Joker, Red Joker, [No Suit/Unprovided]

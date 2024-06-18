@@ -14,9 +14,11 @@ datasource db {
 }
 
 model Profile {
-  id             String    @id @default(auto()) @map("_id") @db.ObjectId
-  userId         String    @unique
-  mincoDollars   Int       @default(1000)
-  bank           Int       @default(0)
-  lastDailyClaim DateTime?
+  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId             String    @unique
+  mincoDollars       Int       @default(1000)
+  bank               Int       @default(0)
+  lastDailyClaim     DateTime?
+  bsPokerWins        Int       @default(0)
+  bsPokerGamesPlayed Int       @default(0)
 }

@@ -17,9 +17,13 @@ export default async function eventHandler(client: Client) {
 	const eventNames: Array<string> = [];
 	for (const file of eventFiles) {
 		eventPromises.push(import(path.join(eventsPath, file)));
-		eventNames.push(file.split(".")[0]);
+		const eventName = file.split(".")[0];
+		eventNames.push(eventName);
+		console.log(chalk.yellow(eventName));
 	}
 	const events = await Promise.all(eventPromises);
 	events.forEach(exports => exports.default(client));
-	console.log(`${chalk.yellow(events.length)} events loaded`);
+	console.log(
+		`${chalk.green("events loaded")} || event count: ${eventNames.length}`
+	);
 }

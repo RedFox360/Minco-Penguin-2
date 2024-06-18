@@ -13,14 +13,7 @@ import {
 } from "./bs_poker_types.js";
 import { emoji, suits } from "../basic_card_types.js";
 import { suitToBasicEmoji, valueToSymbol } from "../basic_card_functions.js";
-
-export function median(x: number[]) {
-	const sorted = x.sort((a, b) => a - b);
-	const mid = Math.floor(sorted.length / 2);
-	return sorted.length % 2 !== 0
-		? sorted[mid]
-		: (sorted[mid - 1] + sorted[mid]) / 2;
-}
+import { invalidNumber } from "../util.js";
 
 export function collectorEnd(collector: MessageCollector) {
 	return new Promise<void>(resolve =>
@@ -28,10 +21,6 @@ export function collectorEnd(collector: MessageCollector) {
 			resolve();
 		})
 	);
-}
-
-export function invalidNumber(x: any) {
-	return Number.isNaN(x) || x == null;
 }
 
 export function parseCall(givenCall: string): Call | null {
@@ -264,17 +253,38 @@ export function parseCall(givenCall: string): Call | null {
 // convert text to value, e.g. "2" -> 2, "Joker" -> 0, "K" or "King" -> 13
 function symbolToValue(textGiven: string): ExtValue | null {
 	const text = textGiven.toLowerCase().trim();
-	if (text === "joker" || text === "x") return 1;
-	if (text === "insurance" || text === "i") return 15;
-	if (text === "k" || text === "king") return 13;
-	if (text === "q" || text === "queen") return 12;
-	if (text === "j" || text === "jack" || text === "knave") return 11;
-	if (text === "a" || text === "ace") return 14;
-	if (text === "deuce") return 2;
-	const value = parseInt(text);
-	if (value < 1 || value > 15) return null;
-	if (invalidNumber(value)) return null;
-	return value as ExtValue;
+	switch (text) {
+		case "joker":
+		case "x":
+			return 1;
+		case "insurance":
+		case "i":
+			return 15;
+		case "k":
+		case "king":
+			return 13;
+		case "q":
+		case "queen":
+			return 12;
+		case "j":
+		case "jack":
+		case "knave":
+			return 11;
+		case "a":
+		case "ace":
+			return 14;
+		case "deuce":
+			return 2;
+		case "ten":
+		case "t":
+			return 10;
+		default: {
+			const value = parseInt(text);
+			if (invalidNumber(value)) return null;
+			if (value < 1 || value > 15) return null;
+			return value as ExtValue;
+		}
+	}
 }
 
 // make every word in a string start with a capital
@@ -286,6 +296,24 @@ function capitalize(text: string) {
 }
 function callNumberToName(call: HandRank) {
 	return capitalize(names[RNI[call]][0]);
+}
+// will return whether arr1 is higher than arr2
+// "higher" means that the max of arr1 is greater than the max of arr2
+// if the maxes are equal, the second highest values are compared, and so on
+// if all values are equal, the function will return false
+function isHigherArray(arr1: ExtValue[], arr2: ExtValue[]) {
+	for (let i = 0; i < arr1.length; i++) {
+		if (arr1[i] > arr2[i]) return true;
+		if (arr1[i] < arr2[i]) return false;
+	}
+	return false;
+}
+function isLowerArray(arr1: ExtValue[], arr2: ExtValue[]) {
+	for (let i = 0; i < arr1.length; i++) {
+		if (arr1[i] < arr2[i]) return true;
+		if (arr1[i] > arr2[i]) return false;
+	}
+	return false;
 }
 
 // returns whether call1 is a higher call than call2
@@ -301,7 +329,7 @@ export function isHigher(call1: Call, call2: Call) {
 	) {
 		const arr1 = (call1.high as ExtValue[]).sort((a, b) => a - b);
 		const arr2 = (call2.high as ExtValue[]).sort((a, b) => a - b);
-		return Math.max(...arr1) > Math.max(...arr2);
+		return isHigherArray(arr1, arr2);
 	}
 	if (call_call1 === HandRank.FullHouse) {
 		if (call1.high[0] > call2.high[0]) return true;
@@ -315,7 +343,7 @@ export function isHigher(call1: Call, call2: Call) {
 		const arr2 = (call2.high as [ExtCard, ExtCard])
 			.map(card => card.value)
 			.sort((a, b) => a - b);
-		return Math.min(...arr1) < Math.min(...arr2);
+		return isLowerArray(arr1, arr2);
 	}
 	const call1_high = (call1.high as ExtCard).value;
 	const call2_high = (call2.high as ExtCard).value;

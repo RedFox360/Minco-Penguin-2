@@ -26,26 +26,25 @@ import {
 	callInDeck,
 	formatCall,
 	highestCallInDeck,
-	invalidNumber,
 	isHigher,
-	median,
 	parseCall,
 } from "./bs_poker_functions.js";
 import {
-	timeToRelativeTimestamp,
+	msToRelTimestamp,
 	removeByValue,
 	replyThenDelete,
+	invalidNumber,
+	median,
 } from "../util.js";
 import {
 	createBasicDeck,
 	formatCardSideways,
 	formatDeck,
-	spliceRandom,
 } from "../basic_card_functions.js";
 import { promisify } from "util";
 import { bsPokerTeams, channelsWithActiveGames, prisma } from "../../main.js";
 import { getProfile, updateProfile } from "../../prisma/models.js";
-import { colors } from "../util.js";
+import { colors, spliceRandom } from "../util.js";
 const sleep = promisify(setTimeout);
 
 const customIds = {
@@ -272,6 +271,8 @@ class BSPoker {
 					name: "Players",
 					value: this.players
 						.map(p => {
+							const cardsEntitled = this.playerCardsEntitled.get(p);
+							if (cardsEntitled === 1) return `<@${p}>: 1 card`;
 							return `<@${p}>: ${this.playerCardsEntitled.get(p)} cards`;
 						})
 						.join("\n"),
@@ -327,14 +328,16 @@ class BSPoker {
 			this.playerCardsEntitled.set(buttonInteraction.user.id, startingAmount);
 
 			let toSend = `${buttonInteraction.user}, you have joined the game at ${startingAmount} cards.`;
-			if (this.startingBet) {
-				await updateProfile(buttonInteraction.user.id, {
-					mincoDollars: {
-						decrement: this.startingBet,
-					},
-				});
-				toSend += ` ${this.startingBet} Minco Dollars have been deducted from your wallet.`;
-			}
+			await updateProfile(buttonInteraction.user.id, {
+				mincoDollars: {
+					decrement: this.startingBet,
+				},
+				bsPokerGamesPlayed: {
+					increment: 1,
+				},
+			});
+			if (this.startingBet)
+				toSend += ` **${this.startingBet}** Minco Dollars have been deducted from your wallet.`;
 			await buttonInteraction.reply({
 				content: toSend,
 			});
@@ -359,13 +362,7 @@ class BSPoker {
 				toAppend = ` Since they were the host, host privileges have been transferred to <@${this.hostId}>.`;
 				return;
 			}
-			this.playerCardsEntitled.delete(buttonInteraction.user.id);
-			bsPokerTeams.set(
-				this.interaction.channelId,
-				bsPokerTeams
-					.get(this.interaction.channelId)
-					.filter(x => !x.includes(buttonInteraction.user.id))
-			);
+			this.removePlayerFromGame(buttonInteraction.user.id);
 			await buttonInteraction.reply({
 				content: `${buttonInteraction.user} has left the game.${toAppend}`,
 			});
@@ -473,13 +470,14 @@ class BSPoker {
 
 	async endGameSuccess() {
 		const winnerId = this.players[0];
-		if (this.startingBet) {
-			await updateProfile(winnerId, {
-				mincoDollars: {
-					increment: this.totalBet,
-				},
-			});
-		}
+		await updateProfile(winnerId, {
+			mincoDollars: {
+				increment: this.totalBet,
+			},
+			bsPokerWins: {
+				increment: 1,
+			},
+		});
 		const winnerMember = this.interaction.guild.members.cache.get(winnerId);
 		const embed = new EmbedBuilder()
 			.setTitle("Game Over!")
@@ -530,7 +528,7 @@ class BSPoker {
 			return;
 		}
 
-		const timeUpToTakeCard = timeToRelativeTimestamp(timeToTakeCard);
+		const timeUpToTakeCard = msToRelTimestamp(timeToTakeCard);
 		const commonCardsFormattedWithNumbers = this.commonCards
 			.map((card, i) => `\`${i + 1}\` **${formatCardSideways(card)}**`)
 			.join("\n");
@@ -565,7 +563,7 @@ class BSPoker {
 	}
 
 	async sendNewNotif() {
-		const timeUp = timeToRelativeTimestamp(timeToMakeCall);
+		const timeUp = msToRelTimestamp(timeToMakeCall);
 		const nt = this.getMsgForNotif();
 		this.notifText = nt;
 
@@ -583,6 +581,10 @@ class BSPoker {
 			this.interaction.channel.send({
 				content: `<@${this.currentPlayer}> failed to make a call in time. They gain a card and a new round will start now.`,
 			});
+			this.playerCardsEntitled.set(
+				this.currentPlayer,
+				this.playerCardsEntitled.get(this.currentPlayer) + 1
+			);
 			this.newRound();
 		}, timeToMakeCall);
 
@@ -603,6 +605,23 @@ class BSPoker {
 		if (clearTout) clearTimeout(this.bxTimeout);
 	}
 
+	removePlayerFromGame(player: Snowflake, index?: number) {
+		this.playerCardsEntitled.delete(player);
+		if (index) {
+			this.players.splice(index, 1);
+		} else {
+			removeByValue(this.players, player);
+		}
+		this.playersOut.push(player);
+		bsPokerTeams.set(
+			this.interaction.channel.id,
+			bsPokerTeams
+				.get(this.interaction.channel.id)
+				.filter(t => !t.includes(player))
+		);
+		this.currentPlayer = this.players[this.currentPlayerIndex];
+	}
+
 	async newRound() {
 		clearTimeout(this.notifTimeout);
 		clearTimeout(this.bxTimeout);
@@ -617,10 +636,7 @@ class BSPoker {
 			const entitled = this.playerCardsEntitled.get(p);
 			if (entitled >= this.cardsToOut || invalidNumber(entitled) || !entitled) {
 				this.interaction.channel.send(`<@${p}> is out of the game.`);
-				this.playerCardsEntitled.delete(p);
-				this.players.splice(i, 1);
-				this.playersOut.push(p);
-				this.currentPlayer = this.players[this.currentPlayerIndex];
+				this.removePlayerFromGame(p, i);
 			}
 		});
 
@@ -630,7 +646,7 @@ class BSPoker {
 			return;
 		}
 
-		this.roundBeginTimestamp = timeToRelativeTimestamp(timeBetweenRounds);
+		this.roundBeginTimestamp = msToRelTimestamp(timeBetweenRounds);
 
 		const acCCAmount =
 			this.commonCardsAmount > 0
@@ -760,6 +776,9 @@ class BSPoker {
 			data: {
 				mincoDollars: {
 					decrement: this.startingBet,
+				},
+				bsPokerGamesPlayed: {
+					increment: 1,
 				},
 			},
 		});

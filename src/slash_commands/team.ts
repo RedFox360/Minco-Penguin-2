@@ -6,7 +6,7 @@ import {
 	userMention,
 } from "discord.js";
 import SlashCommand from "../core/SlashCommand.js";
-import { timeToRelativeTimestamp } from "../functions/util.js";
+import { msToRelTimestamp } from "../functions/util.js";
 import { bsPokerTeams, channelsWithActiveGames } from "../main.js";
 
 const timeToJoinTeam = 30_000;
@@ -66,6 +66,7 @@ const team = new SlashCommand()
 					)
 			)
 	)
+	.setCooldown(10)
 	.setRun(async interaction => {
 		const subcommand = interaction.options.getSubcommand();
 		if (!channelsWithActiveGames.includes(interaction.channelId)) {
@@ -121,9 +122,9 @@ const team = new SlashCommand()
 				});
 				return;
 			}
-			const timeUpToJoin = timeToRelativeTimestamp(timeToJoinTeam);
+			const timeUpToJoin = msToRelTimestamp(timeToJoinTeam);
 			const msg = await interaction.reply({
-				content: `${player} — ${interaction.user} has invited you to join their team. Click the button below to join ${timeUpToJoin}.`,
+				content: `${player} — ${interaction.user} has asked to join your team. Click the button below to add them to your team ${timeUpToJoin}.`,
 				components: [joinRow],
 			});
 			msg
@@ -141,7 +142,7 @@ const team = new SlashCommand()
 					});
 				})
 				.catch(() => {
-					msg.edit({
+					interaction.editReply({
 						content: `${player} did not join your team.`,
 						components: [],
 					});
@@ -174,7 +175,7 @@ const team = new SlashCommand()
 				return;
 			}
 
-			const timeUpToJoin = timeToRelativeTimestamp(timeToJoinTeam);
+			const timeUpToJoin = msToRelTimestamp(timeToJoinTeam);
 			const msg = await interaction.reply({
 				content: `${player} — ${interaction.user} has invited you to join their team. Click the button below to join ${timeUpToJoin}.`,
 				components: [joinRow],
@@ -265,15 +266,15 @@ const team = new SlashCommand()
 				});
 				return;
 			}
-			const index = teamWithAsker.indexOf(player.id);
-			if (index === -1) {
+			const playerIndexInTeam = teamWithAsker.indexOf(player.id);
+			if (playerIndexInTeam === -1) {
 				await interaction.reply({
 					content: "This player is not in your team.",
 					ephemeral: true,
 				});
 				return;
 			}
-			teamWithAsker.splice(index, 1);
+			teamWithAsker.splice(playerIndexInTeam, 1);
 			await interaction.reply({
 				content: `You have kicked ${player} from your team.`,
 			});

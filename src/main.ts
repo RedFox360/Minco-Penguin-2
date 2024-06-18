@@ -6,6 +6,7 @@ import {
 	GatewayIntentBits,
 	REST,
 	Events,
+	Snowflake,
 } from "discord.js";
 import { config as loadenv } from "dotenv";
 import chalk from "chalk";
@@ -14,8 +15,16 @@ import eventHandler from "./handlers/event_handler.js";
 import { PrismaClient } from "@prisma/client";
 import SlashCommand from "./core/SlashCommand.js";
 import UserContextMenu from "./core/UserContextMenu.js";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.tz.setDefault("America/Los_Angeles");
 
 const prisma = new PrismaClient();
+console.log(chalk.yellow("Connected to the database!"));
 const inDev = !process.argv.includes("--prod");
 const updateCommands = process.argv.includes("--update");
 console.log(chalk.red(`In dev: ${inDev}`));
@@ -35,8 +44,8 @@ const client = new Client({
 	partials: [Partials.Channel, Partials.Message, Partials.Reaction],
 });
 const slashCommands = new Collection<string, SlashCommand | UserContextMenu>();
-const bsPokerTeams = new Collection<string, string[][]>();
-const channelsWithActiveGames = new Array<string>();
+const bsPokerTeams = new Collection<Snowflake, Snowflake[][]>();
+const channelsWithActiveGames = new Array<Snowflake>();
 
 const readyEventName = "⏰ Ready Event";
 client.on(Events.ClientReady, async readyClient => {

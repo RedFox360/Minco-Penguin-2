@@ -10,7 +10,7 @@ import {
 import BSPoker from "./bs_poker_class.js";
 import {
 	removeByValue,
-	timeToRelativeTimestamp,
+	msToRelTimestamp,
 	shuffleArrayInPlace,
 } from "../util.js";
 import { getProfile } from "../../prisma/models.js";
@@ -62,7 +62,7 @@ export default async function bsPokerRun(
 	if (playerLimit > maxPlayerLimit) {
 		await interaction.reply({
 			content:
-				"The maximum number of cards to be dealt is greater than the size of the deck. Please alter the player limit.",
+				"The maximum number of cards to be dealt is greater than the size of the deck. Please decrease the player limit.",
 			ephemeral: true,
 		});
 		return;
@@ -117,7 +117,7 @@ export default async function bsPokerRun(
 		? `Bet to Join: **${startingBet} MD**`
 		: "**No bet required.**";
 
-	const startTime = timeToRelativeTimestamp(collectorTime);
+	const startTime = msToRelTimestamp(collectorTime);
 	const gameStartEmbed = (gameStarted = false) =>
 		new EmbedBuilder()
 			.setTitle(gameStarted ? "BS Poker Game Started" : "BS Poker")
@@ -178,13 +178,15 @@ Use special cards: **${useSpecialCards ? "True" : "False"}**`,
 				});
 				return;
 			}
-			const joinerProfile = await getProfile(buttonInteraction.user.id);
-			if (joinerProfile.mincoDollars < startingBet) {
-				await buttonInteraction.reply({
-					content: `You do not have enough Minco Dollars to join this game (the bet is ${startingBet}).`,
-					ephemeral: true,
-				});
-				return;
+			if (startingBet) {
+				const joinerProfile = await getProfile(buttonInteraction.user.id);
+				if (joinerProfile.mincoDollars < startingBet) {
+					await buttonInteraction.reply({
+						content: `You do not have enough Minco Dollars to join this game (the bet is **${startingBet} MD**).`,
+						ephemeral: true,
+					});
+					return;
+				}
 			}
 			if (!players.includes(buttonInteraction.user.id)) {
 				players.push(buttonInteraction.user.id);
@@ -203,10 +205,7 @@ Use special cards: **${useSpecialCards ? "True" : "False"}**`,
 				});
 				return;
 			}
-			const index = players.indexOf(buttonInteraction.user.id);
-			if (index > -1) {
-				players.splice(index, 1);
-			}
+			removeByValue(players, buttonInteraction.user.id);
 			if (players.length <= 1) {
 				startButton.setDisabled(true);
 			}

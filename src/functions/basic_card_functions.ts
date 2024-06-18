@@ -151,13 +151,3 @@ const basicDeck = [
 export function createBasicDeck() {
 	return basicDeck.slice();
 }
-
-// array will be modified in place and spliced elements will be returned
-export function spliceRandom<T>(arr: T[], count = 1): T[] {
-	const spliced: T[] = [];
-	for (let i = 0; i < count; i++) {
-		const index = Math.floor(Math.random() * arr.length);
-		spliced.push(arr.splice(index, 1)[0]);
-	}
-	return spliced;
-}

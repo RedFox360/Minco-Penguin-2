@@ -35,12 +35,12 @@ export default async function slashHandler(
 	(await Promise.all(commandPromises)).forEach(({ default: command }) => {
 		const commandData = command.builder.toJSON();
 		slashCommands.set(commandData.name, command);
-		console.log(
-			`${chalk.blue(commandData.name)} | dmp: ${
-				commandData.default_member_permissions
-			}`
-		);
-		if (updateCommands) data.push(commandData);
+		let logMsg = `${chalk.blue(commandData.name)}`;
+		if (commandData.default_member_permissions) {
+			logMsg += ` | dmp: ${commandData.default_member_permissions}`;
+		}
+		console.log(logMsg);
+		data.push(commandData);
 	});
 	console.log(
 		`${chalk.green("commands set")} || command count: ${data.length}`

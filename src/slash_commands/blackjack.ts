@@ -1,23 +1,45 @@
+import { SlashCommandIntegerOption } from "discord.js";
 import SlashCommand from "../core/SlashCommand.js";
 import Blackjack from "../functions/blackjack/blackjack_class.js";
 import { getProfile } from "../prisma/models.js";
+
+const betOption = new SlashCommandIntegerOption()
+	.setName("bet")
+	.setDescription("The amount of MD you want to bet")
+	.setMinValue(15)
+	.setMaxValue(250)
+	.setRequired(true);
 
 const blackjackCommand = new SlashCommand()
 	.setCommandData(builder =>
 		builder
 			.setName("blackjack")
 			.setDescription("Play blackjack in the Minco casino!")
-			.addIntegerOption(option =>
-				option
-					.setName("bet")
-					.setDescription("The amount of MD you want to bet")
-					.setMinValue(25)
-					.setMaxValue(250)
-					.setRequired(true)
+			.addSubcommand(subcommand =>
+				subcommand
+					.setName("start")
+					.setDescription("Start 1 game of blackjack in the Minco casino!")
+					.addIntegerOption(betOption)
+			)
+			.addSubcommand(subcommand =>
+				subcommand
+					.setName("session")
+					.setDescription("Start a blackjack session in the Minco casino!")
+					.addIntegerOption(betOption)
+					.addIntegerOption(option =>
+						option
+							.setName("rounds")
+							.setDescription("The number of rounds you want to play")
+							.setMinValue(5)
+							.setMaxValue(15)
+							.setRequired(true)
+					)
 			)
 	)
 	.setCooldown(10)
 	.setRun(async interaction => {
+		const isSession = interaction.options.getSubcommand() === "session";
+		const rounds = isSession ? interaction.options.getInteger("rounds") : null;
 		const bet = interaction.options.getInteger("bet");
 		const profile = await getProfile(interaction.user.id);
 		if (profile.mincoDollars < bet) {
@@ -27,7 +49,7 @@ const blackjackCommand = new SlashCommand()
 			});
 		}
 		await interaction.deferReply();
-		const game = new Blackjack(interaction, bet);
+		const game = new Blackjack(interaction, bet, isSession, rounds);
 		game.gameLogic();
 	});
 
