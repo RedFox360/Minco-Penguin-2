@@ -31,13 +31,13 @@ USER node
 
 # Copy the rest of the source files into the image.
 COPY ./compiled ./compiled
-COPY package.json yarn.lock .env ./
+COPY package.json yarn.lock schema.prisma .env ./
 
 RUN --mount=type=bind,source=package.json,target=package.json \
     --mount=type=bind,source=yarn.lock,target=yarn.lock \
     --mount=type=cache,target=/root/.npm \
     yarn install --frozen-lockfile --omit=dev
-RUN yarn run prisma generate
+RUN yarn run prisma generate --schema /usr/src/app/schema.prisma
 
 # Expose the port that the application listens on.
 EXPOSE 3000
