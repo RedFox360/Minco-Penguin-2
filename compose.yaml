@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  front:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_MAJOR: "16.17.0"
+        YARN_VERSION: "1.22.19"
+    image: minco-penguin-2:1.0.0
+    container_name: minco-penguin-2
+    volumes:
+      - .:/frontend
+      - ./node_modules:/frontend/node_modules
+    stdin_open: true
+    tty: true
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=development
+    cpu_shares: 512
+    command: "yarn start"
+volumes:
+  node_modules:
