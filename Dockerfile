@@ -36,7 +36,7 @@ COPY package.json yarn.lock .env ./
 RUN --mount=type=bind,source=package.json,target=package.json \
     --mount=type=bind,source=yarn.lock,target=yarn.lock \
     --mount=type=cache,target=/root/.npm \
-    yarn install --frozen-lockfile --include=dev
+    yarn install --frozen-lockfile --omit=dev
 
 # Expose the port that the application listens on.
 EXPOSE 3000
