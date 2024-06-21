@@ -97,7 +97,7 @@ const team = new SlashCommand()
 			if (teamWithAsker) {
 				await interaction.reply({
 					content:
-						"You are already in a team or a player in the current game. If you are a player, use </team invite:1251396824674340938> to add someone to your team.",
+						"You are already in a team or a player in the current game. If you are a player, use </team invite:1252747326473109631> to add someone to your team.",
 					ephemeral: true,
 				});
 				return;
@@ -137,13 +137,13 @@ const team = new SlashCommand()
 				.then(bi => {
 					teamWithPlayer.push(interaction.user.id);
 					bi.update({
-						content: `${interaction.user} has joined a team with host ${player}.`,
+						content: `:green_circle: ${interaction.user}, you have joined a team with ${player}.`,
 						components: [],
 					});
 				})
 				.catch(() => {
 					interaction.editReply({
-						content: `${player} did not join your team.`,
+						content: `:green_circle: ${player} did not join your team.`,
 						components: [],
 					});
 				});
@@ -190,13 +190,13 @@ const team = new SlashCommand()
 				.then(bi => {
 					teamWithAsker.push(bi.user.id);
 					bi.update({
-						content: `${player} has joined a team with host ${interaction.user}.`,
+						content: `:green_circle: ${player}, you have joined a team with ${interaction.user}.`,
 						components: [],
 					});
 				})
 				.catch(() => {
 					msg.edit({
-						content: `${player} did not join your team.`,
+						content: `:red_circle: ${player} did not join your team.`,
 						components: [],
 					});
 				});
@@ -254,7 +254,7 @@ const team = new SlashCommand()
 			if (player.id === interaction.user.id) {
 				await interaction.reply({
 					content:
-						"You may not kick yourself from your team. Try using </team leave:1251396824674340938>.",
+						"You may not kick yourself from your team. Try using </team leave:1252747326473109631>.",
 					ephemeral: true,
 				});
 				return;

@@ -4,17 +4,14 @@ import SlashCommand from "../core/SlashCommand.js";
 import dayjs from "dayjs";
 import { colors, randomInt } from "../functions/util.js";
 
-const dailyLowerLimit = 50;
-const dailyUpperLimit = 101;
-
 const daily = new SlashCommand()
 	.setCommandData(builder =>
 		builder.setName("daily").setDescription("Claim your daily reward!")
 	)
 	.setRun(async interaction => {
-		const { lastDailyClaim } = await getProfile(interaction.user.id);
+		const profile = await getProfile(interaction.user.id);
 		const currentDate = dayjs().format("YYYY-MM-DD");
-		const lastClaimDate = dayjs(lastDailyClaim).format("YYYY-MM-DD");
+		const lastClaimDate = dayjs(profile.lastDailyClaim).format("YYYY-MM-DD");
 
 		if (currentDate === lastClaimDate) {
 			await interaction.reply({
@@ -25,6 +22,10 @@ const daily = new SlashCommand()
 		}
 
 		let description = "";
+
+		const totalMD = profile.mincoDollars + profile.bank;
+		const dailyLowerLimit = Math.floor(totalMD * 0.05);
+		const dailyUpperLimit = Math.floor(totalMD * 0.1);
 		const randomAmount = randomInt(dailyLowerLimit, dailyUpperLimit);
 		await updateProfile(interaction.user.id, {
 			mincoDollars: {

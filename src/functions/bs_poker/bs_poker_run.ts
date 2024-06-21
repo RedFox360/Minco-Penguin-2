@@ -16,7 +16,7 @@ import {
 import { getProfile } from "../../prisma/models.js";
 import { colors } from "../util.js";
 import { bsPokerTeams, channelsWithActiveGames } from "../../main.js";
-const collectorTime = 30_000;
+const collectorTime = 60_000;
 
 export default async function bsPokerRun(
 	interaction: ChatInputCommandInteraction<"cached">

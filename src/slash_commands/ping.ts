@@ -57,7 +57,9 @@ const ping = new SlashCommand()
 				text: "Bot made by @obvsam",
 			});
 
-		await interaction.editReply({ embeds: [pingEmbed] });
+		await interaction.editReply({
+			embeds: [pingEmbed],
+		});
 	});
 
 export default ping;

@@ -51,6 +51,7 @@ const customIds = {
 	joinMidGame: "join_mid_game_bspoker",
 	leaveMidGame: "leave_mid_game_bspoker",
 	viewCards: "view_cards_bspoker",
+	viewGameInfo: "view_game_info_bspoker",
 	bs: "bs_bspoker",
 };
 const customIdValues = Object.values(customIds);
@@ -70,6 +71,10 @@ const leaveMidGame = new ButtonBuilder()
 const viewCardsButton = new ButtonBuilder()
 	.setCustomId(customIds.viewCards)
 	.setLabel("View Cards")
+	.setStyle(ButtonStyle.Secondary);
+const viewGameInfoButton = new ButtonBuilder()
+	.setCustomId(customIds.viewGameInfo)
+	.setLabel("Game Info")
 	.setStyle(ButtonStyle.Secondary);
 const bsButton = new ButtonBuilder()
 	.setCustomId(customIds.bs)
@@ -105,6 +110,7 @@ class BSPoker {
 	currentCall: PlayerCall | null = null;
 	currentPlayer: Snowflake;
 	hostId: Snowflake;
+	midGamePlayers: Snowflake[];
 	private _currPlayerIdx: number = 0;
 	// Deck
 	playerHands: Collection<Snowflake, ExtCard[]>;
@@ -116,7 +122,7 @@ class BSPoker {
 	aborted = false;
 	bxOpen = false;
 	round = 0;
-	totalBet = 0;
+	totalPlayers: number;
 	// Notification
 	notifText: string;
 	notification: Message;
@@ -150,8 +156,10 @@ class BSPoker {
 		this.playerHands = new Collection<Snowflake, ExtCard[]>();
 		this.playerCardsEntitled = new Map<Snowflake, number>();
 		this.commonCards = [];
+		this.midGamePlayers = [];
 		this.hostId = interaction.user.id;
 		this.currentPlayer = players[0];
+		this.totalPlayers = players.length;
 	}
 
 	get currentPlayerIndex() {
@@ -161,6 +169,10 @@ class BSPoker {
 	set currentPlayerIndex(status: number) {
 		if (status < 0) this._currPlayerIdx = 0;
 		this._currPlayerIdx = status;
+	}
+
+	get totalBet() {
+		return this.totalPlayers * this.startingBet;
 	}
 
 	currentDeck() {
@@ -199,7 +211,7 @@ class BSPoker {
 
 	getHandsEmbed(handsList: string, highestCall: string | null = null) {
 		return new EmbedBuilder()
-			.setTitle(`Hands from Last Round ${this.round}`) // this.round is 0-indexed, so do not subtract 1
+			.setTitle(`Hands from Last Round (${this.round})`) // this.round is 0-indexed, so do not subtract 1
 			.setDescription(
 				`Common Cards: ${
 					this.commonCards.length === 0
@@ -245,6 +257,22 @@ class BSPoker {
 		return "";
 	}
 
+	playersAndEntitled() {
+		return this.players
+			.map(p => {
+				const cardsEntitled = this.playerCardsEntitled.get(p);
+				if (cardsEntitled === 1) return `<@${p}>: 1 card`;
+				return `<@${p}>: ${this.playerCardsEntitled.get(p)} cards`;
+			})
+			.join("\n");
+	}
+
+	get betInfo() {
+		return this.startingBet
+			? `Bet to Join: **${this.startingBet.toLocaleString()} MD** | Pot: **${this.totalBet.toLocaleString()} MD**\n`
+			: "";
+	}
+
 	newRoundEmbed(waiting: boolean): APIEmbed {
 		let commonCardsToDisplay = "";
 		if (waiting) {
@@ -260,22 +288,14 @@ class BSPoker {
 		return {
 			title: `New Round (${this.round + 1})`,
 			description: `${
-				this.startingBet
-					? `Bet to Join: **${this.startingBet} MD** | Pot: **${this.totalBet} MD**\n`
-					: ""
+				this.betInfo
 			}Common Cards: ${commonCardsToDisplay}\n${pwsc}\n<@${
 				this.players[this.currentPlayerIndex]
 			}> will start the round.`,
 			fields: [
 				{
 					name: "Players",
-					value: this.players
-						.map(p => {
-							const cardsEntitled = this.playerCardsEntitled.get(p);
-							if (cardsEntitled === 1) return `<@${p}>: 1 card`;
-							return `<@${p}>: ${this.playerCardsEntitled.get(p)} cards`;
-						})
-						.join("\n"),
+					value: this.playersAndEntitled(),
 				},
 			],
 			color: colors.green,
@@ -313,31 +333,18 @@ class BSPoker {
 			const joinerProfile = await getProfile(buttonInteraction.user.id);
 			if (joinerProfile.mincoDollars < this.startingBet) {
 				await buttonInteraction.reply({
-					content: `You do not have enough Minco Dollars to join this game (the bet is ${this.startingBet}).`,
+					content: `You do not have enough Minco Dollars to join this game (the bet is ${this.startingBet.toLocaleString()}).`,
 					ephemeral: true,
 				});
 				return;
 			}
 
-			this.totalBet += this.startingBet;
-			this.players.push(buttonInteraction.user.id);
-			bsPokerTeams
-				.get(this.interaction.channelId)
-				.push([buttonInteraction.user.id]);
 			const startingAmount = Math.max(...this.playerCardsEntitled.values());
-			this.playerCardsEntitled.set(buttonInteraction.user.id, startingAmount);
+			await this.addPlayerMidGame(buttonInteraction.user.id, startingAmount);
 
 			let toSend = `${buttonInteraction.user}, you have joined the game at ${startingAmount} cards.`;
-			await updateProfile(buttonInteraction.user.id, {
-				mincoDollars: {
-					decrement: this.startingBet,
-				},
-				bsPokerGamesPlayed: {
-					increment: 1,
-				},
-			});
 			if (this.startingBet)
-				toSend += ` **${this.startingBet}** Minco Dollars have been deducted from your wallet.`;
+				toSend += ` **${this.startingBet.toLocaleString()}** Minco Dollars have been deducted from your wallet.`;
 			await buttonInteraction.reply({
 				content: toSend,
 			});
@@ -375,7 +382,8 @@ class BSPoker {
 
 	getNotifRow(disabled: boolean) {
 		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-			viewCardsButton
+			viewCardsButton,
+			viewGameInfoButton
 		);
 		if (this.currentCall)
 			row.addComponents(disabled ? bsButtonDisabled : bsButton);
@@ -477,13 +485,18 @@ class BSPoker {
 			bsPokerWins: {
 				increment: 1,
 			},
+			bsPokerRating: {
+				increment: 1.0,
+			},
 		});
 		const winnerMember = this.interaction.guild.members.cache.get(winnerId);
 		const embed = new EmbedBuilder()
 			.setTitle("Game Over!")
 			.setDescription(
 				`<@${winnerId}> has won the game${
-					this.startingBet ? ` and the pot of **${this.totalBet} MD**` : ""
+					this.startingBet
+						? ` and the pot of **${this.totalBet.toLocaleString()} MD**`
+						: ""
 				}! Congratulations!`
 			)
 			.setColor(colors.green);
@@ -605,6 +618,18 @@ class BSPoker {
 		if (clearTout) clearTimeout(this.bxTimeout);
 	}
 
+	updatePlayerRating(player: Snowflake) {
+		if (this.midGamePlayers.includes(player)) return;
+		const rankOut = this.playersOut.length - 1;
+		const rating = rankOut * (1 / (this.totalPlayers - 1));
+		if (rating > 0)
+			return updateProfile(player, {
+				bsPokerRating: {
+					increment: rating,
+				},
+			});
+	}
+
 	removePlayerFromGame(player: Snowflake, index?: number) {
 		this.playerCardsEntitled.delete(player);
 		if (index) {
@@ -613,13 +638,57 @@ class BSPoker {
 			removeByValue(this.players, player);
 		}
 		this.playersOut.push(player);
+		this.updatePlayerRating(player);
+		this.removePlayerFromTeams(player);
+		this.currentPlayer = this.players[this.currentPlayerIndex];
+	}
+
+	async addPlayerMidGame(player: Snowflake, cards: number) {
+		this.players.push(player);
+		this.removePlayerFromTeams(player);
+		this.playerCardsEntitled.set(player, cards);
+		this.removePlayerFromTeams(player);
+		this.midGamePlayers.push(player);
+		bsPokerTeams.get(this.interaction.channelId).push([player]);
+		this.totalPlayers += 1;
+		await updateProfile(player, {
+			bsPokerGamesPlayed: {
+				increment: 1,
+			},
+			mincoDollars: {
+				decrement: this.startingBet,
+			},
+		});
+	}
+
+	removePlayerFromTeams(player: Snowflake) {
 		bsPokerTeams.set(
 			this.interaction.channel.id,
 			bsPokerTeams
 				.get(this.interaction.channel.id)
 				.filter(t => !t.includes(player))
 		);
-		this.currentPlayer = this.players[this.currentPlayerIndex];
+	}
+
+	removePlayersWithCardsAbove() {
+		this.players.forEach((p, i) => {
+			const entitled = this.playerCardsEntitled.get(p);
+			if (entitled >= this.cardsToOut || invalidNumber(entitled) || !entitled) {
+				this.interaction.channel.send(`<@${p}> is out of the game.`);
+				this.removePlayerFromGame(p, i);
+			}
+		});
+	}
+
+	dealToPlayers(deck: ExtCard[]) {
+		for (const p of this.players) {
+			const hand: ExtCard[] = spliceRandom(
+				deck,
+				this.playerCardsEntitled.get(p)
+			);
+			hand.sort((a, b) => a.value - b.value);
+			this.playerHands.set(p, hand);
+		}
 	}
 
 	async newRound() {
@@ -632,13 +701,7 @@ class BSPoker {
 		if (this.round > 0 && this.playerHands.size > 0) this.printAllHands();
 
 		// Remove players from game with cards >= cardsToOut
-		this.players.forEach((p, i) => {
-			const entitled = this.playerCardsEntitled.get(p);
-			if (entitled >= this.cardsToOut || invalidNumber(entitled) || !entitled) {
-				this.interaction.channel.send(`<@${p}> is out of the game.`);
-				this.removePlayerFromGame(p, i);
-			}
-		});
+		this.removePlayersWithCardsAbove();
 
 		// Only 1 player left -> handle win
 		if (this.players.length <= 1) {
@@ -662,12 +725,18 @@ class BSPoker {
 					: [nrRowLeave],
 		});
 
-		this.playerHands.clear();
-		this.commonCards = [];
 		if (this.players.length <= 1) {
 			await this.endGameSuccess();
 			return;
 		}
+		// SET THE COMMON CARDS
+		if (this.commonCardsAmount !== 0) {
+			this.commonCards = spliceRandom(deck, acCCAmount);
+			this.commonCards.sort((a, b) => a.value - b.value);
+		}
+
+		this.playerHands.clear();
+
 		if (this.round > 0) await sleep(timeBetweenRounds); // wait before starting next round
 		if (this.aborted) return;
 		// check for 1 player again in case people left
@@ -678,26 +747,7 @@ class BSPoker {
 
 		// Remove duplicates from players
 		this.players = [...new Set(this.players)];
-
-		// DEAL CARDS TO PLAYERS
-		for (const p of this.players) {
-			const hand: ExtCard[] = spliceRandom(
-				deck,
-				this.playerCardsEntitled.get(p)
-			);
-			hand.sort((a, b) => a.value - b.value);
-			// // for debugging: give black joker to host
-			// if (p === this.hostId) {
-			// 	hand.push({ suit: "bj", value: 1 });
-			// }
-			this.playerHands.set(p, hand);
-		}
-
-		// SET THE COMMON CARDS
-		if (this.commonCardsAmount !== 0) {
-			this.commonCards = spliceRandom(deck, acCCAmount);
-			this.commonCards.sort((a, b) => a.value - b.value);
-		}
+		this.dealToPlayers(deck);
 
 		await this.newRoundMsg.edit({
 			embeds: [this.newRoundEmbed(false)],
@@ -782,7 +832,6 @@ class BSPoker {
 				},
 			},
 		});
-		this.totalBet = this.players.length * this.startingBet;
 	}
 
 	async returnBets() {
@@ -796,6 +845,9 @@ class BSPoker {
 			data: {
 				mincoDollars: {
 					increment: this.startingBet,
+				},
+				bsPokerGamesPlayed: {
+					decrement: 1,
 				},
 			},
 		});
@@ -853,8 +905,7 @@ class BSPoker {
 
 			if (!this.callsOpen) return;
 			if (msg.author.id !== this.currentPlayer) return;
-
-			const call = parseCall(msg.content);
+			const call: Call = parseCall(msg.content);
 			if (!this.validateAndRespond(call, msg)) return;
 
 			this.disableNotif();
@@ -866,17 +917,13 @@ class BSPoker {
 
 		this.mcompColl.on("collect", async buttonInteraction => {
 			if (!this.callsOpen) {
-				if (buttonInteraction.customId === customIds.viewCards) {
+				if (
+					buttonInteraction.customId === customIds.viewCards ||
+					buttonInteraction.customId === customIds.viewGameInfo ||
+					buttonInteraction.customId === customIds.bs
+				) {
 					await buttonInteraction.reply({
-						content: "Please wait for the round to begin to view your cards.",
-						ephemeral: true,
-					});
-					return;
-				}
-				if (buttonInteraction.customId === customIds.bs) {
-					await buttonInteraction.reply({
-						content:
-							"The BS button is disabled as a new round has not yet started.",
+						content: "Please wait for the round to begin.",
 						ephemeral: true,
 					});
 					return;
@@ -886,34 +933,38 @@ class BSPoker {
 			}
 			const cd = this.currentDeck();
 			if (!cd || cd.length === 0) return;
-			if (!this.players.includes(buttonInteraction.user.id)) {
-				let toSendN = "*You are not a player in this game.*";
-				if (this.commonCards.length > 0)
-					toSendN += `\nCommon Cards:\n${formatDeck(this.commonCards)}`;
-				const channelTeams = bsPokerTeams.get(this.interaction.channelId);
-				toSendN += (() => {
-					if (channelTeams.length === 0) return "";
-					const team = channelTeams.find(t =>
-						t.includes(buttonInteraction.user.id)
-					);
-					if (!team) return "";
-					const teamPlayerInGame = team.find(p => this.players.includes(p));
-					if (!teamPlayerInGame) return "";
-					const teammateHand = this.playerHands.get(teamPlayerInGame);
-					if (!teammateHand) return "";
-					return `\n*<@${teamPlayerInGame}> is your teammate. Here are their cards.*\n${formatDeck(
-						teammateHand
-					)}`;
-				})();
 
-				if (this.useSpecialCards) toSendN += `\n${this.formatPWSC()}`;
-				await buttonInteraction.reply({
-					content: toSendN,
-					ephemeral: true,
-				});
-				return;
-			}
+			const buttonClickerIsPlayer = this.players.includes(
+				buttonInteraction.user.id
+			);
 			if (buttonInteraction.customId === customIds.viewCards) {
+				if (!buttonClickerIsPlayer) {
+					let toSendN = "*You are not a player in this game.*";
+					if (this.commonCards.length > 0)
+						toSendN += `\nCommon Cards:\n${formatDeck(this.commonCards)}`;
+					const channelTeams = bsPokerTeams.get(this.interaction.channelId);
+					toSendN += (() => {
+						if (channelTeams.length === 0) return "";
+						const team = channelTeams.find(t =>
+							t.includes(buttonInteraction.user.id)
+						);
+						if (!team) return "";
+						const teamPlayerInGame = team.find(p => this.players.includes(p));
+						if (!teamPlayerInGame) return "";
+						const teammateHand = this.playerHands.get(teamPlayerInGame);
+						if (!teammateHand) return "";
+						return `\n*<@${teamPlayerInGame}> is your teammate. Here are their cards.*\n${formatDeck(
+							teammateHand
+						)}`;
+					})();
+
+					if (this.useSpecialCards) toSendN += `\n${this.formatPWSC()}`;
+					await buttonInteraction.reply({
+						content: toSendN,
+						ephemeral: true,
+					});
+					return;
+				}
 				await buttonInteraction.reply({
 					content: `**Your Hand:**\n${formatDeck(
 						this.playerHands.get(buttonInteraction.user.id)
@@ -926,9 +977,23 @@ class BSPoker {
 				});
 				return;
 			}
+			if (buttonInteraction.customId === customIds.viewGameInfo) {
+				await buttonInteraction.reply({
+					content: `${this.betInfo}\n${this.playersAndEntitled()}`,
+					ephemeral: true,
+				});
+				return;
+			}
 
 			// BS button
 			if (buttonInteraction.customId !== customIds.bs) return;
+			if (!buttonClickerIsPlayer) {
+				await buttonInteraction.reply({
+					content: "You may not BS as you are not a player in this game.",
+					ephemeral: true,
+				});
+				return;
+			}
 			if (this.bsCalled) {
 				await buttonInteraction.reply({
 					content:

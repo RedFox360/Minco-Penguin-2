@@ -7,7 +7,7 @@ export default [
 	js.configs.recommended,
 	...tseslint.configs.recommended,
 	{
-		files: ["**/*.ts"],
+		files: ["src/**/*.ts", "tests/**/*.ts"],
 		rules: {
 			"@typescript-eslint/no-explicit-any": "off",
 			"no-useless-escape": "off",

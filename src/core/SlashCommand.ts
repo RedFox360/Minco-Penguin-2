@@ -1,7 +1,4 @@
-import {
-	SlashCommandBuilder,
-	PermissionResolvable,
-} from "discord.js";
+import { SlashCommandBuilder, PermissionResolvable } from "discord.js";
 import {
 	cooldownMax,
 	cooldownMin,
@@ -25,13 +22,11 @@ export default class SlashCommand {
 	public get builder(): SlashCommandBuilder {
 		return this._builder;
 	}
-	public setCommandData(
-		builder: (o: SlashCommandBuilder) => any
-	): this {
+	public setCommandData(builder: (o: SlashCommandBuilder) => any): this {
 		const slashBuilder = builder(this._builder);
 		if (!(slashBuilder instanceof SlashCommandBuilder)) {
 			throw new Error(
-				`${this._builder.name} Builder provided is not an instance of SlashCommandBuilder`
+				`${this._builder.name}: Builder provided is not an instance of SlashCommandBuilder`
 			);
 		}
 		this._builder = slashBuilder;
@@ -44,7 +39,7 @@ export default class SlashCommand {
 	public setCooldown(seconds: number): this {
 		if (seconds >= cooldownMax || seconds <= cooldownMin) {
 			throw new Error(
-				`${this._builder.name} Cooldown must be between 3 seconds and 5 hours`
+				`${this._builder.name}: Cooldown must be between ${cooldownMin} and ${cooldownMax} seconds.`
 			);
 		}
 		this._cooldown = seconds * 1000;
@@ -62,9 +57,7 @@ export default class SlashCommand {
 	public get autocomplete() {
 		return this._autocomplete;
 	}
-	public setAutocomplete(
-		autocompleteFunction: AutocompleteFunc
-	): this {
+	public setAutocomplete(autocompleteFunction: AutocompleteFunc): this {
 		this._autocomplete = autocompleteFunction;
 		return this;
 	}
@@ -72,9 +65,7 @@ export default class SlashCommand {
 	public get botPermissions() {
 		return this._botPermissions;
 	}
-	public setBotPermissions(
-		...permissions: PermissionResolvable[]
-	): this {
+	public setBotPermissions(...permissions: PermissionResolvable[]): this {
 		this._botPermissions = permissions;
 		return this;
 	}

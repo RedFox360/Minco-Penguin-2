@@ -6,7 +6,7 @@ import { getProfile } from "../prisma/models.js";
 const betOption = new SlashCommandIntegerOption()
 	.setName("bet")
 	.setDescription("The amount of MD you want to bet")
-	.setMinValue(15)
+	.setMinValue(5)
 	.setMaxValue(250)
 	.setRequired(true);
 
@@ -18,13 +18,17 @@ const blackjackCommand = new SlashCommand()
 			.addSubcommand(subcommand =>
 				subcommand
 					.setName("start")
-					.setDescription("Start 1 game of blackjack in the Minco casino!")
+					.setDescription(
+						"Start 1 game of blackjack in the Minco casino! (Blackjack pays 3:2)"
+					)
 					.addIntegerOption(betOption)
 			)
 			.addSubcommand(subcommand =>
 				subcommand
 					.setName("session")
-					.setDescription("Start a blackjack session in the Minco casino!")
+					.setDescription(
+						"Start a blackjack session in the Minco casino! (Blackjack pays 3:2)"
+					)
 					.addIntegerOption(betOption)
 					.addIntegerOption(option =>
 						option

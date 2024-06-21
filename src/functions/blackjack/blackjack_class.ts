@@ -12,7 +12,7 @@ import {
 } from "discord.js";
 import { Card } from "../basic_card_types.js";
 import { createBasicDeck, formatDeck } from "../basic_card_functions.js";
-import { colors, spliceRandom } from "../util.js";
+import { colors, invalidNumber, spliceRandom } from "../util.js";
 import { getProfile, updateProfile } from "../../prisma/models.js";
 import { promisify } from "util";
 const sleep = promisify(setTimeout);
@@ -27,10 +27,8 @@ enum Outcome {
 	Blackjack = 3,
 }
 type HandValue = { total: number; soft: boolean };
-const howToPlayButton = new ButtonBuilder()
-	.setLabel("How to play")
-	.setStyle(ButtonStyle.Link)
-	.setURL("https://bicyclecards.com/how-to-play/blackjack/");
+
+const blackjackRatio = 1.5;
 const timeToPlayGame = 240_000;
 const customIds = {
 	hit: "hit",
@@ -42,7 +40,12 @@ const customIds = {
 	endSession: "end_session",
 	modal: "change_bet_modal",
 	betInput: "bet_input",
+	editBet: "edit_bet",
 };
+const howToPlayButton = new ButtonBuilder()
+	.setLabel("How to play")
+	.setStyle(ButtonStyle.Link)
+	.setURL("https://bicyclecards.com/how-to-play/blackjack/");
 
 const customIdValues = Object.values(customIds);
 class Blackjack {
@@ -58,6 +61,8 @@ class Blackjack {
 	surrenderButton: ButtonBuilder;
 	continueButton: ButtonBuilder;
 	endSessionButton: ButtonBuilder;
+	editBetButton: ButtonBuilder;
+	currentCompState: "game" | "surrender" | "blackjack" = "game";
 	mcompColl: InteractionCollector<ButtonInteraction>;
 	outcomes: Outcome[];
 	betOutcomes: number[];
@@ -118,6 +123,10 @@ class Blackjack {
 			.setLabel("End Session")
 			.setCustomId(customIds.endSession)
 			.setStyle(ButtonStyle.Secondary);
+		this.editBetButton = new ButtonBuilder()
+			.setLabel("Edit Bet")
+			.setCustomId(customIds.editBet)
+			.setStyle(ButtonStyle.Secondary);
 	}
 
 	get gameMsgComponents() {
@@ -131,20 +140,54 @@ class Blackjack {
 			this.surrenderButton
 		);
 		if (this.isSession) {
-			row2.addComponents(this.endSessionButton);
+			row2.addComponents(this.endSessionButton, this.editBetButton);
+		} else {
+			row2.addComponents(howToPlayButton);
 		}
-		row2.addComponents(howToPlayButton);
+		this.currentCompState = "game";
 		return [row1, row2];
 	}
 
 	get surrenderComponents() {
-		return [
+		this.currentCompState = "surrender";
+		const rows = [
 			new ActionRowBuilder<ButtonBuilder>().addComponents(
 				this.surrenderButton,
 				this.continueButton
 			),
-			new ActionRowBuilder<ButtonBuilder>().addComponents(howToPlayButton),
 		];
+		if (this.isSession)
+			rows.push(
+				new ActionRowBuilder<ButtonBuilder>().addComponents(
+					this.endSessionButton,
+					this.editBetButton
+				)
+			);
+		return rows;
+	}
+
+	get blackjackComponents() {
+		this.currentCompState = "blackjack";
+		return [
+			new ActionRowBuilder<ButtonBuilder>().addComponents(
+				this.continueButton,
+				this.endSessionButton,
+				this.editBetButton
+			),
+		];
+	}
+
+	get currentComponents() {
+		switch (this.currentCompState) {
+			case "game":
+				return this.gameMsgComponents;
+			case "surrender":
+				return this.surrenderComponents;
+			case "blackjack":
+				return this.blackjackComponents;
+			default:
+				return null;
+		}
 	}
 
 	gameMsg(earned?: number) {
@@ -162,13 +205,10 @@ class Blackjack {
 	}
 
 	fromBlackjackMsg(earned: number) {
+		this.currentCompState = "blackjack";
 		return {
 			embeds: [this.getEmbed(earned)],
-			components: [
-				new ActionRowBuilder<ButtonBuilder>().addComponents(
-					this.continueButton
-				),
-			],
+			components: this.blackjackComponents,
 		};
 	}
 
@@ -229,8 +269,12 @@ class Blackjack {
 		} else if (earned != null) {
 			description = `${Blackjack.displayBetOutcome(earned)}`;
 		}
-		if (this.isSession && this.newDeckCreated)
-			description += "\n*New Deck Created*";
+		if (this.isSession) {
+			if (this.newDeckCreated) description += "\n*New Deck Created*";
+			description += `\nRound \`${this.session + 1}\` | Card Count: \`${
+				this.cardCount
+			}\`\nTotal Earnings: \`${this.totalEarnings} MD\``;
+		}
 
 		const fields: APIEmbedField[] = [];
 
@@ -273,13 +317,9 @@ class Blackjack {
 				name: this.interaction.member.displayName,
 				iconURL: this.interaction.member.displayAvatarURL(),
 			})
-			.setTitle("Blackjack")
+			.setTitle(this.isSession ? "Blackjack Session" : "Blackjack")
 			.setDescription(description)
 			.setFields(fields);
-		if (this.isSession)
-			embed.setFooter({
-				text: `Session ${this.session + 1} | Card Count: ${this.cardCount}`,
-			});
 		return embed;
 	}
 
@@ -291,8 +331,8 @@ class Blackjack {
 
 	activateSplitButton() {
 		const enableButton =
-			this.playerHands[0].length === 2 &&
-			this.playerHands[0][0].value === this.playerHands[0][1].value;
+			this.currentHand.length === 2 &&
+			this.currentHand[0].value === this.currentHand[1].value;
 		this.splitButton.setDisabled(!enableButton);
 	}
 
@@ -377,29 +417,40 @@ class Blackjack {
 						idle: 0,
 					});
 				} catch (e) {
-					await this.interaction.editReply({
+					await this.interaction.channel.send({
 						content: `You took too long to continue, so the session will end now.\nTotal earnings: **${this.totalEarnings} MD**.`,
 					});
 					return;
 				}
+				fbmsg.edit({
+					components: [],
+				});
 			} else {
 				await this.interaction.editReply(this.gameMsg(earned));
 			}
 			const interaction = blackjackInteraction ?? bi;
 			if (!this.sessionAborted && this.session < this.rounds - 1) {
-				await interaction.deferReply();
-				const nextGame = new Blackjack(
-					interaction,
-					this.startingBet,
-					true,
-					this.rounds,
-					this.deck,
-					this.totalEarnings,
-					this.cardCount
-				);
-				nextGame.session = this.session + 1;
-				await sleep(1000);
-				await nextGame.gameLogic();
+				interaction
+					.deferReply()
+					.then(async () => {
+						const nextGame = new Blackjack(
+							interaction,
+							this.startingBet,
+							true,
+							this.rounds,
+							this.deck,
+							this.totalEarnings,
+							this.cardCount
+						);
+						nextGame.session = this.session + 1;
+						await sleep(1000);
+						await nextGame.gameLogic();
+					})
+					.catch(() => {
+						interaction.channel.send(
+							`This Blackjack session timed out, so it has been aborted.\nTotal earnings: **${this.totalEarnings} MD**.`
+						);
+					});
 			} else {
 				await interaction.reply({
 					content: `${this.interaction.user}, your session has ended.\nTotal earnings: **${this.totalEarnings} MD**.`,
@@ -428,10 +479,8 @@ class Blackjack {
 	}
 
 	hit(bi: ButtonInteraction<"cached">) {
-		const fromSplit = this.currentHand.length === 1;
 		this.deal1Card();
 		this.doubleDownButton.setDisabled(true);
-		if (fromSplit) this.activateSplitButton();
 		const total = Blackjack.handValue(this.currentHand).total;
 		if (total >= 21) {
 			this.continueOrEnd(bi);
@@ -470,11 +519,62 @@ class Blackjack {
 		}
 		this.bets.push(ogBet);
 		this.playerHands.push([
-			this.playerHands[this.focusedHand].pop(),
+			this.currentHand.pop(),
 			spliceRandom(this.deck, 1)[0],
 		]);
-		this.playerHands[this.focusedHand].push(spliceRandom(this.deck, 1)[0]);
+		this.currentHand.push(spliceRandom(this.deck, 1)[0]);
+		this.activateSplitButton();
 		bi.update(this.gameMsg());
+	}
+
+	async editBet(bi: ButtonInteraction<"cached">) {
+		if (this.session >= this.rounds - 1) {
+			await bi.reply({
+				content: `You may not edit your bet because this is the last round of the session.`,
+				ephemeral: true,
+			});
+			return;
+		}
+		const guideMsg = await bi.reply({
+			content: `${bi.user}, please type your new bet amount. This will apply in the next round.
+Your bet must be between **5** and **250** MD.`,
+		});
+		try {
+			const messages = await bi.channel.awaitMessages({
+				max: 1,
+				idle: 0,
+				time: 30_000,
+				filter: m => {
+					if (m.author.id !== bi.user.id) return false;
+					const bet = parseInt(m.content);
+					if (invalidNumber(bet)) return false;
+					return bet >= 5 && bet <= 250;
+				},
+			});
+			const msg = messages.first();
+			const newBet = parseInt(msg.content);
+			this.startingBet = newBet;
+			await bi.channel.send({
+				content: `${bi.user}, your bet has been updated to **${newBet} MD**.`,
+			});
+			await msg.delete();
+			await guideMsg.delete();
+		} catch (err) {
+			bi.followUp({
+				content: `${bi.user}, you took too long to respond, so your bet will not be updated.`,
+			});
+		}
+	}
+
+	async endSession(bi: ButtonInteraction<"cached">) {
+		this.endSessionButton.setDisabled();
+		this.sessionAborted = true;
+		await this.interaction.editReply({
+			components: this.currentComponents,
+		});
+		await bi.reply({
+			content: `Your session will end after this round.`,
+		});
 	}
 
 	async gameLogic() {
@@ -508,16 +608,27 @@ class Blackjack {
 
 		this.mcompColl.on("collect", async bi => {
 			if (!bi.inCachedGuild()) return;
-			this.surrenderButton.setDisabled(true);
-			if (bi.customId === customIds.surrender) {
-				await this.endPlayerTurn(bi, true);
-			} else if (bi.customId === customIds.continue) {
+			if (bi.customId === customIds.continue) {
 				const dealerHasBlackjack = Blackjack.hasBlackjack(this.dealerHand);
 				if (dealerHasBlackjack) {
 					this.endPlayerTurn(bi);
 					return;
 				}
 				await bi.update(this.gameMsg());
+				return;
+			}
+			if (bi.customId === customIds.endSession) {
+				await this.endSession(bi);
+				return;
+			}
+			if (bi.customId === customIds.editBet) {
+				await this.editBet(bi);
+				return;
+			}
+			this.surrenderButton.setDisabled(true);
+			if (bi.customId === customIds.surrender) {
+				await this.endPlayerTurn(bi, true);
+				return;
 			} else if (bi.customId === customIds.hit) {
 				this.hit(bi);
 			} else if (bi.customId === customIds.stand) {
@@ -526,15 +637,6 @@ class Blackjack {
 				await this.doubleDown(bi);
 			} else if (bi.customId === customIds.split) {
 				await this.split(bi);
-			} else if (bi.customId === customIds.endSession) {
-				this.endSessionButton.setDisabled();
-				this.sessionAborted = true;
-				await this.interaction.editReply({
-					components: this.gameMsgComponents,
-				});
-				await bi.reply({
-					content: `Your session will end after this round.`,
-				});
 			}
 		});
 
@@ -594,7 +696,8 @@ class Blackjack {
 		this.betOutcomes = this.outcomes.map((outcome, i) => {
 			if (outcome < 0) return -this.bets[i];
 			if (outcome === 0) return 0;
-			if (outcome === Outcome.Blackjack) return Math.ceil(this.bets[i] * 1.5);
+			if (outcome === Outcome.Blackjack)
+				return Math.ceil(this.bets[i] * blackjackRatio);
 			return this.bets[i];
 		});
 	}

@@ -4,6 +4,7 @@ import {
 	ChatInputCommandInteraction,
 	ComponentType,
 	EmbedBuilder,
+	Snowflake,
 } from "discord.js";
 import {
 	Collection,
@@ -13,15 +14,26 @@ import {
 } from "discord.js";
 import SlashCommand from "../core/SlashCommand.js";
 import { prisma } from "../main.js";
-import { chunkArray } from "../functions/util.js";
+import { chunkArray, invalidNumber } from "../functions/util.js";
 const chunkSize = 15;
 const collectorTime = 180_000;
 
+type Formatted = [string, number, Snowflake][];
 const leaderboard = new SlashCommand()
 	.setCommandData(builder =>
 		builder
 			.setName("leaderboard")
-			.setDescription("View the Minco Dollar leaderboard of the server")
+			.setDescription("View leaderboards")
+			.addSubcommand(subcommand =>
+				subcommand
+					.setName("md")
+					.setDescription("View the Minco Dollar leaderboard of the server")
+			)
+			.addSubcommand(subcommand =>
+				subcommand
+					.setName("poker_stats")
+					.setDescription("View the Poker Stats leaderboard of the server")
+			)
 	)
 	.setCooldown(60)
 	.setRun(run);
@@ -30,10 +42,16 @@ async function run(
 	interaction:
 		| ChatInputCommandInteraction<"cached">
 		| ButtonInteraction<"cached">,
+	givenUsingStats = false,
 	ephemeral = false,
-	givenProfiles?: { str: string; total: number; id: string }[],
+	givenProfiles?: { str: string; total: number; id: string; wr?: number }[],
 	givenCurrentPage = 0
 ) {
+	let usingStats: boolean;
+	if (!givenUsingStats) {
+		if (!interaction.isCommand()) return;
+		usingStats = interaction.options.getSubcommand() === "poker_stats";
+	}
 	let profiles = givenProfiles;
 	let currentPage = givenCurrentPage;
 	await interaction.deferReply({ ephemeral });
@@ -62,21 +80,44 @@ async function run(
 			})
 		)
 			.map(profile => {
-				if (!profile) return;
+				if (!profile) return null;
 				const member = members.get(profile.userId);
-				const total = profile.mincoDollars + profile.bank;
-				return {
-					str: `${member.displayName}: **${total.toLocaleString(
-						interaction.locale
-					)} MD**`,
-					total,
-					id: member.id,
-				};
+				if (usingStats) {
+					const winRate = Math.floor(
+						(profile.bsPokerWins / profile.bsPokerGamesPlayed) * 100
+					);
+					const skill = Math.floor(
+						(profile.bsPokerRating / profile.bsPokerGamesPlayed) * 100
+					);
+					if (invalidNumber(skill)) return null;
+					return {
+						str: `${member.displayName}: WR: **${winRate}%**, Skill: **${skill}%**`,
+						total: skill,
+						wr: winRate,
+						id: member.id,
+					};
+				} else {
+					const total = profile.mincoDollars + profile.bank;
+					return {
+						str: `${member.displayName}: **${total.toLocaleString(
+							interaction.locale
+						)} MD**`,
+						total,
+						id: member.id,
+					};
+				}
 			})
 			.filter(x => x != null);
 	}
-	const formatted = profiles
-		.sort((a, b) => b.total - a.total)
+	const formatted: Formatted = profiles
+		.sort((a, b) => {
+			if (usingStats) {
+				if (a.total === b.total) {
+					return b.wr - a.wr;
+				}
+			}
+			return b.total - a.total;
+		})
 		.map((val, index) => [`**${index + 1}** ${val.str}`, val.total, val.id]);
 	const slices = chunkArray(formatted, chunkSize);
 	const authorIndex = profiles.findIndex(e => e.id === interaction.user.id);
@@ -107,12 +148,14 @@ async function run(
 		(acc, profile) => acc + profile.total,
 		0
 	);
-	const getDescription =
-		() => `Minco Dollars in circulation: **${inCirculation.toLocaleString(
+	const getDescription = () => {
+		if (usingStats) {
+			return `Win Rate, Skill\n\n${format(slices[currentPage])}`;
+		}
+		return `Minco Dollars in circulation: **${inCirculation.toLocaleString(
 			interaction.locale
-		)}**
-		
-${format(slices[currentPage])}`;
+		)}**\n\n${format(slices[currentPage])}`;
+	};
 
 	const getFooter = () =>
 		`Page ${currentPage + 1}/${length} • Your leaderboard rank: ${
@@ -146,7 +189,7 @@ ${format(slices[currentPage])}`;
 	collector.on("collect", async buttonInteraction => {
 		if (!buttonInteraction.inCachedGuild()) return;
 		if (buttonInteraction.user.id !== interaction.user.id) {
-			await run(buttonInteraction, true, profiles, currentPage);
+			await run(buttonInteraction, usingStats, true, profiles, currentPage);
 			return;
 		}
 		switch (buttonInteraction.customId) {
@@ -245,7 +288,8 @@ ${format(slices[currentPage])}`;
 		}
 	});
 }
-function format(arr) {
+function format(arr: Formatted): string {
+	if (!arr) return "";
 	return arr.map(a => a[0]).join("\n");
 }
 
