@@ -53,7 +53,7 @@ const pokerHelp = new Subcommand()
 		}
 
 		const selectMenu = new StringSelectMenuBuilder()
-			.setCustomId("help-rules")
+			.setCustomId("help_poker_rules")
 			.setPlaceholder("Please make a selection")
 			.addOptions([
 				{

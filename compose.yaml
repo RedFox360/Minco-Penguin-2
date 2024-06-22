@@ -22,6 +22,6 @@ services:
     environment:
       - NODE_ENV=development
     cpu_shares: 512
-    command: "yarn start"
+    command: "yarn run prisma generate --schema /usr/src/app/schema.prisma && yarn start"
 volumes:
   node_modules:

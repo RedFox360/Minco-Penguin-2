@@ -10,11 +10,22 @@ import { msToRelTimestamp } from "../functions/util.js";
 import { bsPokerTeams, channelsWithActiveGames } from "../main.js";
 
 const timeToJoinTeam = 30_000;
-const joinButton = new ButtonBuilder()
-	.setLabel("Join")
-	.setCustomId("join")
+const customIds = {
+	accept: "accept_team",
+	decline: "decline_team",
+};
+const acceptButton = new ButtonBuilder()
+	.setLabel("Accept")
+	.setCustomId(customIds.accept)
 	.setStyle(ButtonStyle.Success);
-const joinRow = new ActionRowBuilder<ButtonBuilder>().addComponents(joinButton);
+const declineButton = new ButtonBuilder()
+	.setLabel("Decline")
+	.setCustomId(customIds.decline)
+	.setStyle(ButtonStyle.Danger);
+const accDecRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+	acceptButton,
+	declineButton
+);
 const team = new SlashCommand()
 	.setCommandData(builder =>
 		builder
@@ -124,22 +135,32 @@ const team = new SlashCommand()
 			}
 			const timeUpToJoin = msToRelTimestamp(timeToJoinTeam);
 			const msg = await interaction.reply({
-				content: `${player} — ${interaction.user} has asked to join your team. Click the button below to add them to your team ${timeUpToJoin}.`,
-				components: [joinRow],
+				content: `${player} — ${interaction.user} has asked to join your team. Use the buttons below to accept/decline ${timeUpToJoin}.`,
+				components: [accDecRow],
 			});
 			msg
 				.awaitMessageComponent({
 					componentType: ComponentType.Button,
-					filter: i => i.user.id === player.id && i.customId === "join",
+					filter: i =>
+						i.user.id === player.id &&
+						(i.customId === customIds.accept ||
+							i.customId === customIds.decline),
 					idle: 0,
 					time: timeToJoinTeam,
 				})
 				.then(bi => {
-					teamWithPlayer.push(interaction.user.id);
-					bi.update({
-						content: `:green_circle: ${interaction.user}, you have joined a team with ${player}.`,
-						components: [],
-					});
+					if (bi.customId === customIds.decline) {
+						teamWithPlayer.push(interaction.user.id);
+						bi.update({
+							content: `:green_circle: ${interaction.user}, you have joined a team with ${player}.`,
+							components: [],
+						});
+					} else {
+						bi.update({
+							content: `:red_circle: ${interaction.user} declined your team request.`,
+							components: [],
+						});
+					}
 				})
 				.catch(() => {
 					interaction.editReply({
@@ -177,22 +198,32 @@ const team = new SlashCommand()
 
 			const timeUpToJoin = msToRelTimestamp(timeToJoinTeam);
 			const msg = await interaction.reply({
-				content: `${player} — ${interaction.user} has invited you to join their team. Click the button below to join ${timeUpToJoin}.`,
-				components: [joinRow],
+				content: `${player} — ${interaction.user} has invited you to join their team. Use the buttons below to accept/decline ${timeUpToJoin}.`,
+				components: [accDecRow],
 			});
 			msg
 				.awaitMessageComponent({
 					componentType: ComponentType.Button,
-					filter: i => i.user.id === player.id && i.customId === "join",
+					filter: i =>
+						i.user.id === player.id &&
+						(i.customId === customIds.accept ||
+							i.customId === customIds.decline),
 					idle: 0,
 					time: timeToJoinTeam,
 				})
 				.then(bi => {
-					teamWithAsker.push(bi.user.id);
-					bi.update({
-						content: `:green_circle: ${player}, you have joined a team with ${interaction.user}.`,
-						components: [],
-					});
+					if (bi.customId === customIds.accept) {
+						teamWithAsker.push(bi.user.id);
+						bi.update({
+							content: `:green_circle: ${player}, you have joined a team with ${interaction.user}.`,
+							components: [],
+						});
+					} else {
+						bi.update({
+							content: `:red_circle: ${player} declined your team request.`,
+							components: [],
+						});
+					}
 				})
 				.catch(() => {
 					msg.edit({

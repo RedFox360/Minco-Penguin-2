@@ -57,7 +57,7 @@ class Connect4 {
                 : [this.opponentId, this.interaction.user.id];
             return `<@${winnerId}> has won against <@${loserId}>!`;
         }
-        return `:red_circle: ${this.interaction.user} vs. :yellow_circle: <@${this.opponentId}>\n\n<@${this.currentPlayer}>'s turn.\nPlease type a column number (1-7) to place a tile.\n${this.lastMove != null ? `Last Move: ${this.lastMove + 1}\n` : ""}Round: \`${this.round + 1}\``;
+        return `:red_circle: ${this.interaction.user} vs. :yellow_circle: <@${this.opponentId}>\n\n<@${this.currentPlayer}>'s turn.\nPlease type a column number (1-7) to place a tile.\n${this.lastMove != null ? `Last Move: \`${this.lastMove + 1}\`\n` : ""}Round: \`${this.round + 1}\``;
     }
     gameEmbed() {
         const color = this.winner ? colors.green : colors.blurple;
@@ -69,12 +69,9 @@ class Connect4 {
         return embed;
     }
     async sendGameMsg() {
+        if (this.gameMsg)
+            this.gameMsg.delete();
         this.gameMsg = await this.interaction.channel.send({
-            embeds: [this.gameEmbed()],
-        });
-    }
-    async updateGameMsg() {
-        this.gameMsg = await this.gameMsg.edit({
             embeds: [this.gameEmbed()],
         });
     }
@@ -142,7 +139,7 @@ class Connect4 {
                 });
                 this.betInfo = `They have won **${this.bet} MD** from the loser.`;
             }
-            await this.updateGameMsg();
+            await this.sendGameMsg();
             this.msgCollector.stop();
             return true;
         }
@@ -196,12 +193,7 @@ class Connect4 {
                 msg.reply("This game has ended in a draw.");
                 return;
             }
-            if (this.round % 10 === 0 && this.round !== 0) {
-                await this.sendGameMsg();
-            }
-            else {
-                await this.updateGameMsg();
-            }
+            await this.sendGameMsg();
         });
         return;
     }

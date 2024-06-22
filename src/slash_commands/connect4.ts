@@ -9,8 +9,8 @@ import { msToRelTimestamp } from "../functions/util.js";
 import Connect4 from "../functions/connect4/connect4_class.js";
 
 const customIds = {
-	accept: "accept",
-	decline: "decline",
+	accept: "accept_connect4",
+	decline: "decline_connect4",
 };
 
 const acceptButton = new ButtonBuilder()

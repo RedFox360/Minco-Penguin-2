@@ -603,7 +603,6 @@ export async function highestCallInDeck(deck: ExtCard[]): Promise<Call> {
 		for (let i = 2; i <= 15; i++) {
 			for (const suit1 of suits) {
 				for (let j = 2; j <= 15; j++) {
-					if (j === i) continue;
 					for (const suit2 of suits) {
 						if (suit1 === suit2) continue;
 						const dfCall: DoubleFlushCall = {

@@ -18,6 +18,12 @@ import { chunkArray, invalidNumber } from "../functions/util.js";
 const chunkSize = 15;
 const collectorTime = 180_000;
 
+const customIds = {
+	first: "first_lb",
+	prev: "prev_lb",
+	next: "next_lb",
+	last: "last_lb",
+};
 type Formatted = [string, number, Snowflake][];
 const leaderboard = new SlashCommand()
 	.setCommandData(builder =>
@@ -123,22 +129,22 @@ async function run(
 	const authorIndex = profiles.findIndex(e => e.id === interaction.user.id);
 
 	const first = new ButtonBuilder()
-		.setCustomId("first")
+		.setCustomId(customIds.first)
 		.setStyle(ButtonStyle.Primary)
 		.setEmoji("⏪")
 		.setDisabled(currentPage === 0);
 	const previous = new ButtonBuilder()
-		.setCustomId("prev")
+		.setCustomId(customIds.prev)
 		.setStyle(ButtonStyle.Primary)
 		.setEmoji("⬅️")
 		.setDisabled(currentPage === 0);
 	const next = new ButtonBuilder()
-		.setCustomId("next")
+		.setCustomId(customIds.next)
 		.setEmoji("➡️")
 		.setStyle(ButtonStyle.Primary)
 		.setDisabled(currentPage === slices.length - 1);
 	const last = new ButtonBuilder()
-		.setCustomId("last")
+		.setCustomId(customIds.last)
 		.setEmoji("⏩")
 		.setStyle(ButtonStyle.Primary)
 		.setDisabled(currentPage === slices.length - 1);
@@ -193,7 +199,7 @@ async function run(
 			return;
 		}
 		switch (buttonInteraction.customId) {
-			case "first": {
+			case customIds.first: {
 				currentPage = 0;
 				first.setDisabled();
 				previous.setDisabled();
@@ -215,7 +221,7 @@ async function run(
 				});
 				break;
 			}
-			case "prev": {
+			case customIds.prev: {
 				currentPage -= 1;
 				next.setDisabled(false);
 				last.setDisabled(false);
@@ -239,7 +245,7 @@ async function run(
 				});
 				break;
 			}
-			case "next": {
+			case customIds.next: {
 				currentPage += 1;
 				previous.setDisabled(false);
 				first.setDisabled(false);
@@ -263,7 +269,7 @@ async function run(
 				});
 				break;
 			}
-			case "last": {
+			case customIds.last: {
 				currentPage = length - 1;
 				previous.setDisabled(false);
 				first.setDisabled(false);

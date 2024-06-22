@@ -61,8 +61,8 @@ export default async function bsPokerRun(
 
 	if (playerLimit > maxPlayerLimit) {
 		await interaction.reply({
-			content:
-				"The maximum number of cards to be dealt is greater than the size of the deck. Please decrease the player limit.",
+			content: `The maximum number of cards to be dealt is greater than the size of the deck.
+Please decrease the player limit to a value less than or equal to ${maxPlayerLimit}.`,
 			ephemeral: true,
 		});
 		return;
@@ -118,6 +118,15 @@ export default async function bsPokerRun(
 		: "**No bet required.**";
 
 	const startTime = msToRelTimestamp(collectorTime);
+
+	const optionsFieldValue = `Cards to get out: **${cardsToOut}**
+Jokers in deck: **${jokerCount}**
+Insurance cards in deck: **${insuranceCount}**
+Starting cards: **${beginCards}**
+Common cards: **${commonCards === -1 ? "Median" : commonCards}**
+Allow join mid-game: **${allowJoinMidGame ? "True" : "False"}**
+Use special cards: **${useSpecialCards ? "True" : "False"}**`;
+
 	const gameStartEmbed = (gameStarted = false) =>
 		new EmbedBuilder()
 			.setTitle(gameStarted ? "BS Poker Game Started" : "BS Poker")
@@ -139,13 +148,7 @@ Otherwise, the game will start ${startTime}`)
 			)
 			.addFields({
 				name: "Options",
-				value: `Cards to get out: **${cardsToOut}**
-Jokers in deck: **${jokerCount}**
-Insurance cards in deck: **${insuranceCount}**
-Starting cards: **${beginCards}**
-Common cards: **${commonCards === -1 ? "Median" : commonCards}**
-Allow join mid-game: **${allowJoinMidGame ? "True" : "False"}**
-Use special cards: **${useSpecialCards ? "True" : "False"}**`,
+				value: optionsFieldValue,
 			})
 			.setTimestamp()
 			.setColor(gameStarted ? colors.blurple : colors.green)
@@ -168,7 +171,7 @@ Use special cards: **${useSpecialCards ? "True" : "False"}**`,
 		time: collectorTime,
 		componentType: ComponentType.Button,
 	});
-	let startGame = true;
+	let shouldBeginGame = true;
 	collector.on("collect", async buttonInteraction => {
 		if (buttonInteraction.customId === "join") {
 			if (players.length >= playerLimit) {
@@ -227,7 +230,7 @@ Use special cards: **${useSpecialCards ? "True" : "False"}**`,
 				embeds: [],
 				components: [],
 			});
-			startGame = false;
+			shouldBeginGame = false;
 			collector.stop();
 		}
 		if (buttonInteraction.customId === "start") {
@@ -246,7 +249,7 @@ Use special cards: **${useSpecialCards ? "True" : "False"}**`,
 		}
 	});
 	collector.on("end", async () => {
-		if (!startGame) {
+		if (!shouldBeginGame) {
 			removeByValue(channelsWithActiveGames, interaction.channelId);
 			return;
 		}

@@ -171,7 +171,7 @@ class BSPoker {
 		this._currPlayerIdx = status;
 	}
 
-	get totalBet() {
+	get pot() {
 		return this.totalPlayers * this.startingBet;
 	}
 
@@ -205,7 +205,7 @@ class BSPoker {
 			this.playerHands.get(p).some(c => c.suit === "bj" || c.suit === "rj")
 		);
 		return `Players with special cards: ${
-			pwsc.length === 0 ? "None" : pwsc.map(p => `<@${p}>`).join(" ")
+			pwsc.length === 0 ? "None" : pwsc.map(userMention).join(" ")
 		}`;
 	}
 
@@ -267,9 +267,20 @@ class BSPoker {
 			.join("\n");
 	}
 
+	displayOptions() {
+		return `Cards to get out: **${this.cardsToOut}**
+Jokers: **${this.jokerCount}** | Insurances: **${this.insuranceCount}**
+Starting cards: **${this.beginCards}**
+Common cards: **${
+			this.commonCardsAmount === -1 ? "Median" : this.commonCardsAmount
+		}**
+Allow join mid-game: **${this.allowJoinMidGame ? "True" : "False"}**
+Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
+	}
+
 	get betInfo() {
 		return this.startingBet
-			? `Bet to Join: **${this.startingBet.toLocaleString()} MD** | Pot: **${this.totalBet.toLocaleString()} MD**\n`
+			? `Bet to Join: **${this.startingBet.toLocaleString()} MD** | Pot: **${this.pot.toLocaleString()} MD**\n`
 			: "";
 	}
 
@@ -480,7 +491,7 @@ class BSPoker {
 		const winnerId = this.players[0];
 		await updateProfile(winnerId, {
 			mincoDollars: {
-				increment: this.totalBet,
+				increment: this.pot,
 			},
 			bsPokerWins: {
 				increment: 1,
@@ -495,7 +506,7 @@ class BSPoker {
 			.setDescription(
 				`<@${winnerId}> has won the game${
 					this.startingBet
-						? ` and the pot of **${this.totalBet.toLocaleString()} MD**`
+						? ` and the pot of **${this.pot.toLocaleString()} MD**`
 						: ""
 				}! Congratulations!`
 			)
@@ -979,7 +990,12 @@ class BSPoker {
 			}
 			if (buttonInteraction.customId === customIds.viewGameInfo) {
 				await buttonInteraction.reply({
-					content: `${this.betInfo}\n${this.playersAndEntitled()}`,
+					content: `${this.betInfo}
+## Players
+${this.playersAndEntitled()}
+
+## Options
+${this.displayOptions()}`,
 					ephemeral: true,
 				});
 				return;

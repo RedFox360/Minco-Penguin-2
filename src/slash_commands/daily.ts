@@ -10,8 +10,8 @@ const daily = new SlashCommand()
 	)
 	.setRun(async interaction => {
 		const profile = await getProfile(interaction.user.id);
-		const currentDate = dayjs().format("YYYY-MM-DD");
-		const lastClaimDate = dayjs(profile.lastDailyClaim).format("YYYY-MM-DD");
+		const currentDate = dayjs.tz().format("YYYY-MM-DD");
+		const lastClaimDate = dayjs.tz(profile.lastDailyClaim).format("YYYY-MM-DD");
 
 		if (currentDate === lastClaimDate) {
 			await interaction.reply({

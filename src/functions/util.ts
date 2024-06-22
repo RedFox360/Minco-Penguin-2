@@ -50,7 +50,7 @@ export function shuffleArrayInPlace(arr: any[]) {
 
 /**
  * sends a message and deletes it after a certain amount of time (default = 20s)
- * @param timeout time in milliseconds
+ * @param timeout time in milliseconds (default = 20,000)
  */
 export function replyThenDelete(
 	message: Message,
@@ -82,11 +82,10 @@ export function spliceRandom<T>(arr: T[], count = 1): T[] {
 }
 
 export function chunkArray<T>(myArray: T[], chunkSize: number): T[][] {
-	const tempArray = [];
+	const tempArray: T[][] = [];
 
 	for (let index = 0; index < myArray.length; index += chunkSize) {
 		const myChunk = myArray.slice(index, index + chunkSize);
-		// do something if you want with the group
 		tempArray.push(myChunk);
 	}
 

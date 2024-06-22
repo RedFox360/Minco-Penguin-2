@@ -29,5 +29,9 @@
 **/values.dev.yaml
 **/build
 **/dist
+**/tests
 LICENSE
 README.md
+eslint.config.js
+jest.config.js
+.prettierrc.json

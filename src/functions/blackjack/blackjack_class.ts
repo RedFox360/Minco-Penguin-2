@@ -169,11 +169,7 @@ class Blackjack {
 	get blackjackComponents() {
 		this.currentCompState = "blackjack";
 		return [
-			new ActionRowBuilder<ButtonBuilder>().addComponents(
-				this.continueButton,
-				this.endSessionButton,
-				this.editBetButton
-			),
+			new ActionRowBuilder<ButtonBuilder>().addComponents(this.continueButton),
 		];
 	}
 

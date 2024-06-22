@@ -84,7 +84,7 @@ class BSPoker {
             this._currPlayerIdx = 0;
         this._currPlayerIdx = status;
     }
-    get totalBet() {
+    get pot() {
         return this.totalPlayers * this.startingBet;
     }
     currentDeck() {
@@ -112,7 +112,7 @@ class BSPoker {
         if (this.playerHands.size === 0)
             return "";
         const pwsc = this.players.filter(p => this.playerHands.get(p).some(c => c.suit === "bj" || c.suit === "rj"));
-        return `Players with special cards: ${pwsc.length === 0 ? "None" : pwsc.map(p => `<@${p}>`).join(" ")}`;
+        return `Players with special cards: ${pwsc.length === 0 ? "None" : pwsc.map(userMention).join(" ")}`;
     }
     getHandsEmbed(handsList, highestCall = null) {
         return new EmbedBuilder()
@@ -162,9 +162,17 @@ class BSPoker {
         })
             .join("\n");
     }
+    displayOptions() {
+        return `Cards to get out: **${this.cardsToOut}**
+Jokers: **${this.jokerCount}** | Insurances: **${this.insuranceCount}**
+Starting cards: **${this.beginCards}**
+Common cards: **${this.commonCardsAmount === -1 ? "Median" : this.commonCardsAmount}**
+Allow join mid-game: **${this.allowJoinMidGame ? "True" : "False"}**
+Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
+    }
     get betInfo() {
         return this.startingBet
-            ? `Bet to Join: **${this.startingBet.toLocaleString()} MD** | Pot: **${this.totalBet.toLocaleString()} MD**\n`
+            ? `Bet to Join: **${this.startingBet.toLocaleString()} MD** | Pot: **${this.pot.toLocaleString()} MD**\n`
             : "";
     }
     newRoundEmbed(waiting) {
@@ -326,7 +334,7 @@ class BSPoker {
         const winnerId = this.players[0];
         await updateProfile(winnerId, {
             mincoDollars: {
-                increment: this.totalBet,
+                increment: this.pot,
             },
             bsPokerWins: {
                 increment: 1,
@@ -339,7 +347,7 @@ class BSPoker {
         const embed = new EmbedBuilder()
             .setTitle("Game Over!")
             .setDescription(`<@${winnerId}> has won the game${this.startingBet
-            ? ` and the pot of **${this.totalBet.toLocaleString()} MD**`
+            ? ` and the pot of **${this.pot.toLocaleString()} MD**`
             : ""}! Congratulations!`)
             .setColor(colors.green);
         if (winnerMember) {
@@ -746,7 +754,12 @@ class BSPoker {
             }
             if (buttonInteraction.customId === customIds.viewGameInfo) {
                 await buttonInteraction.reply({
-                    content: `${this.betInfo}\n${this.playersAndEntitled()}`,
+                    content: `${this.betInfo}
+## Players
+${this.playersAndEntitled()}
+
+## Options
+${this.displayOptions()}`,
                     ephemeral: true,
                 });
                 return;

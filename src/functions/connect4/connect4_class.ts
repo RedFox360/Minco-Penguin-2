@@ -86,7 +86,7 @@ class Connect4 {
 		}>\n\n<@${
 			this.currentPlayer
 		}>'s turn.\nPlease type a column number (1-7) to place a tile.\n${
-			this.lastMove != null ? `Last Move: ${this.lastMove + 1}\n` : ""
+			this.lastMove != null ? `Last Move: \`${this.lastMove + 1}\`\n` : ""
 		}Round: \`${this.round + 1}\``;
 	}
 
@@ -100,13 +100,8 @@ class Connect4 {
 		return embed;
 	}
 	async sendGameMsg() {
+		if (this.gameMsg) this.gameMsg.delete();
 		this.gameMsg = await this.interaction.channel.send({
-			embeds: [this.gameEmbed()],
-		});
-	}
-
-	async updateGameMsg() {
-		this.gameMsg = await this.gameMsg.edit({
 			embeds: [this.gameEmbed()],
 		});
 	}
@@ -212,7 +207,7 @@ class Connect4 {
 				});
 				this.betInfo = `They have won **${this.bet} MD** from the loser.`;
 			}
-			await this.updateGameMsg();
+			await this.sendGameMsg();
 			this.msgCollector.stop();
 			return true;
 		}
@@ -272,11 +267,7 @@ class Connect4 {
 				return;
 			}
 
-			if (this.round % 10 === 0 && this.round !== 0) {
-				await this.sendGameMsg();
-			} else {
-				await this.updateGameMsg();
-			}
+			await this.sendGameMsg();
 		});
 
 		return;

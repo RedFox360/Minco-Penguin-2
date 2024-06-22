@@ -43,7 +43,7 @@ export function shuffleArrayInPlace(arr) {
 }
 /**
  * sends a message and deletes it after a certain amount of time (default = 20s)
- * @param timeout time in milliseconds
+ * @param timeout time in milliseconds (default = 20,000)
  */
 export function replyThenDelete(message, text, timeout = 20000) {
     message
@@ -72,7 +72,6 @@ export function chunkArray(myArray, chunkSize) {
     const tempArray = [];
     for (let index = 0; index < myArray.length; index += chunkSize) {
         const myChunk = myArray.slice(index, index + chunkSize);
-        // do something if you want with the group
         tempArray.push(myChunk);
     }
     return tempArray;
