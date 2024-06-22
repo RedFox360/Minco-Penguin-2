@@ -5,7 +5,7 @@ import {
 	ComponentType,
 } from "discord.js";
 import SlashCommand from "../core/SlashCommand.js";
-import { msToRelTimestamp } from "../functions/util.js";
+import { handleMessageError, msToRelTimestamp } from "../functions/util.js";
 import Connect4 from "../functions/connect4/connect4_class.js";
 
 const customIds = {
@@ -71,17 +71,17 @@ const connect4 = new SlashCommand()
 			})
 			.then(async i => {
 				if (i.customId === customIds.decline) {
-					await i.update({
+					i.update({
 						content: `${opponent} has declined the challenge.`,
 						components: [],
-					});
+					}).catch(handleMessageError);
 					return;
 				}
 
-				await i.update({
+				i.update({
 					content: `${opponent} has accepted the challenge!`,
 					components: [],
-				});
+				}).catch(handleMessageError);
 
 				const game = new Connect4(interaction, opponent.id, bet);
 				await game.gameLogic();

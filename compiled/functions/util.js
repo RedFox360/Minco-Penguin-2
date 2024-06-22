@@ -95,8 +95,9 @@ export function median(x) {
         : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 export function handleMessageError(err) {
-    if (err.code === RESTJSONErrorCodes.UnknownMessage) {
-        return;
+    if (err.code === RESTJSONErrorCodes.UnknownMessage ||
+        err.code === RESTJSONErrorCodes.UnknownInteraction) {
+        console.log("Message already deleted/edited");
     }
     else {
         console.error(err);

@@ -113,8 +113,11 @@ export function median(x: number[]) {
 }
 
 export function handleMessageError(err: any) {
-	if (err.code === RESTJSONErrorCodes.UnknownMessage) {
-		return;
+	if (
+		err.code === RESTJSONErrorCodes.UnknownMessage ||
+		err.code === RESTJSONErrorCodes.UnknownInteraction
+	) {
+		console.log("Message already deleted/edited");
 	} else {
 		console.error(err);
 	}

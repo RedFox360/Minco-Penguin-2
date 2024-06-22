@@ -196,10 +196,12 @@ Otherwise, the game will start ${startTime}`)
 				players.push(buttonInteraction.user.id);
 				startButton.setDisabled(false);
 			}
-			await buttonInteraction.update({
-				embeds: [gameStartEmbed()],
-				components: [row1, row2],
-			});
+			buttonInteraction
+				.update({
+					embeds: [gameStartEmbed()],
+					components: [row1, row2],
+				})
+				.catch(handleMessageError);
 		}
 		if (buttonInteraction.customId === "leave") {
 			if (buttonInteraction.user.id === interaction.user.id) {
@@ -213,10 +215,12 @@ Otherwise, the game will start ${startTime}`)
 			if (players.length <= 1) {
 				startButton.setDisabled(true);
 			}
-			await buttonInteraction.update({
-				embeds: [gameStartEmbed()],
-				components: [row1, row2],
-			});
+			buttonInteraction
+				.update({
+					embeds: [gameStartEmbed()],
+					components: [row1, row2],
+				})
+				.catch(handleMessageError);
 		}
 		if (buttonInteraction.customId === "abort") {
 			if (buttonInteraction.user.id !== interaction.user.id) {
@@ -226,11 +230,13 @@ Otherwise, the game will start ${startTime}`)
 				});
 				return;
 			}
-			await buttonInteraction.update({
-				content: "Game aborted by host.",
-				embeds: [],
-				components: [],
-			});
+			buttonInteraction
+				.update({
+					content: "Game aborted by host.",
+					embeds: [],
+					components: [],
+				})
+				.catch(handleMessageError);
 			shouldBeginGame = false;
 			collector.stop();
 		}
@@ -242,10 +248,12 @@ Otherwise, the game will start ${startTime}`)
 				});
 				return;
 			}
-			await buttonInteraction.update({
-				embeds: [gameStartEmbed(true)],
-				components: [],
-			});
+			buttonInteraction
+				.update({
+					embeds: [gameStartEmbed(true)],
+					components: [],
+				})
+				.catch(handleMessageError);
 			collector.stop();
 		}
 	});

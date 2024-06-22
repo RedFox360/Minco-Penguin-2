@@ -14,7 +14,11 @@ import {
 } from "discord.js";
 import SlashCommand from "../core/SlashCommand.js";
 import { prisma } from "../main.js";
-import { chunkArray, invalidNumber } from "../functions/util.js";
+import {
+	chunkArray,
+	handleMessageError,
+	invalidNumber,
+} from "../functions/util.js";
 const chunkSize = 15;
 const collectorTime = 180_000;
 
@@ -208,17 +212,19 @@ async function run(
 				lbEmbed.setDescription(getDescription()).setFooter({
 					text: getFooter(),
 				});
-				await buttonInteraction.update({
-					embeds: [lbEmbed],
-					components: [
-						new ActionRowBuilder<ButtonBuilder>().addComponents(
-							first,
-							previous,
-							next,
-							last
-						),
-					],
-				});
+				buttonInteraction
+					.update({
+						embeds: [lbEmbed],
+						components: [
+							new ActionRowBuilder<ButtonBuilder>().addComponents(
+								first,
+								previous,
+								next,
+								last
+							),
+						],
+					})
+					.catch(handleMessageError);
 				break;
 			}
 			case customIds.prev: {
@@ -232,17 +238,19 @@ async function run(
 				lbEmbed.setDescription(getDescription()).setFooter({
 					text: getFooter(),
 				});
-				await buttonInteraction.update({
-					embeds: [lbEmbed],
-					components: [
-						new ActionRowBuilder<ButtonBuilder>().addComponents(
-							first,
-							previous,
-							next,
-							last
-						),
-					],
-				});
+				buttonInteraction
+					.update({
+						embeds: [lbEmbed],
+						components: [
+							new ActionRowBuilder<ButtonBuilder>().addComponents(
+								first,
+								previous,
+								next,
+								last
+							),
+						],
+					})
+					.catch(handleMessageError);
 				break;
 			}
 			case customIds.next: {
@@ -256,17 +264,19 @@ async function run(
 				lbEmbed.setDescription(getDescription()).setFooter({
 					text: getFooter(),
 				});
-				await buttonInteraction.update({
-					embeds: [lbEmbed],
-					components: [
-						new ActionRowBuilder<ButtonBuilder>().addComponents(
-							first,
-							previous,
-							next,
-							last
-						),
-					],
-				});
+				buttonInteraction
+					.update({
+						embeds: [lbEmbed],
+						components: [
+							new ActionRowBuilder<ButtonBuilder>().addComponents(
+								first,
+								previous,
+								next,
+								last
+							),
+						],
+					})
+					.catch(handleMessageError);
 				break;
 			}
 			case customIds.last: {
@@ -278,17 +288,19 @@ async function run(
 				lbEmbed.setDescription(getDescription()).setFooter({
 					text: getFooter(),
 				});
-				await buttonInteraction.update({
-					embeds: [lbEmbed],
-					components: [
-						new ActionRowBuilder<ButtonBuilder>().addComponents(
-							first,
-							previous,
-							next,
-							last
-						),
-					],
-				});
+				buttonInteraction
+					.update({
+						embeds: [lbEmbed],
+						components: [
+							new ActionRowBuilder<ButtonBuilder>().addComponents(
+								first,
+								previous,
+								next,
+								last
+							),
+						],
+					})
+					.catch(handleMessageError);
 				break;
 			}
 		}

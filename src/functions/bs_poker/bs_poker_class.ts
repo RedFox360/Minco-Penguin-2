@@ -281,7 +281,20 @@ Allow join mid-game: **${this.allowJoinMidGame ? "True" : "False"}**
 Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 	}
 
-	get betInfo() {
+	gameInfoEmbed() {
+		const embed = new EmbedBuilder()
+			.setTitle("Game Info")
+			.setColor(colors.green)
+			.addFields(
+				{ name: "Players", value: this.playersAndEntitled() },
+				{ name: "Options", value: this.displayOptions() }
+			);
+		const betInfo = this.betInfo();
+		if (betInfo) embed.setDescription(betInfo);
+		return embed;
+	}
+
+	betInfo() {
 		return this.startingBet
 			? `Bet to Join: **${this.startingBet.toLocaleString()} MD** | Pot: **${this.pot.toLocaleString()} MD**\n`
 			: "";
@@ -301,9 +314,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 		const pwsc = waiting ? "" : this.formatPWSC();
 		return {
 			title: `New Round (${this.round + 1})`,
-			description: `${
-				this.betInfo
-			}Common Cards: ${commonCardsToDisplay}\n${pwsc}\n<@${
+			description: `${this.betInfo()}Common Cards: ${commonCardsToDisplay}\n${pwsc}\n<@${
 				this.players[this.currentPlayerIndex]
 			}> will start the round.`,
 			fields: [
@@ -1003,12 +1014,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 			}
 			if (buttonInteraction.customId === customIds.viewGameInfo) {
 				await buttonInteraction.reply({
-					content: `${this.betInfo}
-## Players
-${this.playersAndEntitled()}
-
-## Options
-${this.displayOptions()}`,
+					embeds: [this.gameInfoEmbed()],
 					ephemeral: true,
 				});
 				return;

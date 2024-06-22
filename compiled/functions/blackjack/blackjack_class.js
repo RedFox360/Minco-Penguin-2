@@ -357,9 +357,9 @@ class Blackjack {
             return;
         }
         if (bi.isButton())
-            await bi.update(this.gameMsg(earned));
+            bi.update(this.gameMsg(earned)).catch(handleMessageError);
         else if (bi.isCommand())
-            await bi.editReply(this.gameMsg(earned));
+            bi.editReply(this.gameMsg(earned)).catch(handleMessageError);
     }
     continueOrEnd(bi) {
         if (this.focusedHand === this.playerHands.length - 1) {
@@ -369,7 +369,7 @@ class Blackjack {
         this.activateSplitButton();
         this.focusedHand += 1;
         this.doubleDownButton.setDisabled(false);
-        bi.update(this.gameMsg());
+        bi.update(this.gameMsg()).catch(handleMessageError);
     }
     deal1Card() {
         this.currentHand.push(spliceRandom(this.deck, 1)[0]);
@@ -382,7 +382,7 @@ class Blackjack {
             this.continueOrEnd(bi);
             return true;
         }
-        bi.update(this.gameMsg());
+        bi.update(this.gameMsg()).catch(handleMessageError);
         return false;
     }
     async doubleDown(bi) {
@@ -418,7 +418,7 @@ class Blackjack {
         ]);
         this.currentHand.push(spliceRandom(this.deck, 1)[0]);
         this.activateSplitButton();
-        bi.update(this.gameMsg());
+        bi.update(this.gameMsg()).catch(handleMessageError);
     }
     async editBet(bi) {
         if (this.session >= this.rounds - 1) {
@@ -504,7 +504,7 @@ Your bet must be between **5** and **250** MD.`,
                     this.endPlayerTurn(bi);
                     return;
                 }
-                await bi.update(this.gameMsg());
+                bi.update(this.gameMsg()).catch(handleMessageError);
                 return;
             }
             if (bi.customId === customIds.endSession) {

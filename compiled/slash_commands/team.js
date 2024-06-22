@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, userMention, } from "discord.js";
 import SlashCommand from "../core/SlashCommand.js";
-import { msToRelTimestamp } from "../functions/util.js";
+import { handleMessageError, msToRelTimestamp } from "../functions/util.js";
 import { bsPokerTeams, channelsWithActiveGames } from "../main.js";
 const timeToJoinTeam = 30000;
 const customIds = {
@@ -110,18 +110,18 @@ const team = new SlashCommand()
             time: timeToJoinTeam,
         })
             .then(bi => {
-            if (bi.customId === customIds.decline) {
+            if (bi.customId === customIds.accept) {
                 teamWithPlayer.push(interaction.user.id);
                 bi.update({
-                    content: `:green_circle: ${interaction.user}, you have joined a team with ${player}.`,
+                    content: `:green_circle: ${bi.user}, you have joined a team with ${interaction.user}.`,
                     components: [],
-                });
+                }).catch(handleMessageError);
             }
             else {
                 bi.update({
-                    content: `:red_circle: ${interaction.user} declined your team request.`,
+                    content: `:red_circle: ${bi.user} declined your team request.`,
                     components: [],
-                });
+                }).catch(handleMessageError);
             }
         })
             .catch(() => {
@@ -176,15 +176,15 @@ const team = new SlashCommand()
             if (bi.customId === customIds.accept) {
                 teamWithAsker.push(bi.user.id);
                 bi.update({
-                    content: `:green_circle: ${player}, you have joined a team with ${interaction.user}.`,
+                    content: `:green_circle: ${bi.user}, you have joined a team with ${interaction.user}.`,
                     components: [],
-                });
+                }).catch(handleMessageError);
             }
             else {
                 bi.update({
-                    content: `:red_circle: ${player} declined your team request.`,
+                    content: `:red_circle: ${bi.user} declined your team invite.`,
                     components: [],
-                });
+                }).catch(handleMessageError);
             }
         })
             .catch(() => {

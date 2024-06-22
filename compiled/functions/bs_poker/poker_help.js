@@ -2,6 +2,7 @@ import { ActionRowBuilder, ComponentType, StringSelectMenuBuilder, } from "disco
 import Subcommand from "../../core/Subcommand.js";
 import helpEmbeds from "./bs_poker_help_embed.js";
 import { emojiRaw } from "../basic_card_types.js";
+import { handleMessageError } from "../util.js";
 const pokerHelp = new Subcommand()
     .setCommandData(subcommand => subcommand
     .setName("help")
@@ -91,9 +92,11 @@ const pokerHelp = new Subcommand()
     });
     collector.on("collect", selectInteraction => {
         const value = parseInt(selectInteraction.values[0]);
-        selectInteraction.update({
+        selectInteraction
+            .update({
             embeds: [helpEmbeds[value]],
-        });
+        })
+            .catch(handleMessageError);
     });
 });
 export default pokerHelp;
