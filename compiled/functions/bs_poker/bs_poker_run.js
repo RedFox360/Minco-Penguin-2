@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, userMention, } from "discord.js";
 import BSPoker from "./bs_poker_class.js";
-import { removeByValue, msToRelTimestamp, shuffleArrayInPlace, } from "../util.js";
+import { removeByValue, msToRelTimestamp, shuffleArrayInPlace, handleMessageError, } from "../util.js";
 import { getProfile } from "../../prisma/models.js";
 import { colors } from "../util.js";
 import { bsPokerTeams, channelsWithActiveGames } from "../../main.js";
@@ -203,18 +203,22 @@ Otherwise, the game will start ${startTime}`))
             return;
         }
         if (players.length <= 1) {
-            await msg.edit({
+            msg
+                .edit({
                 content: "Game aborted due to insufficient players.",
                 embeds: [],
                 components: [],
-            });
+            })
+                .catch(handleMessageError);
             removeByValue(channelsWithActiveGames, interaction.channelId);
             return;
         }
-        await msg.edit({
+        msg
+            .edit({
             embeds: [gameStartEmbed(true)],
             components: [],
-        });
+        })
+            .catch(handleMessageError);
         shuffleArrayInPlace(players);
         bsPokerTeams.set(interaction.channelId, players.map(x => [x]));
         const game = new BSPoker(interaction, players, cardsToOut, startingBet, commonCards, jokerCount, insuranceCount, beginCards, allowJoinMidGame, playerLimit, useSpecialCards);

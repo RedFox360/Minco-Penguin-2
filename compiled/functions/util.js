@@ -1,4 +1,4 @@
-import { TimestampStyles, time } from "discord.js";
+import { RESTJSONErrorCodes, TimestampStyles, time } from "discord.js";
 export const colors = {
     blurple: 0x7289da,
     green: 0x76d7c4,
@@ -52,7 +52,7 @@ export function replyThenDelete(message, text, timeout = 20000) {
     })
         .then(msg => {
         setTimeout(() => {
-            msg.delete();
+            msg.delete().catch(handleMessageError);
         }, timeout);
     });
 }
@@ -93,5 +93,13 @@ export function median(x) {
     return sorted.length % 2 !== 0
         ? sorted[mid]
         : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+export function handleMessageError(err) {
+    if (err.code === RESTJSONErrorCodes.UnknownMessage) {
+        return;
+    }
+    else {
+        console.error(err);
+    }
 }
 //# sourceMappingURL=util.js.map

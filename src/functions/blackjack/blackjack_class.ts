@@ -12,7 +12,12 @@ import {
 } from "discord.js";
 import { Card } from "../basic_card_types.js";
 import { createBasicDeck, formatDeck } from "../basic_card_functions.js";
-import { colors, invalidNumber, spliceRandom } from "../util.js";
+import {
+	colors,
+	handleMessageError,
+	invalidNumber,
+	spliceRandom,
+} from "../util.js";
 import { getProfile, updateProfile } from "../../prisma/models.js";
 import { promisify } from "util";
 const sleep = promisify(setTimeout);
@@ -418,9 +423,11 @@ class Blackjack {
 					});
 					return;
 				}
-				fbmsg.edit({
-					components: [],
-				});
+				fbmsg
+					.edit({
+						components: [],
+					})
+					.catch(handleMessageError);
 			} else {
 				await this.interaction.editReply(this.gameMsg(earned));
 			}
@@ -553,8 +560,8 @@ Your bet must be between **5** and **250** MD.`,
 			await bi.channel.send({
 				content: `${bi.user}, your bet has been updated to **${newBet} MD**.`,
 			});
-			await msg.delete();
-			await guideMsg.delete();
+			msg.delete().catch(handleMessageError);
+			guideMsg.delete().catch(handleMessageError);
 		} catch (err) {
 			bi.followUp({
 				content: `${bi.user}, you took too long to respond, so your bet will not be updated.`,

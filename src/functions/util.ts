@@ -1,4 +1,4 @@
-import { Message, TimestampStyles, time } from "discord.js";
+import { Message, RESTJSONErrorCodes, TimestampStyles, time } from "discord.js";
 
 export const colors = {
 	blurple: 0x7289da,
@@ -63,7 +63,7 @@ export function replyThenDelete(
 		})
 		.then(msg => {
 			setTimeout(() => {
-				msg.delete();
+				msg.delete().catch(handleMessageError);
 			}, timeout);
 		});
 }
@@ -110,4 +110,12 @@ export function median(x: number[]) {
 	return sorted.length % 2 !== 0
 		? sorted[mid]
 		: (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+export function handleMessageError(err: any) {
+	if (err.code === RESTJSONErrorCodes.UnknownMessage) {
+		return;
+	} else {
+		console.error(err);
+	}
 }

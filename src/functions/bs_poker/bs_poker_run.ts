@@ -12,6 +12,7 @@ import {
 	removeByValue,
 	msToRelTimestamp,
 	shuffleArrayInPlace,
+	handleMessageError,
 } from "../util.js";
 import { getProfile } from "../../prisma/models.js";
 import { colors } from "../util.js";
@@ -254,18 +255,22 @@ Otherwise, the game will start ${startTime}`)
 			return;
 		}
 		if (players.length <= 1) {
-			await msg.edit({
-				content: "Game aborted due to insufficient players.",
-				embeds: [],
-				components: [],
-			});
+			msg
+				.edit({
+					content: "Game aborted due to insufficient players.",
+					embeds: [],
+					components: [],
+				})
+				.catch(handleMessageError);
 			removeByValue(channelsWithActiveGames, interaction.channelId);
 			return;
 		}
-		await msg.edit({
-			embeds: [gameStartEmbed(true)],
-			components: [],
-		});
+		msg
+			.edit({
+				embeds: [gameStartEmbed(true)],
+				components: [],
+			})
+			.catch(handleMessageError);
 		shuffleArrayInPlace(players);
 		bsPokerTeams.set(
 			interaction.channelId,

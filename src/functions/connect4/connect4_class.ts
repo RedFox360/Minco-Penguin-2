@@ -5,7 +5,12 @@ import {
 	MessageCollector,
 	Snowflake,
 } from "discord.js";
-import { colors, invalidNumber, replyThenDelete } from "../util.js";
+import {
+	colors,
+	handleMessageError,
+	invalidNumber,
+	replyThenDelete,
+} from "../util.js";
 import { updateProfile } from "../../prisma/models.js";
 
 class ColumnFullError extends Error {}
@@ -100,7 +105,7 @@ class Connect4 {
 		return embed;
 	}
 	async sendGameMsg() {
-		if (this.gameMsg) this.gameMsg.delete();
+		if (this.gameMsg) this.gameMsg.delete().catch(handleMessageError);
 		this.gameMsg = await this.interaction.channel.send({
 			embeds: [this.gameEmbed()],
 		});
@@ -249,7 +254,7 @@ class Connect4 {
 				if (err instanceof ColumnFullError) {
 					replyThenDelete(msg, "That column is full, please try again.");
 					setTimeout(() => {
-						msg.delete();
+						msg.delete().catch(handleMessageError);
 					}, 20_000);
 				} else {
 					console.error(err);
@@ -259,7 +264,7 @@ class Connect4 {
 
 			this.round += 1;
 			this.lastMove = column;
-			await msg.delete();
+			await msg.delete().catch(handleMessageError);
 
 			if (this.round === 42) {
 				this.msgCollector.stop();
