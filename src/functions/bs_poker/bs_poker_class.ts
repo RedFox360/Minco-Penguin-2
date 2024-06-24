@@ -851,7 +851,6 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 	}
 
 	async takeBets() {
-		if (!this.startingBet) return;
 		await prisma.profile.updateMany({
 			where: {
 				userId: {
@@ -870,7 +869,6 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 	}
 
 	async returnBets() {
-		if (!this.startingBet) return;
 		await prisma.profile.updateMany({
 			where: {
 				userId: {
