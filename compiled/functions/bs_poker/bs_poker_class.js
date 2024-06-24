@@ -369,7 +369,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
         if (winnerMember) {
             embed.setAuthor({
                 name: winnerMember.displayName,
-                iconURL: winnerMember.user.displayAvatarURL(),
+                iconURL: winnerMember.displayAvatarURL(),
             });
         }
         await this.interaction.channel.send({
@@ -395,6 +395,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
                 content: `<@${playerWBJ}> had a black joker. There is 1 common card, so they will take it: **${formatCardSideways(this.commonCards[0])}**.`,
             });
             this.commonCards = [];
+            this.handleBS();
             return;
         }
         const timeUpToTakeCard = msToRelTimestamp(timeToTakeCard);
@@ -414,6 +415,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
                     content: `<@${playerWBJ}> failed to take a card in time. They will not take any card.`,
                 });
                 this.bxOpen = false;
+                this.handleBS();
             }
             this.disableBX(false);
         }, timeToTakeCard);
@@ -660,6 +662,152 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
             },
         });
     }
+    async messageCollect(msg) {
+        if (msg.author.id === this.hostId &&
+            msg.content.toLowerCase() === "abort") {
+            await msg.reply({
+                content: "Game aborted.",
+            });
+            await this.abort();
+            return;
+        }
+        if (this.bxOpen && msg.author.id === this.bserInteraction.user.id) {
+            const cardNumber = parseInt(msg.content);
+            if (invalidNumber(cardNumber) ||
+                cardNumber < 0 ||
+                cardNumber > this.commonCards.length)
+                return;
+            if (cardNumber === 0) {
+                await msg.reply({
+                    content: "You have chosen not to take any card.",
+                });
+            }
+            else {
+                const card = this.commonCards.splice(cardNumber - 1, 1)[0];
+                await msg.reply({
+                    content: `You have taken the card **${formatCardSideways(card)}**.`,
+                });
+            }
+            this.disableBX();
+            this.handleBS();
+            return;
+        }
+        if (!this.callsOpen)
+            return;
+        if (msg.author.id !== this.currentPlayer)
+            return;
+        const call = parseCall(msg.content);
+        if (!this.validateAndRespond(call, msg))
+            return;
+        this.disableNotif();
+        this.currentCall = { call, player: this.currentPlayer };
+        this.forward(); // go to the next player with callsOpen remaining true.
+        await this.sendNewNotif();
+    }
+    async buttonCollect(buttonInteraction) {
+        if (!this.callsOpen) {
+            if (buttonInteraction.customId === customIds.viewCards ||
+                buttonInteraction.customId === customIds.viewGameInfo ||
+                buttonInteraction.customId === customIds.bs) {
+                await buttonInteraction.reply({
+                    content: "Please wait for the round to begin.",
+                    ephemeral: true,
+                });
+                return;
+            }
+            this.handleJoinLeave(buttonInteraction);
+            return;
+        }
+        const cd = this.currentDeck();
+        if (!cd || cd.length === 0)
+            return;
+        const buttonClickerIsPlayer = this.players.includes(buttonInteraction.user.id);
+        if (buttonInteraction.customId === customIds.viewCards) {
+            if (!buttonClickerIsPlayer) {
+                let toSendN = "*You are not a player in this game.*";
+                if (this.commonCards.length > 0)
+                    toSendN += `\nCommon Cards:\n${formatDeck(this.commonCards)}`;
+                const channelTeams = bsPokerTeams.get(this.interaction.channelId);
+                toSendN += (() => {
+                    if (channelTeams.length === 0)
+                        return "";
+                    const team = channelTeams.find(t => t.includes(buttonInteraction.user.id));
+                    if (!team)
+                        return "";
+                    const teamPlayerInGame = team.find(p => this.players.includes(p));
+                    if (!teamPlayerInGame)
+                        return "";
+                    const teammateHand = this.playerHands.get(teamPlayerInGame);
+                    if (!teammateHand)
+                        return "";
+                    return `\n*<@${teamPlayerInGame}> is your teammate. Here are their cards.*\n${formatDeck(teammateHand)}`;
+                })();
+                if (this.useSpecialCards)
+                    toSendN += `\n${this.formatPWSC()}`;
+                await buttonInteraction.reply({
+                    content: toSendN,
+                    ephemeral: true,
+                });
+                return;
+            }
+            await buttonInteraction.reply({
+                content: `**Your Hand:**\n${formatDeck(this.playerHands.get(buttonInteraction.user.id))}\n**Common Cards:** ${this.commonCards.length === 0
+                    ? "None"
+                    : `\n${formatDeck(this.commonCards)}`}${this.useSpecialCards ? `\n\n${this.formatPWSC()}` : ""}`,
+                ephemeral: true,
+            });
+            return;
+        }
+        if (buttonInteraction.customId === customIds.viewGameInfo) {
+            await buttonInteraction.reply({
+                embeds: [this.gameInfoEmbed()],
+                ephemeral: true,
+            });
+            return;
+        }
+        // BS button
+        if (buttonInteraction.customId !== customIds.bs)
+            return;
+        if (!buttonClickerIsPlayer) {
+            await buttonInteraction.reply({
+                content: "You may not BS as you are not a player in this game.",
+                ephemeral: true,
+            });
+            return;
+        }
+        if (this.bsCalled) {
+            await buttonInteraction.reply({
+                content: "Sorry, another player seems to have pressed the BS button before you.",
+                ephemeral: true,
+            });
+            return;
+        }
+        if (buttonInteraction.user.id === this.currentCall.player) {
+            await buttonInteraction.reply({
+                content: "You may not call BS on your own call.",
+                ephemeral: true,
+            });
+            return;
+        }
+        this.bsCalled = true;
+        this.disableNotif();
+        await buttonInteraction.reply({
+            content: `BS called by <@${buttonInteraction.user.id}>!`,
+        });
+        this.bserInteraction = buttonInteraction;
+        const playerWBJ = this.playerHands
+            .filter(hand => hand.some(card => card.suit === "bj"))
+            .firstKey();
+        // If the player has a black joker
+        if (playerWBJ &&
+            playerWBJ !== this.currentCall.player &&
+            this.commonCards.length > 0) {
+            await this.blackJokerBS(playerWBJ);
+        }
+        else {
+            this.handleBS();
+        }
+    }
     async gameLogic() {
         this.msgColl = this.interaction.channel.createMessageCollector({
             time: 3600000,
@@ -674,152 +822,8 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
         }
         await this.takeBets();
         this.newRound(); // start the game with the 1st round
-        this.msgColl.on("collect", async (msg) => {
-            if (msg.author.id === this.hostId &&
-                msg.content.toLowerCase() === "abort") {
-                await msg.reply({
-                    content: "Game aborted.",
-                });
-                await this.abort();
-                return;
-            }
-            if (this.bxOpen && msg.author.id === this.bserInteraction.user.id) {
-                const cardNumber = parseInt(msg.content);
-                if (invalidNumber(cardNumber) ||
-                    cardNumber < 0 ||
-                    cardNumber > this.commonCards.length)
-                    return;
-                if (cardNumber === 0) {
-                    await msg.reply({
-                        content: "You have chosen not to take any card.",
-                    });
-                }
-                else {
-                    const card = this.commonCards.splice(cardNumber - 1, 1)[0];
-                    await msg.reply({
-                        content: `You have taken the card **${formatCardSideways(card)}**.`,
-                    });
-                }
-                this.disableBX();
-                this.handleBS();
-                return;
-            }
-            if (!this.callsOpen)
-                return;
-            if (msg.author.id !== this.currentPlayer)
-                return;
-            const call = parseCall(msg.content);
-            if (!this.validateAndRespond(call, msg))
-                return;
-            this.disableNotif();
-            this.currentCall = { call, player: this.currentPlayer };
-            this.forward(); // go to the next player with callsOpen remaining true.
-            await this.sendNewNotif();
-        });
-        this.mcompColl.on("collect", async (buttonInteraction) => {
-            if (!this.callsOpen) {
-                if (buttonInteraction.customId === customIds.viewCards ||
-                    buttonInteraction.customId === customIds.viewGameInfo ||
-                    buttonInteraction.customId === customIds.bs) {
-                    await buttonInteraction.reply({
-                        content: "Please wait for the round to begin.",
-                        ephemeral: true,
-                    });
-                    return;
-                }
-                this.handleJoinLeave(buttonInteraction);
-                return;
-            }
-            const cd = this.currentDeck();
-            if (!cd || cd.length === 0)
-                return;
-            const buttonClickerIsPlayer = this.players.includes(buttonInteraction.user.id);
-            if (buttonInteraction.customId === customIds.viewCards) {
-                if (!buttonClickerIsPlayer) {
-                    let toSendN = "*You are not a player in this game.*";
-                    if (this.commonCards.length > 0)
-                        toSendN += `\nCommon Cards:\n${formatDeck(this.commonCards)}`;
-                    const channelTeams = bsPokerTeams.get(this.interaction.channelId);
-                    toSendN += (() => {
-                        if (channelTeams.length === 0)
-                            return "";
-                        const team = channelTeams.find(t => t.includes(buttonInteraction.user.id));
-                        if (!team)
-                            return "";
-                        const teamPlayerInGame = team.find(p => this.players.includes(p));
-                        if (!teamPlayerInGame)
-                            return "";
-                        const teammateHand = this.playerHands.get(teamPlayerInGame);
-                        if (!teammateHand)
-                            return "";
-                        return `\n*<@${teamPlayerInGame}> is your teammate. Here are their cards.*\n${formatDeck(teammateHand)}`;
-                    })();
-                    if (this.useSpecialCards)
-                        toSendN += `\n${this.formatPWSC()}`;
-                    await buttonInteraction.reply({
-                        content: toSendN,
-                        ephemeral: true,
-                    });
-                    return;
-                }
-                await buttonInteraction.reply({
-                    content: `**Your Hand:**\n${formatDeck(this.playerHands.get(buttonInteraction.user.id))}\n**Common Cards:** ${this.commonCards.length === 0
-                        ? "None"
-                        : `\n${formatDeck(this.commonCards)}`}${this.useSpecialCards ? `\n\n${this.formatPWSC()}` : ""}`,
-                    ephemeral: true,
-                });
-                return;
-            }
-            if (buttonInteraction.customId === customIds.viewGameInfo) {
-                await buttonInteraction.reply({
-                    embeds: [this.gameInfoEmbed()],
-                    ephemeral: true,
-                });
-                return;
-            }
-            // BS button
-            if (buttonInteraction.customId !== customIds.bs)
-                return;
-            if (!buttonClickerIsPlayer) {
-                await buttonInteraction.reply({
-                    content: "You may not BS as you are not a player in this game.",
-                    ephemeral: true,
-                });
-                return;
-            }
-            if (this.bsCalled) {
-                await buttonInteraction.reply({
-                    content: "Sorry, another player seems to have pressed the BS button before you.",
-                    ephemeral: true,
-                });
-                return;
-            }
-            if (buttonInteraction.user.id === this.currentCall.player) {
-                await buttonInteraction.reply({
-                    content: "You may not call BS on your own call.",
-                    ephemeral: true,
-                });
-                return;
-            }
-            this.bsCalled = true;
-            this.disableNotif();
-            await buttonInteraction.reply({
-                content: `BS called by <@${buttonInteraction.user.id}>!`,
-            });
-            this.bserInteraction = buttonInteraction;
-            const playerWBJ = this.playerHands
-                .filter(hand => hand.some(card => card.suit === "bj"))
-                .firstKey();
-            // If the player has a black joker
-            if (playerWBJ &&
-                playerWBJ !== this.currentCall.player &&
-                this.commonCards.length > 0) {
-                await this.blackJokerBS(playerWBJ);
-            }
-            else {
-                this.handleBS();
-            }
-        });
+        this.msgColl.on("collect", this.messageCollect);
+        this.mcompColl.on("collect", this.buttonCollect);
     }
 }
 export default BSPoker;

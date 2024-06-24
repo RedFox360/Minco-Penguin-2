@@ -164,7 +164,7 @@ const team = new SlashCommand()
 				})
 				.catch(() => {
 					interaction.editReply({
-						content: `:green_circle: ${player} did not join your team.`,
+						content: `:orange_circle: ${player} did not join your team.`,
 						components: [],
 					});
 				});
@@ -227,7 +227,7 @@ const team = new SlashCommand()
 				})
 				.catch(() => {
 					msg.edit({
-						content: `:red_circle: ${player} did not join your team.`,
+						content: `:orange_circle: ${player} did not join your team.`,
 						components: [],
 					});
 				});
