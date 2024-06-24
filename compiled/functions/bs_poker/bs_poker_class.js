@@ -821,9 +821,13 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
             this.playerCardsEntitled.set(p, this.beginCards);
         }
         await this.takeBets();
-        this.newRound(); // start the game with the 1st round
-        this.msgColl.on("collect", this.messageCollect);
-        this.mcompColl.on("collect", this.buttonCollect);
+        await this.newRound(); // start the game with the 1st round
+        this.msgColl.on("collect", async (m) => {
+            this.messageCollect(m);
+        });
+        this.mcompColl.on("collect", async (bi) => {
+            this.buttonCollect(bi);
+        });
     }
 }
 export default BSPoker;
