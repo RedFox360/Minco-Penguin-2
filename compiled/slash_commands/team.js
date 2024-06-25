@@ -135,7 +135,7 @@ const team = new SlashCommand()
         const hostId = teamWithAsker?.[0];
         if (hostId !== interaction.user.id) {
             await interaction.reply({
-                content: "Only a team host may invite players to their team.",
+                content: "Only a team host may invite players to a team.",
                 ephemeral: true,
             });
             return;

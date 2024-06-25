@@ -61,8 +61,10 @@ class BSPoker {
         this.useSpecialCards = useSpecialCards;
         this.currentCall = null;
         this._currPlayerIdx = 0;
+        this.playerWBJ = null;
         // States
-        this.callsOpen = false;
+        this.roundInProgress = false;
+        this.callsOpen = true;
         this.bsCalled = false;
         this.aborted = false;
         this.bxOpen = false;
@@ -176,10 +178,8 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
         const embed = new EmbedBuilder()
             .setTitle("Game Info")
             .setColor(colors.green)
+            .setDescription(`Game Host: <@${this.hostId}>\n${this.betInfo()}`)
             .addFields({ name: "Players", value: this.playersAndEntitled() }, { name: "Options", value: this.displayOptions() });
-        const betInfo = this.betInfo();
-        if (betInfo)
-            embed.setDescription(betInfo);
         return embed;
     }
     betInfo() {
@@ -389,10 +389,10 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
         await this.returnBets();
         this.end();
     }
-    async blackJokerBS(playerWBJ) {
+    async blackJokerBS() {
         if (this.commonCards.length === 1) {
             await this.interaction.channel.send({
-                content: `<@${playerWBJ}> had a black joker. There is 1 common card, so they will take it: **${formatCardSideways(this.commonCards[0])}**.`,
+                content: `<@${this.playerWBJ}> had a black joker. There is 1 common card, so they will take it: **${formatCardSideways(this.commonCards[0])}**.`,
             });
             this.commonCards = [];
             this.handleBS();
@@ -403,7 +403,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
             .map((card, i) => `\`${i + 1}\` **${formatCardSideways(card)}**`)
             .join("\n");
         this.bxOpen = true;
-        this.bxContent = `<@${playerWBJ}>, you had a black joker! You get to remove 1 common card from the deck.\n${commonCardsFormattedWithNumbers}`;
+        this.bxContent = `<@${this.playerWBJ}>, you had a black joker! You get to remove 1 common card from the deck.\n${commonCardsFormattedWithNumbers}`;
         this.bxMsg = await this.interaction.channel.send({
             content: this.bxContent +
                 `\n*Please type the number of the card you want to remove* ${timeUpToTakeCard}.\nIf you do not want to take any card, type \`0\`.`,
@@ -412,7 +412,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
         this.bxTimeout = setTimeout(() => {
             if (this.bxOpen) {
                 this.interaction.channel.send({
-                    content: `<@${playerWBJ}> failed to take a card in time. They will not take any card.`,
+                    content: `<@${this.playerWBJ}> failed to take a card in time. They will not take any card.`,
                 });
                 this.bxOpen = false;
                 this.handleBS();
@@ -531,7 +531,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
     async newRound() {
         clearTimeout(this.notifTimeout);
         clearTimeout(this.bxTimeout);
-        this.callsOpen = false;
+        this.roundInProgress = false;
         const deck = this.createDeck();
         if (this.round > 0 && this.playerHands.size > 0)
             this.printAllHands();
@@ -586,19 +586,20 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
                     : [nrRowLeaveDisabled],
         })
             .catch(handleMessageError);
-        this.callsOpen = true;
+        this.roundInProgress = true;
         this.bsCalled = false;
         this.round += 1;
         this.currentCall = null;
         this.sendNewNotif();
     }
     handleBS() {
-        const bserHand = this.playerHands.get(this.bserInteraction.user.id);
+        this.playerWBJ = null;
+        const bserHand = this.playerHands.get(this.bser);
         const bserHasRJ = this.useSpecialCards && bserHand.some(card => card.suit === "rj");
         const callIsTrue = callInDeck(this.currentCall.call, this.currentDeck());
         let cardGainer = this.currentPlayer;
         if (callIsTrue) {
-            cardGainer = this.bserInteraction.user.id;
+            cardGainer = this.bser;
             this.interaction.channel.send({
                 content: `:green_circle: <@${this.currentCall.player}> was telling the truth! <@${cardGainer}> gains 1 card.`,
             });
@@ -610,22 +611,23 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
             });
             cardGainer = this.currentCall.player;
             this.playerCardsEntitled.set(cardGainer, this.playerCardsEntitled.get(cardGainer) + 1);
-            if (bserHasRJ && this.bserInteraction.user.id !== this.currentPlayer) {
+            if (bserHasRJ && this.bser !== this.currentPlayer) {
                 if (bserHand.length === 1) {
                     this.interaction.channel.send({
-                        content: `${this.bserInteraction.user} had a red joker and cross-BSed! However, they only had 1 card, so they do not lose any cards.`,
+                        content: `<@${this.bser}> had a red joker and cross-BSed! However, they only had 1 card, so they do not lose any cards.`,
                     });
                 }
                 else {
                     this.interaction.channel.send({
-                        content: `${this.bserInteraction.user} had a red joker! Since they cross-BSed, they lose 1 card.`,
+                        content: `<@${this.bser}> had a red joker! Since they cross-BSed, they lose 1 card.`,
                     });
-                    this.playerCardsEntitled.set(this.bserInteraction.user.id, this.playerCardsEntitled.get(this.bserInteraction.user.id) - 1);
+                    this.playerCardsEntitled.set(this.bser, this.playerCardsEntitled.get(this.bser) - 1);
                 }
             }
         }
         this.currentPlayer = cardGainer;
         this.currentPlayerIndex = this.players.indexOf(cardGainer);
+        this.bser = null;
         this.newRound();
     }
     async takeBets() {
@@ -671,7 +673,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
             await this.abort();
             return;
         }
-        if (this.bxOpen && msg.author.id === this.bserInteraction.user.id) {
+        if (this.bxOpen && msg.author.id === this.playerWBJ) {
             const cardNumber = parseInt(msg.content);
             if (invalidNumber(cardNumber) ||
                 cardNumber < 0 ||
@@ -692,20 +694,22 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
             this.handleBS();
             return;
         }
-        if (!this.callsOpen)
+        if (!this.roundInProgress || !this.callsOpen)
             return;
         if (msg.author.id !== this.currentPlayer)
             return;
         const call = parseCall(msg.content);
         if (!this.validateAndRespond(call, msg))
             return;
+        this.callsOpen = false;
         this.disableNotif();
         this.currentCall = { call, player: this.currentPlayer };
         this.forward(); // go to the next player with callsOpen remaining true.
         await this.sendNewNotif();
+        this.callsOpen = true;
     }
     async buttonCollect(buttonInteraction) {
-        if (!this.callsOpen) {
+        if (!this.roundInProgress) {
             if (buttonInteraction.customId === customIds.viewCards ||
                 buttonInteraction.customId === customIds.viewGameInfo ||
                 buttonInteraction.customId === customIds.bs) {
@@ -794,7 +798,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
         await buttonInteraction.reply({
             content: `BS called by <@${buttonInteraction.user.id}>!`,
         });
-        this.bserInteraction = buttonInteraction;
+        this.bser = buttonInteraction.user.id;
         const playerWBJ = this.playerHands
             .filter(hand => hand.some(card => card.suit === "bj"))
             .firstKey();
@@ -802,7 +806,8 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
         if (playerWBJ &&
             playerWBJ !== this.currentCall.player &&
             this.commonCards.length > 0) {
-            await this.blackJokerBS(playerWBJ);
+            this.playerWBJ = playerWBJ;
+            await this.blackJokerBS();
         }
         else {
             this.handleBS();
