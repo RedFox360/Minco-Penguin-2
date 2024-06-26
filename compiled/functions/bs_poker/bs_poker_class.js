@@ -75,16 +75,26 @@ class BSPoker {
         this.commonCards = [];
         this.midGamePlayers = [];
         this.hostId = interaction.user.id;
-        this.currentPlayer = players[0];
         this.totalPlayers = players.length;
     }
     get currentPlayerIndex() {
-        return this._currPlayerIdx % this.players.length;
+        if (this._currPlayerIdx < 0 || this._currPlayerIdx >= this.players.length) {
+            return 0;
+        }
+        else {
+            return this._currPlayerIdx;
+        }
     }
-    set currentPlayerIndex(status) {
-        if (status < 0)
+    get currentPlayer() {
+        return this.players[this.currentPlayerIndex];
+    }
+    set currentPlayerIndex(newIdx) {
+        if (newIdx < 0 || newIdx >= this.players.length) {
             this._currPlayerIdx = 0;
-        this._currPlayerIdx = status;
+        }
+        else {
+            this._currPlayerIdx = newIdx;
+        }
     }
     get pot() {
         return this.totalPlayers * this.startingBet;
@@ -203,7 +213,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
         const pwsc = waiting ? "" : this.formatPWSC();
         return {
             title: `New Round (${this.round + 1})`,
-            description: `${this.betInfo()}Common Cards: ${commonCardsToDisplay}\n${pwsc}\n<@${this.players[this.currentPlayerIndex]}> will start the round.`,
+            description: `${this.betInfo()}Common Cards: ${commonCardsToDisplay}\n${pwsc}\n<@${this.currentPlayer}> will start the round.`,
             fields: [
                 {
                     name: "Players",
@@ -214,8 +224,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
         };
     }
     forward() {
-        this.currentPlayerIndex += 1;
-        this.currentPlayer = this.players[this.currentPlayerIndex];
+        this.currentPlayerIndex = this.currentPlayerIndex + 1;
     }
     async handleJoinLeave(buttonInteraction) {
         if (buttonInteraction.customId === customIds.joinMidGame) {
@@ -488,7 +497,6 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
         this.playersOut.push(player);
         this.updatePlayerRating(player);
         this.removePlayerFromTeams(player);
-        this.currentPlayer = this.players[this.currentPlayerIndex];
     }
     async addPlayerMidGame(player, cards) {
         this.players.push(player);
@@ -625,7 +633,6 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
                 }
             }
         }
-        this.currentPlayer = cardGainer;
         this.currentPlayerIndex = this.players.indexOf(cardGainer);
         this.bser = null;
         this.newRound();
@@ -772,6 +779,13 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
         // BS button
         if (buttonInteraction.customId !== customIds.bs)
             return;
+        if (!this.callsOpen) {
+            await buttonInteraction.reply({
+                content: "The buttons have not finished loading. Please try again.",
+                ephemeral: true,
+            });
+            return;
+        }
         if (!buttonClickerIsPlayer) {
             await buttonInteraction.reply({
                 content: "You may not BS as you are not a player in this game.",

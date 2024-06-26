@@ -8,7 +8,6 @@ import {
 	Collection,
 	ComponentType,
 	EmbedBuilder,
-	Interaction,
 	InteractionCollector,
 	Message,
 	MessageCollector,
@@ -109,7 +108,6 @@ class BSPoker {
 	// Players
 	playersOut: Snowflake[];
 	currentCall: PlayerCall | null = null;
-	currentPlayer: Snowflake;
 	hostId: Snowflake;
 	midGamePlayers: Snowflake[];
 	private _currPlayerIdx: number = 0;
@@ -161,17 +159,27 @@ class BSPoker {
 		this.commonCards = [];
 		this.midGamePlayers = [];
 		this.hostId = interaction.user.id;
-		this.currentPlayer = players[0];
 		this.totalPlayers = players.length;
 	}
 
 	get currentPlayerIndex() {
-		return this._currPlayerIdx % this.players.length;
+		if (this._currPlayerIdx < 0 || this._currPlayerIdx >= this.players.length) {
+			return 0;
+		} else {
+			return this._currPlayerIdx;
+		}
 	}
 
-	set currentPlayerIndex(status: number) {
-		if (status < 0) this._currPlayerIdx = 0;
-		this._currPlayerIdx = status;
+	get currentPlayer() {
+		return this.players[this.currentPlayerIndex];
+	}
+
+	set currentPlayerIndex(newIdx: number) {
+		if (newIdx < 0 || newIdx >= this.players.length) {
+			this._currPlayerIdx = 0;
+		} else {
+			this._currPlayerIdx = newIdx;
+		}
 	}
 
 	get pot() {
@@ -316,7 +324,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 		return {
 			title: `New Round (${this.round + 1})`,
 			description: `${this.betInfo()}Common Cards: ${commonCardsToDisplay}\n${pwsc}\n<@${
-				this.players[this.currentPlayerIndex]
+				this.currentPlayer
 			}> will start the round.`,
 			fields: [
 				{
@@ -329,8 +337,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 	}
 
 	forward() {
-		this.currentPlayerIndex += 1;
-		this.currentPlayer = this.players[this.currentPlayerIndex];
+		this.currentPlayerIndex = this.currentPlayerIndex + 1;
 	}
 
 	async handleJoinLeave(buttonInteraction: ButtonInteraction) {
@@ -678,7 +685,6 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 		this.playersOut.push(player);
 		this.updatePlayerRating(player);
 		this.removePlayerFromTeams(player);
-		this.currentPlayer = this.players[this.currentPlayerIndex];
 	}
 
 	async addPlayerMidGame(player: Snowflake, cards: number) {
@@ -851,7 +857,6 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 			}
 		}
 
-		this.currentPlayer = cardGainer;
 		this.currentPlayerIndex = this.players.indexOf(cardGainer);
 		this.bser = null;
 		this.newRound();
@@ -1014,6 +1019,13 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 
 		// BS button
 		if (buttonInteraction.customId !== customIds.bs) return;
+		if (!this.callsOpen) {
+			await buttonInteraction.reply({
+				content: "The buttons have not finished loading. Please try again.",
+				ephemeral: true,
+			});
+			return;
+		}
 		if (!buttonClickerIsPlayer) {
 			await buttonInteraction.reply({
 				content: "You may not BS as you are not a player in this game.",
