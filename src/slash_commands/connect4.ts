@@ -87,10 +87,12 @@ const connect4 = new SlashCommand()
 				await game.gameLogic();
 			})
 			.catch(() => {
-				msg.edit({
-					content: "Connect 4 game canceled — Opponent did not join in time.",
-					components: [],
-				});
+				msg
+					.edit({
+						content: "Connect 4 game canceled — Opponent did not join in time.",
+						components: [],
+					})
+					.catch(handleMessageError);
 			});
 	});
 

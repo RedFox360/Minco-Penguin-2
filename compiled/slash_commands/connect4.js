@@ -64,10 +64,12 @@ const connect4 = new SlashCommand()
         await game.gameLogic();
     })
         .catch(() => {
-        msg.edit({
+        msg
+            .edit({
             content: "Connect 4 game canceled — Opponent did not join in time.",
             components: [],
-        });
+        })
+            .catch(handleMessageError);
     });
 });
 export default connect4;
