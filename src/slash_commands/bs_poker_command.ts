@@ -84,6 +84,14 @@ const bsPokerCommand = new SlashCommand()
 					)
 					.setRequired(false)
 			)
+			.addBooleanOption(option =>
+				option
+					.setName("use_curses")
+					.setDescription(
+						"If the last 3 calls were false, the round ends and everyone gets a card. (Default: False)"
+					)
+					.setRequired(false)
+			)
 	)
 	.setCooldown(15)
 	.setRun(bsPokerRun);

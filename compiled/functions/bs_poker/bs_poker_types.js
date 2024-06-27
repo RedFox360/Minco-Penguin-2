@@ -79,7 +79,7 @@ export const names = [
         "high flush spades",
         "fs",
         "sf",
-        "coleour pique",
+        "couleur pique",
     ],
     ["quad", "q", "carré"],
     [

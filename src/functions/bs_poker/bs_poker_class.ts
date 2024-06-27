@@ -107,6 +107,7 @@ const nrRowLeaveDisabled = new ActionRowBuilder<ButtonBuilder>().addComponents(
 class BSPoker {
 	// Players
 	playersOut: Snowflake[];
+	lastThreeCallTracker: boolean[];
 	currentCall: PlayerCall | null = null;
 	hostId: Snowflake;
 	midGamePlayers: Snowflake[];
@@ -116,6 +117,7 @@ class BSPoker {
 	playerHands: Collection<Snowflake, ExtCard[]>;
 	playerCardsEntitled: Map<Snowflake, number>;
 	commonCards: ExtCard[];
+	currentDeck: ExtCard[];
 	// States
 	roundInProgress = false;
 	callsOpen = true;
@@ -133,7 +135,7 @@ class BSPoker {
 	// Game Flow
 	newRoundMsg: Message;
 	roundBeginTimestamp: string;
-	bser: Snowflake;
+	bserId: Snowflake;
 	// Black Joker
 	bxTimeout: NodeJS.Timeout;
 	bxMsg: Message;
@@ -150,7 +152,8 @@ class BSPoker {
 		public beginCards: number,
 		public allowJoinMidGame: boolean,
 		public playerLimit: number,
-		public useSpecialCards: boolean
+		public useSpecialCards: boolean,
+		public useCurses: boolean
 	) {
 		this.playerHands = new Collection<Snowflake, ExtCard[]>();
 		this.playerCardsEntitled = new Map<Snowflake, number>();
@@ -158,6 +161,7 @@ class BSPoker {
 		this.commonCards = [];
 		this.midGamePlayers = [];
 		this.hostId = interaction.user.id;
+		this.lastThreeCallTracker = [true, true, true];
 	}
 
 	get currentPlayerIndex(): number {
@@ -188,12 +192,10 @@ class BSPoker {
 		return this.everPlayersLen * this.startingBet;
 	}
 
-	currentDeck(): ExtCard[] {
-		const currentDeck: ExtCard[] = [].concat(
-			...Array.from(this.playerHands.values())
-		);
-		currentDeck.push(...this.commonCards);
-		return currentDeck;
+	updateCurrentDeck(): ExtCard[] {
+		this.currentDeck = [].concat(...Array.from(this.playerHands.values()));
+		this.currentDeck.push(...this.commonCards);
+		return this.currentDeck;
 	}
 
 	createDeck(): ExtCard[] {
@@ -252,7 +254,7 @@ class BSPoker {
 				embeds: [this.getHandsEmbed(handsList)],
 			})
 			.then(handsMsg => {
-				highestCallInDeck(this.currentDeck())
+				highestCallInDeck(this.currentDeck)
 					.then(call => {
 						handsMsg
 							.edit({
@@ -543,19 +545,40 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 	}
 
 	async endGameSuccess() {
+		if (this.players.length === 0) {
+			let description = "Everyone lost the game due to a curse!";
+			if (this.startingBet)
+				description += "\nThe pot will not be given to any player.";
+			const curseEmbed = new EmbedBuilder()
+				.setTitle("Game Over: Cursed!")
+				.setDescription(description)
+				.setColor(colors.red);
+			await this.interaction.channel.send({
+				embeds: [curseEmbed],
+			});
+			return;
+		}
+
 		const winnerId = this.players[0];
-		await updateProfile(winnerId, {
-			mincoDollars: {
-				increment: this.pot,
-			},
-			bsPokerWins: {
-				increment: 1,
-			},
-			bsPokerRating: {
-				increment: 1.0,
-			},
-		});
-		const winnerMember = this.interaction.guild.members.cache.get(winnerId);
+		if (this.midGamePlayers.includes(winnerId)) {
+			await updateProfile(winnerId, {
+				mincoDollars: {
+					increment: this.pot,
+				},
+			});
+		} else {
+			await updateProfile(winnerId, {
+				mincoDollars: {
+					increment: this.pot,
+				},
+				bsPokerWins: {
+					increment: 1,
+				},
+				bsPokerRating: {
+					increment: 1.0,
+				},
+			});
+		}
 		const embed = new EmbedBuilder()
 			.setTitle("Game Over!")
 			.setDescription(
@@ -567,6 +590,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 			)
 			.setColor(colors.green);
 
+		const winnerMember = this.interaction.guild.members.cache.get(winnerId);
 		if (winnerMember) {
 			embed.setAuthor({
 				name: winnerMember.displayName,
@@ -584,7 +608,6 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 	endCollectors() {
 		this.msgColl.stop();
 		this.mcompColl.stop();
-		0;
 		// abort handled in the end of msgColl
 	}
 
@@ -721,9 +744,6 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 		this.midGamePlayers.push(player);
 		bsPokerTeams.get(this.interaction.channelId).push([player]);
 		await updateProfile(player, {
-			bsPokerGamesPlayed: {
-				increment: 1,
-			},
 			mincoDollars: {
 				decrement: this.startingBet,
 			},
@@ -760,6 +780,15 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 		}
 	}
 
+	resetState() {
+		this.roundInProgress = true;
+		this.bsCalled = false;
+		this.round += 1;
+		this.currentCall = null;
+		this.updateCurrentDeck();
+		this.lastThreeCallTracker = [true, true, true];
+	}
+
 	async newRound() {
 		clearTimeout(this.notifTimeout);
 		clearTimeout(this.bxTimeout);
@@ -794,10 +823,6 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 					: [nrRowLeave],
 		});
 
-		if (this.players.length <= 1) {
-			await this.endGameSuccess();
-			return;
-		}
 		// SET THE COMMON CARDS
 		if (this.commonCardsAmount !== 0) {
 			this.commonCards = spliceRandom(deck, acCCAmount);
@@ -830,25 +855,25 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 			})
 			.catch(handleMessageError);
 
-		this.roundInProgress = true;
-		this.bsCalled = false;
-		this.round += 1;
-		this.currentCall = null;
+		this.resetState();
 		this.sendNewNotif();
 	}
 
 	handleBS() {
 		this.playerWBJ = null;
-		const bserHand = this.playerHands.get(this.bser);
+		const bserHand = this.playerHands.get(this.bserId);
 		const bserHasRJ =
 			this.useSpecialCards && bserHand.some(card => card.suit === "rj");
 
-		const callIsTrue = callInDeck(this.currentCall.call, this.currentDeck());
+		const callIsTrue = callInDeck(
+			this.currentCall.call,
+			this.updateCurrentDeck()
+		);
 
 		let cardGainer = this.currentPlayer;
 
 		if (callIsTrue) {
-			cardGainer = this.bser;
+			cardGainer = this.bserId;
 			this.interaction.channel.send({
 				content: `:green_circle: <@${this.currentCall.player}> was telling the truth! <@${cardGainer}> gains 1 card.`,
 			});
@@ -865,25 +890,25 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 				cardGainer,
 				this.playerCardsEntitled.get(cardGainer) + 1
 			);
-			if (bserHasRJ && this.bser !== this.currentPlayer) {
+			if (bserHasRJ && this.bserId !== this.currentPlayer) {
 				if (bserHand.length === 1) {
 					this.interaction.channel.send({
-						content: `<@${this.bser}> had a red joker and cross-BSed! However, they only had 1 card, so they do not lose any cards.`,
+						content: `<@${this.bserId}> had a red joker and cross-BSed! However, they only had 1 card, so they do not lose any cards.`,
 					});
 				} else {
 					this.interaction.channel.send({
-						content: `<@${this.bser}> had a red joker! Since they cross-BSed, they lose 1 card.`,
+						content: `<@${this.bserId}> had a red joker! Since they cross-BSed, they lose 1 card.`,
 					});
 					this.playerCardsEntitled.set(
-						this.bser,
-						this.playerCardsEntitled.get(this.bser) - 1
+						this.bserId,
+						this.playerCardsEntitled.get(this.bserId) - 1
 					);
 				}
 			}
 		}
 
 		this.currentPlayerIndex = this.players.indexOf(cardGainer);
-		this.bser = null;
+		this.bserId = null;
 		this.newRound();
 	}
 
@@ -966,6 +991,22 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 		this.callsOpen = false;
 		this.disableNotif();
 		this.currentCall = { call, player: this.currentPlayer };
+		if (this.useCurses && this.players.length > 2) {
+			const callIsTrue = callInDeck(call, this.currentDeck);
+			this.lastThreeCallTracker.shift();
+			this.lastThreeCallTracker.push(callIsTrue);
+			if (this.lastThreeCallTracker.every(x => x === false)) {
+				this.interaction.channel.send({
+					content:
+						"Curse activated! The previous 3 calls were all false. A new round will begin now and everyone will gain a card.",
+				});
+				this.playerCardsEntitled.forEach((cards, player) => {
+					this.playerCardsEntitled.set(player, cards + 1);
+				});
+				this.newRound();
+				return;
+			}
+		}
 
 		this.forward(); // go to the next player with callsOpen remaining true.
 		await this.sendNewNotif();
@@ -994,8 +1035,6 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 			}
 			return;
 		}
-		const cd = this.currentDeck();
-		if (!cd || cd.length === 0) return;
 
 		const buttonClickerIsPlayer = this.players.includes(
 			buttonInteraction.user.id
@@ -1085,7 +1124,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 		await buttonInteraction.reply({
 			content: `BS called by <@${buttonInteraction.user.id}>!`,
 		});
-		this.bser = buttonInteraction.user.id;
+		this.bserId = buttonInteraction.user.id;
 
 		const playerWBJ = this.playerHands
 			.filter(hand => hand.some(card => card.suit === "bj"))
