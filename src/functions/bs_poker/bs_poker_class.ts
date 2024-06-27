@@ -733,13 +733,9 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
 			});
 	}
 
-	removePlayerFromGame(player: Snowflake, index?: number) {
+	removePlayerFromGame(player: Snowflake) {
 		this.playerCardsEntitled.delete(player);
-		if (index) {
-			this.players.splice(index, 1);
-		} else {
-			removeByValue(this.players, player);
-		}
+		removeByValue(this.players, player);
 		this.playersOut.push(player);
 		this.updatePlayerRating(player);
 		this.removePlayerFromTeams(player);
@@ -769,13 +765,17 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
 	}
 
 	removePlayersWithCardsAbove() {
-		this.players.forEach((p, i) => {
+		const playersToRemove = [];
+		for (const p of this.players) {
 			const entitled = this.playerCardsEntitled.get(p);
 			if (entitled >= this.cardsToOut || invalidNumber(entitled) || !entitled) {
 				this.interaction.channel.send(`<@${p}> is out of the game.`);
-				this.removePlayerFromGame(p, i);
+				playersToRemove.push(p);
 			}
-		});
+		}
+		for (const p of playersToRemove) {
+			this.removePlayerFromGame(p);
+		}
 	}
 
 	dealToPlayers(deck: ExtCard[]) {
