@@ -188,6 +188,10 @@ class BSPoker {
 		return this.players.length + this.playersOut.length;
 	}
 
+	get originalPlayersLen(): number {
+		return this.players.length - this.midGamePlayers.length;
+	}
+
 	get pot(): number {
 		return this.everPlayersLen * this.startingBet;
 	}
@@ -561,7 +565,10 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
 		}
 
 		const winnerId = this.players[0];
-		if (this.midGamePlayers.includes(winnerId)) {
+		if (
+			this.midGamePlayers.includes(winnerId) ||
+			this.originalPlayersLen === 2
+		) {
 			await updateProfile(winnerId, {
 				mincoDollars: {
 					increment: this.pot,
@@ -714,7 +721,8 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
 	}
 
 	updatePlayerRating(player: Snowflake) {
-		if (this.midGamePlayers.includes(player)) return;
+		if (this.midGamePlayers.includes(player) || this.originalPlayersLen === 2)
+			return;
 		const rankOut = this.playersOut.length - 1;
 		const rating = rankOut * (1 / (this.everPlayersLen - 1));
 		if (rating > 0)
@@ -786,6 +794,7 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
 		this.bsCalled = false;
 		this.round += 1;
 		this.currentCall = null;
+		this.callsOpen = true;
 		this.updateCurrentDeck();
 		this.lastThreeCallTracker = [true, true, true];
 	}
@@ -914,6 +923,22 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
 	}
 
 	async takeBets() {
+		if (this.players.length === 2) {
+			if (!this.startingBet) return;
+			await prisma.profile.updateMany({
+				where: {
+					userId: {
+						in: this.players,
+					},
+				},
+				data: {
+					mincoDollars: {
+						decrement: this.startingBet,
+					},
+				},
+			});
+			return;
+		}
 		await prisma.profile.updateMany({
 			where: {
 				userId: {
@@ -932,6 +957,22 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
 	}
 
 	async returnBets() {
+		if (this.originalPlayersLen === 2) {
+			if (!this.startingBet) return;
+			await prisma.profile.updateMany({
+				where: {
+					userId: {
+						in: this.players,
+					},
+				},
+				data: {
+					mincoDollars: {
+						increment: this.startingBet,
+					},
+				},
+			});
+			return;
+		}
 		await prisma.profile.updateMany({
 			where: {
 				userId: {
@@ -997,6 +1038,11 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
 			this.lastThreeCallTracker.shift();
 			this.lastThreeCallTracker.push(callIsTrue);
 			if (this.lastThreeCallTracker.every(x => x === false)) {
+				this.interaction.channel.send({
+					content: `<@${this.currentPlayer}> has called **${formatCall(
+						this.currentCall.call
+					)}**.`,
+				});
 				this.interaction.channel.send({
 					content:
 						"Curse activated! The previous 3 calls were all false. A new round will begin now and everyone will gain a card.",
