@@ -127,7 +127,8 @@ Insurance cards in deck: **${insuranceCount}**
 Starting cards: **${beginCards}**
 Common cards: **${commonCards === -1 ? "Median" : commonCards}**
 Allow join mid-game: **${allowJoinMidGame ? "True" : "False"}**
-Use special cards: **${useSpecialCards ? "True" : "False"}**`;
+Use special cards: **${useSpecialCards ? "True" : "False"}**
+Use curses: **${useCurses ? "True" : "False"}**`;
 
 	const gameStartEmbed = (gameStarted = false) =>
 		new EmbedBuilder()

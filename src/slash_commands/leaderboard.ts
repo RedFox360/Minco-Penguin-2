@@ -49,17 +49,14 @@ const leaderboard = new SlashCommand()
 	.setRun(run);
 
 async function run(
-	interaction:
-		| ChatInputCommandInteraction<"cached">
-		| ButtonInteraction<"cached">,
+	interaction: ChatInputCommandInteraction<"cached"> | ButtonInteraction,
 	givenUsingStats = false,
 	ephemeral = false,
 	givenProfiles?: { str: string; total: number; id: string; wr?: number }[],
 	givenCurrentPage = 0
 ) {
-	let usingStats: boolean;
-	if (!givenUsingStats) {
-		if (!interaction.isCommand()) return;
+	let usingStats = false;
+	if (!givenUsingStats && interaction.isCommand()) {
 		usingStats = interaction.options.getSubcommand() === "poker_stats";
 	}
 	let profiles = givenProfiles;
@@ -197,7 +194,6 @@ async function run(
 	});
 
 	collector.on("collect", async buttonInteraction => {
-		if (!buttonInteraction.inCachedGuild()) return;
 		if (buttonInteraction.user.id !== interaction.user.id) {
 			await run(buttonInteraction, usingStats, true, profiles, currentPage);
 			return;

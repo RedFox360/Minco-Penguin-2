@@ -24,10 +24,8 @@ const leaderboard = new SlashCommand()
     .setCooldown(60)
     .setRun(run);
 async function run(interaction, givenUsingStats = false, ephemeral = false, givenProfiles, givenCurrentPage = 0) {
-    let usingStats;
-    if (!givenUsingStats) {
-        if (!interaction.isCommand())
-            return;
+    let usingStats = false;
+    if (!givenUsingStats && interaction.isCommand()) {
         usingStats = interaction.options.getSubcommand() === "poker_stats";
     }
     let profiles = givenProfiles;
@@ -144,8 +142,6 @@ async function run(interaction, givenUsingStats = false, ephemeral = false, give
         componentType: ComponentType.Button,
     });
     collector.on("collect", async (buttonInteraction) => {
-        if (!buttonInteraction.inCachedGuild())
-            return;
         if (buttonInteraction.user.id !== interaction.user.id) {
             await run(buttonInteraction, usingStats, true, profiles, currentPage);
             return;

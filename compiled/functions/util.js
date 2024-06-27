@@ -1,4 +1,4 @@
-import { RESTJSONErrorCodes, TimestampStyles, time, } from "discord.js";
+import { RESTJSONErrorCodes, TimestampStyles, time } from "discord.js";
 export const colors = {
     blurple: 0x7289da,
     green: 0x76d7c4,

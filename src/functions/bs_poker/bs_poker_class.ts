@@ -193,7 +193,7 @@ class BSPoker {
 	}
 
 	updateCurrentDeck(): ExtCard[] {
-		this.currentDeck = [].concat(...Array.from(this.playerHands.values()));
+		this.currentDeck = [].concat(...this.playerHands.values());
 		this.currentDeck.push(...this.commonCards);
 		return this.currentDeck;
 	}
@@ -294,7 +294,8 @@ Common cards: **${
 			this.commonCardsAmount === -1 ? "Median" : this.commonCardsAmount
 		}**
 Allow join mid-game: **${this.allowJoinMidGame ? "True" : "False"}**
-Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
+Use special cards: **${this.useSpecialCards ? "True" : "False"}**
+Use curses: **${this.useCurses ? "True" : "False"}**`;
 	}
 
 	gameInfoEmbed() {
@@ -810,7 +811,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
 		this.roundBeginTimestamp = msToRelTimestamp(timeBetweenRounds);
 
 		const acCCAmount =
-			this.commonCardsAmount > 0
+			this.commonCardsAmount >= 0
 				? this.commonCardsAmount
 				: Math.floor(median(Array.from(this.playerCardsEntitled.values())));
 		this.newRoundMsg = await this.interaction.channel.send({

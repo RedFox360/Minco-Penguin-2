@@ -104,7 +104,7 @@ class BSPoker {
         return this.everPlayersLen * this.startingBet;
     }
     updateCurrentDeck() {
-        this.currentDeck = [].concat(...Array.from(this.playerHands.values()));
+        this.currentDeck = [].concat(...this.playerHands.values());
         this.currentDeck.push(...this.commonCards);
         return this.currentDeck;
     }
@@ -188,7 +188,8 @@ Jokers: **${this.jokerCount}** | Insurances: **${this.insuranceCount}**
 Starting cards: **${this.beginCards}**
 Common cards: **${this.commonCardsAmount === -1 ? "Median" : this.commonCardsAmount}**
 Allow join mid-game: **${this.allowJoinMidGame ? "True" : "False"}**
-Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
+Use special cards: **${this.useSpecialCards ? "True" : "False"}**
+Use curses: **${this.useCurses ? "True" : "False"}**`;
     }
     gameInfoEmbed() {
         const embed = new EmbedBuilder()
@@ -588,7 +589,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
             return;
         }
         this.roundBeginTimestamp = msToRelTimestamp(timeBetweenRounds);
-        const acCCAmount = this.commonCardsAmount > 0
+        const acCCAmount = this.commonCardsAmount >= 0
             ? this.commonCardsAmount
             : Math.floor(median(Array.from(this.playerCardsEntitled.values())));
         this.newRoundMsg = await this.interaction.channel.send({

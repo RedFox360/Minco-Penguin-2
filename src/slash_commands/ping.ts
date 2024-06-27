@@ -52,7 +52,6 @@ const ping = new SlashCommand()
 					value: prettyMs(interaction.client.uptime),
 				}
 			)
-			.setTimestamp()
 			.setFooter({
 				text: "Bot made by @obvsam",
 			});

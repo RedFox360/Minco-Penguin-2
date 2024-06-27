@@ -1,4 +1,3 @@
-import { MessageCollector } from "discord.js";
 import {
 	type ExtSuit,
 	type ExtValue,
@@ -14,14 +13,6 @@ import {
 import { emoji, suits } from "../basic_card_types.js";
 import { suitToBasicEmoji, valueToSymbol } from "../basic_card_functions.js";
 import { invalidNumber } from "../util.js";
-
-export function collectorEnd(collector: MessageCollector) {
-	return new Promise<void>(resolve =>
-		collector.on("end", () => {
-			resolve();
-		})
-	);
-}
 
 export function parseCall(givenCall: string): Call | null {
 	try {
@@ -388,7 +379,7 @@ export function callInDeck(call: Call, deck: ExtCard[]) {
 	if (call.call === HandRank.Triple)
 		return deck.filter(card => card.value === call.high.value).length >= 3;
 	if (call.call === HandRank.Straight) {
-		const straightCards = straightHighToCards(call.high.value);
+		const straightCards = straightCardsTable[call.high.value];
 		return straightCards.every(value =>
 			deck.some(card => card.value === value)
 		);
@@ -469,32 +460,40 @@ export function callInDeck(call: Call, deck: ExtCard[]) {
 		});
 	}
 	if (call.call === HandRank.StraightFlush) {
-		const straightCards = straightHighToCards(call.high.value);
+		const straightCards = straightCardsTable[call.high.value];
 		return straightCards.every(value =>
 			deck.some(card => card.value === value && card.suit === call.high.suit)
 		);
 	}
 }
 
-// create a function to convert the high card of a straight to a list of 5 cards for the straight
-// e.g. if the top value is 14, it should return 14, 13, 12, 11, 10
-// if the top value is 2, it will return 2, 14, 13, 12, 11 (wrap-around)
-function straightHighToCards(high: ExtValue): ExtValue[] {
-	if (high === 15) return [15, 14, 13, 12, 11];
-	if (high === 1) return [1, 14, 13, 12, 11];
-	const cards: ExtValue[] = [];
-	for (let i = 0; i < 5; i++) {
-		cards.push(<ExtValue>(((high - 1 - i + 13) % 13 || 13) + 1));
-	}
-	return cards;
-}
+type SH = {
+	[key in ExtValue]: [ExtValue, ExtValue, ExtValue, ExtValue, ExtValue];
+};
+const straightCardsTable: SH = {
+	15: [15, 14, 13, 12, 11],
+	14: [14, 13, 12, 11, 10],
+	13: [13, 12, 11, 10, 9],
+	12: [12, 11, 10, 9, 8],
+	11: [11, 10, 9, 8, 7],
+	10: [10, 9, 8, 7, 6],
+	9: [9, 8, 7, 6, 5],
+	8: [8, 7, 6, 5, 4],
+	7: [7, 6, 5, 4, 3],
+	6: [6, 5, 4, 3, 2],
+	5: [5, 4, 3, 2, 14],
+	4: [4, 3, 2, 14, 13],
+	3: [3, 2, 14, 13, 12],
+	2: [2, 14, 13, 12, 11],
+	1: [1, 14, 13, 12, 11],
+};
 
 export async function highestCallInDeck(deck: ExtCard[]): Promise<Call> {
 	// Straight Flush
 	if (deck.length >= 5) {
 		for (let value = 14; value >= 2; value--) {
 			for (const suit of suits) {
-				const straight = straightHighToCards(value as ExtValue);
+				const straight = straightCardsTable[value as ExtValue];
 				if (
 					straight.every(value =>
 						deck.some(card => card.value === value && card.suit === suit)
@@ -598,7 +597,7 @@ export async function highestCallInDeck(deck: ExtCard[]): Promise<Call> {
 
 		// Straight
 		for (let i = 15; i >= 1; i--) {
-			const straight = straightHighToCards(i as ExtValue);
+			const straight = straightCardsTable[i as ExtValue];
 			if (straight.every(value => deck.some(card => card.value === value))) {
 				return {
 					high: { value: i as ExtValue, suit: null },
