@@ -5,6 +5,9 @@ class ColumnFullError extends Error {
 }
 const gameTime = 1800000;
 class Connect4 {
+    static createBoard() {
+        return Array.from({ length: 6 }, () => Array.from({ length: 7 }, () => 0));
+    }
     constructor(interaction, opponentId, bet) {
         this.interaction = interaction;
         this.opponentId = opponentId;
@@ -13,7 +16,7 @@ class Connect4 {
         this.winner = 0;
         this.betInfo = "";
         this.lastMove = null;
-        this.board = Array.from({ length: 6 }, () => Array.from({ length: 7 }, () => 0));
+        this.board = Connect4.createBoard();
         /*
             Board Visulization:
             1 2 3 4 5 6 7

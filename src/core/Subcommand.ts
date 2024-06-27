@@ -14,7 +14,7 @@ export default class Subcommand<T = RunFunc> {
 		const slashBuilder = builder(new SlashCommandSubcommandBuilder());
 		if (!(slashBuilder instanceof SlashCommandSubcommandBuilder)) {
 			throw new Error(
-				`${this._builder.name} Builder provided is not an instance of SlashCommandBuilder`
+				`${this._builder.name} Builder provided is not an instance of SlashCommandSubcommandBuilder`
 			);
 		}
 		this._builder = slashBuilder;

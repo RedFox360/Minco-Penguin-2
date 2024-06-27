@@ -23,24 +23,17 @@ const gift = new SlashCommand()
 	.setRun(async interaction => {
 		const user = interaction.options.getUser("user");
 		const amount = interaction.options.getInteger("md_amount");
-		if (amount < 1) {
-			await interaction.reply({
-				content: "Please enter a positive amount of Minco Dollars",
-				ephemeral: true,
-			});
-			return;
-		}
 		const profile = await getProfile(interaction.user.id);
 		if (user.id === interaction.user.id) {
 			await interaction.reply({
-				content: "You can't gift money to yourself!",
+				content: "You can't gift money to yourself.",
 				ephemeral: true,
 			});
 			return;
 		}
 		if (amount > profile.mincoDollars) {
 			await interaction.reply({
-				content: `You don't have ${amount} Minco Dollars`,
+				content: `You don't have ${amount} Minco Dollars.`,
 				ephemeral: true,
 			});
 			return;
@@ -54,7 +47,7 @@ const gift = new SlashCommand()
 		);
 		await updateProfile(user.id, { mincoDollars: { increment: amount } });
 
-		await interaction.reply(`You gifted ${amount} MD to ${user}`);
+		await interaction.reply(`:gift: You gifted ${amount} MD to ${user}.`);
 	});
 
 export default gift;

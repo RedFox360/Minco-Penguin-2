@@ -2,13 +2,13 @@ import { MessageCollector } from "discord.js";
 import {
 	type ExtSuit,
 	type ExtValue,
-	HandRank,
 	type Call,
-	names,
 	type ExtCard,
+	type DoubleFlushCall,
+	HandRank,
+	names,
 	RNI,
 	RNIKeys,
-	DoubleFlushCall,
 	royalFlushes,
 } from "./bs_poker_types.js";
 import { emoji, suits } from "../basic_card_types.js";
@@ -28,28 +28,11 @@ export function parseCall(givenCall: string): Call | null {
 		const call = givenCall.toLowerCase().trim();
 		const royalIndex = royalFlushes.findIndex(x => x.includes(call));
 		if (royalIndex !== -1) {
-			switch (royalIndex) {
-				case 0:
-					return {
-						high: { value: 14, suit: "H" },
-						call: HandRank.StraightFlush,
-					};
-				case 1:
-					return {
-						high: { value: 14, suit: "D" },
-						call: HandRank.StraightFlush,
-					};
-				case 2:
-					return {
-						high: { value: 14, suit: "C" },
-						call: HandRank.StraightFlush,
-					};
-				case 3:
-					return {
-						high: { value: 14, suit: "S" },
-						call: HandRank.StraightFlush,
-					};
-			}
+			const suit = suits[royalIndex];
+			return {
+				high: { value: 14, suit },
+				call: HandRank.StraightFlush,
+			};
 		}
 		const split = call.split(" ");
 
@@ -191,23 +174,9 @@ export function parseCall(givenCall: string): Call | null {
 				};
 			}
 
-			let suit: ExtSuit;
-			switch (callIndex - RNI[HandRank.Flush]) {
-				case 0:
-					suit = "H";
-					break;
-				case 1:
-					suit = "D";
-					break;
-				case 2:
-					suit = "C";
-					break;
-				case 3:
-					suit = "S";
-					break;
-				default:
-					return null;
-			}
+			const index = callIndex - RNI[HandRank.Flush];
+			if (index < 0 || index > 3) return null;
+			const suit = suits[index];
 			return {
 				high: { value: high, suit },
 				call: HandRank.Flush,
@@ -218,24 +187,9 @@ export function parseCall(givenCall: string): Call | null {
 			callIndex >= RNI[HandRank.StraightFlush] &&
 			callIndex <= RNI[HandRank.StraightFlushMax]
 		) {
-			let suit: ExtSuit;
-			switch (callIndex - RNI[HandRank.StraightFlush]) {
-				case 0:
-					suit = "H";
-					break;
-				case 1:
-					suit = "D";
-					break;
-				case 2:
-					suit = "C";
-					break;
-				case 3:
-					suit = "S";
-					break;
-				default:
-					suit = null;
-					break;
-			}
+			const index = callIndex - RNI[HandRank.StraightFlush];
+			if (index < 0 || index > 3) return null;
+			const suit = suits[index];
 			return {
 				high: { value: high, suit },
 				call: HandRank.StraightFlush,
@@ -250,41 +204,45 @@ export function parseCall(givenCall: string): Call | null {
 	}
 }
 
+const symbolToValueObj = {
+	joker: 1,
+	x: 1,
+
+	insurance: 15,
+	i: 15,
+	assurance: 15,
+
+	ace: 14,
+	a: 14,
+	as: 14,
+
+	king: 13,
+	k: 13,
+	roi: 13,
+
+	queen: 12,
+	q: 12,
+	dame: 12,
+
+	jack: 11,
+	j: 11,
+	knave: 11,
+	valet: 11,
+
+	deuce: 2,
+
+	t: 10,
+} as const;
+
 // convert text to value, e.g. "2" -> 2, "Joker" -> 0, "K" or "King" -> 13
 function symbolToValue(textGiven: string): ExtValue | null {
 	const text = textGiven.toLowerCase().trim();
-	switch (text) {
-		case "joker":
-		case "x":
-			return 1;
-		case "insurance":
-		case "i":
-			return 15;
-		case "k":
-		case "king":
-			return 13;
-		case "q":
-		case "queen":
-			return 12;
-		case "j":
-		case "jack":
-		case "knave":
-			return 11;
-		case "a":
-		case "ace":
-			return 14;
-		case "deuce":
-			return 2;
-		case "ten":
-		case "t":
-			return 10;
-		default: {
-			const value = parseInt(text);
-			if (invalidNumber(value)) return null;
-			if (value < 1 || value > 15) return null;
-			return value as ExtValue;
-		}
-	}
+	const lookup = symbolToValueObj[text];
+	if (lookup) return lookup;
+	const value = parseInt(text);
+	if (invalidNumber(value)) return null;
+	if (value < 1 || value > 15) return null;
+	return value as ExtValue;
 }
 
 // make every word in a string start with a capital

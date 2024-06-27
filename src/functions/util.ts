@@ -1,4 +1,11 @@
-import { Message, RESTJSONErrorCodes, TimestampStyles, time } from "discord.js";
+import {
+	Message,
+	MessagePayload,
+	MessageReplyOptions,
+	RESTJSONErrorCodes,
+	TimestampStyles,
+	time,
+} from "discord.js";
 
 export const colors = {
 	blurple: 0x7289da,
@@ -65,7 +72,8 @@ export function replyThenDelete(
 			setTimeout(() => {
 				msg.delete().catch(handleMessageError);
 			}, timeout);
-		});
+		})
+		.catch(handleMessageError);
 }
 
 /**

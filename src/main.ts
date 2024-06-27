@@ -1,7 +1,6 @@
 import {
 	ActivityType,
 	Client,
-	Collection,
 	Partials,
 	GatewayIntentBits,
 	REST,
@@ -44,12 +43,13 @@ const client = new Client({
 		GatewayIntentBits.MessageContent,
 	partials: [Partials.Channel, Partials.Message, Partials.Reaction],
 });
-const slashCommands = new Collection<string, SlashCommand | UserContextMenu>();
-const bsPokerTeams = new Collection<Snowflake, Snowflake[][]>();
-const channelsWithActiveGames = new Array<Snowflake>();
+const slashCommands = new Map<string, SlashCommand | UserContextMenu>();
+// Map: channelId -> [[player1, player2], [player1]]
+const bsPokerTeams = new Map<Snowflake, Snowflake[][]>();
+const channelsWithActiveGames = new Set<Snowflake>();
 
 const readyEventName = "⏰ Ready Event";
-client.on(Events.ClientReady, async readyClient => {
+client.once(Events.ClientReady, async readyClient => {
 	console.time(readyEventName);
 	await eventHandler(readyClient);
 	await slashHandler(readyClient, updateCommands, inDev);

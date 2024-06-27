@@ -6,7 +6,7 @@ import { colors } from "../util.js";
 import { bsPokerTeams, channelsWithActiveGames } from "../../main.js";
 const collectorTime = 60000;
 export default async function bsPokerRun(interaction) {
-    if (channelsWithActiveGames.includes(interaction.channelId)) {
+    if (channelsWithActiveGames.has(interaction.channelId)) {
         await interaction.reply({
             content: "There is already an active game in this channel.",
             ephemeral: true,
@@ -50,7 +50,7 @@ Please decrease the player limit to a value less than or equal to ${maxPlayerLim
         return;
     }
     const players = [interaction.user.id];
-    channelsWithActiveGames.push(interaction.channelId);
+    channelsWithActiveGames.add(interaction.channelId);
     // Game Start
     const joinButton = new ButtonBuilder()
         .setCustomId("join")
@@ -207,7 +207,7 @@ Otherwise, the game will start ${startTime}`))
     });
     collector.on("end", async () => {
         if (!shouldBeginGame) {
-            removeByValue(channelsWithActiveGames, interaction.channelId);
+            channelsWithActiveGames.delete(interaction.channelId);
             return;
         }
         if (players.length <= 1) {
@@ -218,7 +218,7 @@ Otherwise, the game will start ${startTime}`))
                 components: [],
             })
                 .catch(handleMessageError);
-            removeByValue(channelsWithActiveGames, interaction.channelId);
+            channelsWithActiveGames.delete(interaction.channelId);
             return;
         }
         msg
@@ -233,7 +233,7 @@ Otherwise, the game will start ${startTime}`))
         game.gameLogic().catch(e => {
             interaction.channel.send("Sorry, but an unknown error occured while running the game and the game has aborted.");
             console.error(e);
-            removeByValue(channelsWithActiveGames, interaction.channelId);
+            channelsWithActiveGames.delete(interaction.channelId);
         });
     });
 }

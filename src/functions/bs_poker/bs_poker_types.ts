@@ -73,10 +73,10 @@ export interface DoubleFlushCall {
 }
 
 export const names = [
-	["high", "high card", "h"],
-	["pair", "double", "p", "d"],
-	["triple", "t"],
-	["high straight", "straight", "s"],
+	["high", "h", "haut"],
+	["pair", "double", "p", "d", "paire"],
+	["triple", "t", "brelan"],
+	["high straight", "straight", "s", "suite"],
 	[
 		"high flush:hearts:",
 		"flush:hearts:",
@@ -86,6 +86,7 @@ export const names = [
 		"high flush hearts",
 		"fh",
 		"hf",
+		"couleur cœur",
 	],
 	[
 		"high flush:diamonds:",
@@ -96,6 +97,7 @@ export const names = [
 		"high flush diamonds",
 		"fd",
 		"df",
+		"couleur carreau",
 	],
 	[
 		"high flush<:clubst:1241960807005425768>",
@@ -106,6 +108,7 @@ export const names = [
 		"high flush clubs",
 		"fc",
 		"cf",
+		"couleur trèfle",
 	],
 	[
 		"high flush<:spadest:1241960808305659975>",
@@ -116,8 +119,9 @@ export const names = [
 		"high flush spades",
 		"fs",
 		"sf",
+		"coleour pique",
 	],
-	["quad", "q"],
+	["quad", "q", "carré"],
 	[
 		"high straight flush:hearts:",
 		"straight flush:hearts:",
@@ -127,6 +131,7 @@ export const names = [
 		"high straight flush hearts",
 		"sfh",
 		"hsf",
+		"quinte flush cœur",
 	],
 	[
 		"high straight flush:diamonds:",
@@ -137,6 +142,7 @@ export const names = [
 		"high straight flush diamonds",
 		"sfd",
 		"dsf",
+		"quinte flush carreau",
 	],
 	[
 		"high straight flush<:clubst:1241960807005425768>",
@@ -147,6 +153,7 @@ export const names = [
 		"high straight flush clubs",
 		"sfc",
 		"csf",
+		"quinte flush trèfle",
 	],
 	[
 		"high straight flush<:spadest:1241960808305659975>",
@@ -157,6 +164,7 @@ export const names = [
 		"high straight flush spades",
 		"sfs",
 		"ssf",
+		"quinte flush pique",
 	],
 ];
 
@@ -173,6 +181,7 @@ export const royalFlushes = [
 		"rfh",
 		"rhf",
 		"hrf",
+		"quinte flush royale de cœur",
 	],
 	[
 		"diamonds royal flush",
@@ -181,6 +190,7 @@ export const royalFlushes = [
 		"rfd",
 		"rdf",
 		"drf",
+		"quinte flush royale de carreau",
 	],
 	[
 		"clubs royal flush",
@@ -189,6 +199,7 @@ export const royalFlushes = [
 		"rfc",
 		"rcf",
 		"crf",
+		"quinte flush royale de trèfle",
 	],
 	[
 		"spades royal flush",
@@ -197,5 +208,6 @@ export const royalFlushes = [
 		"rfs",
 		"rsf",
 		"srf",
+		"quinte flush royale de pique",
 	],
 ];

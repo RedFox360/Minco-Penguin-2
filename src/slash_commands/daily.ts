@@ -15,7 +15,7 @@ const daily = new SlashCommand()
 
 		if (currentDate === lastClaimDate) {
 			await interaction.reply({
-				content: `You may use /daily again tomorrow.`,
+				content: `You may use </daily:1252747326473109627> again tomorrow.`,
 				ephemeral: true,
 			});
 			return;

@@ -1,4 +1,4 @@
-import { ActivityType, Client, Collection, Partials, GatewayIntentBits, REST, Events, } from "discord.js";
+import { ActivityType, Client, Partials, GatewayIntentBits, REST, Events, } from "discord.js";
 import { config as loadenv } from "dotenv";
 import chalk from "chalk";
 import slashHandler from "./handlers/slash_handler.js";
@@ -28,11 +28,12 @@ const client = new Client({
         GatewayIntentBits.MessageContent,
     partials: [Partials.Channel, Partials.Message, Partials.Reaction],
 });
-const slashCommands = new Collection();
-const bsPokerTeams = new Collection();
-const channelsWithActiveGames = new Array();
+const slashCommands = new Map();
+// Map: channelId -> [[player1, player2], [player1]]
+const bsPokerTeams = new Map();
+const channelsWithActiveGames = new Set();
 const readyEventName = "⏰ Ready Event";
-client.on(Events.ClientReady, async (readyClient) => {
+client.once(Events.ClientReady, async (readyClient) => {
     console.time(readyEventName);
     await eventHandler(readyClient);
     await slashHandler(readyClient, updateCommands, inDev);

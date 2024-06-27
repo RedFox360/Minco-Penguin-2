@@ -50,7 +50,7 @@ const team = new SlashCommand()
     .setCooldown(10)
     .setRun(async (interaction) => {
     const subcommand = interaction.options.getSubcommand();
-    if (!channelsWithActiveGames.includes(interaction.channelId)) {
+    if (!channelsWithActiveGames.has(interaction.channelId)) {
         await interaction.reply({
             content: "There is no active game in this channel",
             ephemeral: true,

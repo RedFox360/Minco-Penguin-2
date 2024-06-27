@@ -6,7 +6,7 @@ export default class Subcommand {
     setCommandData(builder) {
         const slashBuilder = builder(new SlashCommandSubcommandBuilder());
         if (!(slashBuilder instanceof SlashCommandSubcommandBuilder)) {
-            throw new Error(`${this._builder.name} Builder provided is not an instance of SlashCommandBuilder`);
+            throw new Error(`${this._builder.name} Builder provided is not an instance of SlashCommandSubcommandBuilder`);
         }
         this._builder = slashBuilder;
         return this;

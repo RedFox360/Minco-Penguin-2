@@ -1,4 +1,4 @@
-import { RESTJSONErrorCodes, TimestampStyles, time } from "discord.js";
+import { RESTJSONErrorCodes, TimestampStyles, time, } from "discord.js";
 export const colors = {
     blurple: 0x7289da,
     green: 0x76d7c4,
@@ -54,7 +54,8 @@ export function replyThenDelete(message, text, timeout = 20000) {
         setTimeout(() => {
             msg.delete().catch(handleMessageError);
         }, timeout);
-    });
+    })
+        .catch(handleMessageError);
 }
 /**
  * a certain amount of random elements are removed from the array and returned

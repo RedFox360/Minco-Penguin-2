@@ -11,13 +11,6 @@ const withdraw = new SlashCommand()
     .setRequired(true)))
     .setRun(async (interaction) => {
     const amount = interaction.options.getInteger("amount");
-    if (amount < 1) {
-        await interaction.reply({
-            content: "Please enter a positive amount of MD",
-            ephemeral: true,
-        });
-        return;
-    }
     const profile = await getProfile(interaction.user.id);
     if (amount > profile.bank) {
         await interaction.reply({

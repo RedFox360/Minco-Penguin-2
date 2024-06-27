@@ -17,10 +17,11 @@ import { updateProfile } from "../../prisma/models.js";
 class ColumnFullError extends Error {}
 
 const gameTime = 1_800_000;
+type Board = (0 | 1 | -1)[][];
 class Connect4 {
 	// 6x7 board
 	// 1 = player, -1 = opponent
-	board: (0 | 1 | -1)[][];
+	board: Board;
 	round: number = 0;
 	winner: number = 0;
 	gameMsg: Message;
@@ -28,14 +29,16 @@ class Connect4 {
 	betInfo: string = "";
 	lastMove: number | null = null;
 
+	static createBoard(): Board {
+		return Array.from({ length: 6 }, () => Array.from({ length: 7 }, () => 0));
+	}
+
 	constructor(
 		public interaction: ChatInputCommandInteraction<"cached">,
 		public opponentId: Snowflake,
 		public bet: number
 	) {
-		this.board = Array.from({ length: 6 }, () =>
-			Array.from({ length: 7 }, () => 0)
-		);
+		this.board = Connect4.createBoard();
 		/*
 			Board Visulization:
 			1 2 3 4 5 6 7

@@ -69,13 +69,12 @@ class BSPoker {
         this.aborted = false;
         this.bxOpen = false;
         this.round = 0;
-        this.playersOut = [];
         this.playerHands = new Collection();
         this.playerCardsEntitled = new Map();
+        this.playersOut = [];
         this.commonCards = [];
         this.midGamePlayers = [];
         this.hostId = interaction.user.id;
-        this.totalPlayers = players.length;
     }
     get currentPlayerIndex() {
         if (this._currPlayerIdx < 0 || this._currPlayerIdx >= this.players.length) {
@@ -96,8 +95,11 @@ class BSPoker {
             this._currPlayerIdx = newIdx;
         }
     }
+    get everPlayersLen() {
+        return this.players.length + this.playersOut.length;
+    }
     get pot() {
-        return this.totalPlayers * this.startingBet;
+        return this.everPlayersLen * this.startingBet;
     }
     currentDeck() {
         const currentDeck = [].concat(...Array.from(this.playerHands.values()));
@@ -123,10 +125,12 @@ class BSPoker {
             return "";
         if (this.playerHands.size === 0)
             return "";
-        const pwsc = this.players.filter(p => this.playerHands.get(p).some(c => c.suit === "bj" || c.suit === "rj"));
+        const pwsc = Array.from(this.playerHands
+            .filter(hand => hand.some(c => c.suit === "bj" || c.suit === "rj"))
+            .keys());
         return `Players with special cards: ${pwsc.length === 0 ? "None" : pwsc.map(userMention).join(" ")}`;
     }
-    getHandsEmbed(handsList, highestCall = null) {
+    getHandsEmbed(handsList, highestCall) {
         return new EmbedBuilder()
             .setTitle(`Hands from Last Round (${this.round})`) // this.round is 0-indexed, so do not subtract 1
             .setDescription(`Common Cards: ${this.commonCards.length === 0
@@ -226,78 +230,76 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
     forward() {
         this.currentPlayerIndex = this.currentPlayerIndex + 1;
     }
-    async handleJoinLeave(buttonInteraction) {
-        if (buttonInteraction.customId === customIds.joinMidGame) {
-            if (this.players.includes(buttonInteraction.user.id)) {
-                await buttonInteraction.reply({
-                    content: "You are already in the game.",
-                    ephemeral: true,
-                });
-                return;
-            }
-            if (this.playersOut.includes(buttonInteraction.user.id)) {
-                await buttonInteraction.reply({
-                    content: "You are out of this game, so you may not rejoin.",
-                    ephemeral: true,
-                });
-                return;
-            }
-            if (this.players.length >= this.playerLimit) {
-                await buttonInteraction.reply({
-                    content: `Sorry, the player limit of ${this.playerLimit} has already been reached.`,
-                    ephemeral: true,
-                });
-                return;
-            }
-            const joinerProfile = await getProfile(buttonInteraction.user.id);
-            if (joinerProfile.mincoDollars < this.startingBet) {
-                await buttonInteraction.reply({
-                    content: `You do not have enough Minco Dollars to join this game (the bet is ${this.startingBet.toLocaleString()}).`,
-                    ephemeral: true,
-                });
-                return;
-            }
-            const startingAmount = Math.max(...this.playerCardsEntitled.values());
-            await this.addPlayerMidGame(buttonInteraction.user.id, startingAmount);
-            let toSend = `${buttonInteraction.user}, you have joined the game at ${startingAmount} cards.`;
-            if (this.startingBet)
-                toSend += ` **${this.startingBet.toLocaleString()}** Minco Dollars have been deducted from your wallet.`;
+    async handleJoinMidGame(buttonInteraction) {
+        if (this.players.includes(buttonInteraction.user.id)) {
             await buttonInteraction.reply({
-                content: toSend,
+                content: "You are already in the game.",
+                ephemeral: true,
             });
-            this.newRoundMsg
-                .edit({
-                embeds: [this.newRoundEmbed(true)],
-            })
-                .catch(handleMessageError);
             return;
         }
-        if (buttonInteraction.customId === customIds.leaveMidGame) {
-            if (!this.players.includes(buttonInteraction.user.id)) {
-                await buttonInteraction.reply({
-                    content: "You are not in the game.",
-                    ephemeral: true,
-                });
-                return;
-            }
-            let toAppend = "";
-            removeByValue(this.players, buttonInteraction.user.id);
-            if (buttonInteraction.user.id === this.interaction.user.id) {
-                this.hostId = this.players[0]; // select the first player to become the host
-                toAppend = ` Since they were the host, host privileges have been transferred to <@${this.hostId}>.`;
-                return;
-            }
-            this.removePlayerFromGame(buttonInteraction.user.id);
+        if (this.playersOut.includes(buttonInteraction.user.id)) {
             await buttonInteraction.reply({
-                content: `${buttonInteraction.user} has left the game.${toAppend}`,
+                content: "You are out of this game, so you may not rejoin.",
+                ephemeral: true,
             });
-            this.newRoundMsg
-                .edit({
-                embeds: [this.newRoundEmbed(true)],
-            })
-                .catch(handleMessageError);
             return;
         }
+        if (this.players.length >= this.playerLimit) {
+            await buttonInteraction.reply({
+                content: `Sorry, the player limit of ${this.playerLimit} has already been reached.`,
+                ephemeral: true,
+            });
+            return;
+        }
+        const joinerProfile = await getProfile(buttonInteraction.user.id);
+        if (joinerProfile.mincoDollars < this.startingBet) {
+            await buttonInteraction.reply({
+                content: `You do not have enough Minco Dollars to join this game (the bet is ${this.startingBet.toLocaleString()}).`,
+                ephemeral: true,
+            });
+            return;
+        }
+        const startingAmount = Math.max(...this.playerCardsEntitled.values());
+        await this.addPlayerMidGame(buttonInteraction.user.id, startingAmount);
+        let toSend = `${buttonInteraction.user}, you have joined the game at ${startingAmount} cards.`;
+        if (this.startingBet)
+            toSend += ` **${this.startingBet.toLocaleString()}** Minco Dollars have been deducted from your wallet.`;
+        await buttonInteraction.reply({
+            content: toSend,
+        });
+        this.newRoundMsg
+            .edit({
+            embeds: [this.newRoundEmbed(true)],
+        })
+            .catch(handleMessageError);
+        return;
+    }
+    async handleLeaveMidGame(buttonInteraction) {
+        if (!this.players.includes(buttonInteraction.user.id)) {
+            await buttonInteraction.reply({
+                content: "You are not in the game.",
+                ephemeral: true,
+            });
+            return;
+        }
+        let toAppend = "";
+        removeByValue(this.players, buttonInteraction.user.id);
+        if (buttonInteraction.user.id === this.interaction.user.id) {
+            this.hostId = this.players[0]; // select the first player to become the host
+            toAppend = ` Since they were the host, host privileges have been transferred to <@${this.hostId}>.`;
+            return;
+        }
+        this.removePlayerFromGame(buttonInteraction.user.id);
+        await buttonInteraction.reply({
+            content: `${buttonInteraction.user} has left the game.${toAppend}`,
+        });
+        this.newRoundMsg
+            .edit({
+            embeds: [this.newRoundEmbed(true)],
+        })
+            .catch(handleMessageError);
+        return;
     }
     getNotifRow(disabled) {
         const row = new ActionRowBuilder().addComponents(viewCardsButton, viewGameInfoButton);
@@ -312,9 +314,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
         }
         if (this.currentCall) {
             if (!isHigher(call, this.currentCall.call)) {
-                message.reply({
-                    content: `Your call is not higher than the current call (${formatCall(this.currentCall.call)}). Please try again.`,
-                });
+                replyThenDelete(message, `Your call is not higher than the current call (${formatCall(this.currentCall.call)}). Please try again.`);
                 return false;
             }
         }
@@ -323,7 +323,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
             call.call === HandRank.FullHouse) {
             const highCards = call.high;
             if (highCards[0] === highCards[1]) {
-                replyThenDelete(message, `Double pairs, triples, and full houses must have different values (Your call: ${formatCall(call)}). Please try again.`);
+                replyThenDelete(message, `Double pairs, triples, and full houses must have 2 different values (Your call: ${formatCall(call)}). Please try again.`);
                 return false;
             }
         }
@@ -336,8 +336,10 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
                 return false;
             }
         }
-        if (call.call === HandRank.StraightFlush && call.high.value === 15) {
-            replyThenDelete(message, `Sorry, but Insurance-High Straight Flushes are not allowed (Your call: ${formatCall(call)}). Please try again.`);
+        if (call.call === HandRank.StraightFlush &&
+            this.insuranceCount > 1 &&
+            call.high.value === 15) {
+            replyThenDelete(message, `Sorry, but Insurance-High Straight Flushes are not allowed when there are multiple insurances in the deck (Your call: ${formatCall(call)}). Please try again.`);
             return false;
         }
         if (call.call === HandRank.DoubleFlush) {
@@ -350,6 +352,16 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
                 highCards[0].value === highCards[1].value &&
                 highCards[0].value === 15) {
                 replyThenDelete(message, `There are not enough insurance cards in the deck for a double insurance call (Your call: ${formatCall(call)}). Please try again.`);
+                return false;
+            }
+            if (highCards.some(x => x.value === 1)) {
+                replyThenDelete(message, `Jokers cannot be used as a high card in flush calls (Your call: ${formatCall(call)}). Please try again.`);
+                return false;
+            }
+        }
+        if (call.call === HandRank.Flush) {
+            if (call.high.value === 1) {
+                replyThenDelete(message, `Jokers cannot be used as a high card in flush calls (Your call: ${formatCall(call)}). Please try again.`);
                 return false;
             }
         }
@@ -384,19 +396,17 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
         await this.interaction.channel.send({
             embeds: [embed],
         });
-        this.end();
+        this.endCollectors();
     }
-    end() {
+    endCollectors() {
         this.msgColl.stop();
         this.mcompColl.stop();
-        this.aborted = true;
-        clearTimeout(this.bxTimeout);
-        clearTimeout(this.notifTimeout);
-        removeByValue(channelsWithActiveGames, this.interaction.channelId);
+        0;
+        // abort handled in the end of msgColl
     }
     async abort() {
         await this.returnBets();
-        this.end();
+        this.endCollectors();
     }
     async blackJokerBS() {
         if (this.commonCards.length === 1) {
@@ -478,7 +488,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
         if (this.midGamePlayers.includes(player))
             return;
         const rankOut = this.playersOut.length - 1;
-        const rating = rankOut * (1 / (this.totalPlayers - 1));
+        const rating = rankOut * (1 / (this.everPlayersLen - 1));
         if (rating > 0)
             return updateProfile(player, {
                 bsPokerRating: {
@@ -505,7 +515,6 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
         this.removePlayerFromTeams(player);
         this.midGamePlayers.push(player);
         bsPokerTeams.get(this.interaction.channelId).push([player]);
-        this.totalPlayers += 1;
         await updateProfile(player, {
             bsPokerGamesPlayed: {
                 increment: 1,
@@ -726,7 +735,12 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
                 });
                 return;
             }
-            this.handleJoinLeave(buttonInteraction);
+            if (buttonInteraction.customId === customIds.joinMidGame) {
+                this.handleJoinMidGame(buttonInteraction);
+            }
+            if (buttonInteraction.customId === customIds.leaveMidGame) {
+                this.handleLeaveMidGame(buttonInteraction);
+            }
             return;
         }
         const cd = this.currentDeck();
@@ -846,6 +860,12 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**`;
         });
         this.mcompColl.on("collect", async (bi) => {
             this.buttonCollect(bi);
+        });
+        this.msgColl.on("end", () => {
+            this.aborted = true;
+            clearTimeout(this.bxTimeout);
+            clearTimeout(this.notifTimeout);
+            channelsWithActiveGames.delete(this.interaction.channelId);
         });
     }
 }

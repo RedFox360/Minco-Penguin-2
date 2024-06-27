@@ -22,7 +22,7 @@ const collectorTime = 60_000;
 export default async function bsPokerRun(
 	interaction: ChatInputCommandInteraction<"cached">
 ) {
-	if (channelsWithActiveGames.includes(interaction.channelId)) {
+	if (channelsWithActiveGames.has(interaction.channelId)) {
 		await interaction.reply({
 			content: "There is already an active game in this channel.",
 			ephemeral: true,
@@ -79,7 +79,7 @@ Please decrease the player limit to a value less than or equal to ${maxPlayerLim
 	}
 
 	const players = [interaction.user.id];
-	channelsWithActiveGames.push(interaction.channelId);
+	channelsWithActiveGames.add(interaction.channelId);
 
 	// Game Start
 
@@ -259,7 +259,7 @@ Otherwise, the game will start ${startTime}`)
 	});
 	collector.on("end", async () => {
 		if (!shouldBeginGame) {
-			removeByValue(channelsWithActiveGames, interaction.channelId);
+			channelsWithActiveGames.delete(interaction.channelId);
 			return;
 		}
 		if (players.length <= 1) {
@@ -270,7 +270,7 @@ Otherwise, the game will start ${startTime}`)
 					components: [],
 				})
 				.catch(handleMessageError);
-			removeByValue(channelsWithActiveGames, interaction.channelId);
+			channelsWithActiveGames.delete(interaction.channelId);
 			return;
 		}
 		msg
@@ -305,7 +305,7 @@ Otherwise, the game will start ${startTime}`)
 			);
 			console.error(e);
 
-			removeByValue(channelsWithActiveGames, interaction.channelId);
+			channelsWithActiveGames.delete(interaction.channelId);
 		});
 	});
 }

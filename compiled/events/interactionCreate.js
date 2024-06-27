@@ -1,9 +1,10 @@
-import { Collection, EmbedBuilder, Events, } from "discord.js";
+import { EmbedBuilder, Events, } from "discord.js";
 import SlashCommand from "../core/SlashCommand.js";
 import UserContextMenu from "../core/UserContextMenu.js";
 import prettyMs from "pretty-ms";
 import { clean, colors } from "../functions/util.js";
 import { slashCommands } from "../main.js";
+// Map: {commandName -> [Map: userId -> timestamp]}
 const cooldowns = new Map();
 const ownerId = process.env.OWNER_ID;
 export default (client) => {
@@ -56,7 +57,7 @@ async function displayCooldowns(interaction, command) {
 function handleCooldowns(interaction, command) {
     const { builder: { name: commandName }, cooldown: cooldown, } = command;
     if (!cooldowns.has(commandName))
-        cooldowns.set(commandName, new Collection());
+        cooldowns.set(commandName, new Map());
     const currentTime = Date.now();
     const timeStamps = cooldowns.get(commandName);
     if (timeStamps.has(interaction.user.id)) {

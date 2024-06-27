@@ -1,10 +1,10 @@
 import {
 	ChatInputCommandInteraction,
 	Client,
-	Collection,
 	EmbedBuilder,
 	Events,
 	Interaction,
+	Snowflake,
 	UserContextMenuCommandInteraction,
 } from "discord.js";
 import SlashCommand from "../core/SlashCommand.js";
@@ -12,7 +12,8 @@ import UserContextMenu from "../core/UserContextMenu.js";
 import prettyMs from "pretty-ms";
 import { clean, colors } from "../functions/util.js";
 import { slashCommands } from "../main.js";
-const cooldowns = new Map();
+// Map: {commandName -> [Map: userId -> timestamp]}
+const cooldowns = new Map<string, Map<Snowflake, number>>();
 const ownerId = process.env.OWNER_ID;
 
 export default (client: Client<true>) => {
@@ -86,7 +87,7 @@ function handleCooldowns(
 		builder: { name: commandName },
 		cooldown: cooldown,
 	} = command;
-	if (!cooldowns.has(commandName)) cooldowns.set(commandName, new Collection());
+	if (!cooldowns.has(commandName)) cooldowns.set(commandName, new Map());
 	const currentTime = Date.now();
 	const timeStamps = cooldowns.get(commandName);
 	if (timeStamps.has(interaction.user.id)) {
