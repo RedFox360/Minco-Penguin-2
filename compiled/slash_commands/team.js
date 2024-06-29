@@ -110,6 +110,15 @@ const team = new SlashCommand()
             time: timeToJoinTeam,
         })
             .then(bi => {
+            if (bsPokerTeams
+                .get(interaction.channel.id)
+                .some(t => t.includes(interaction.user.id))) {
+                bi.update({
+                    content: `:red_circle: ${interaction.user.id} you have joined a team while this request was pending, so it has been canceled.`,
+                    components: [],
+                }).catch(handleMessageError);
+                return;
+            }
             if (bi.customId === customIds.accept) {
                 teamWithPlayer.push(interaction.user.id);
                 bi.update({
@@ -126,7 +135,7 @@ const team = new SlashCommand()
         })
             .catch(() => {
             interaction.editReply({
-                content: `:orange_circle: ${player} did not join your team.`,
+                content: `:orange_circle: Team request canceled (timed out).`,
                 components: [],
             });
         });
@@ -173,6 +182,15 @@ const team = new SlashCommand()
             time: timeToJoinTeam,
         })
             .then(bi => {
+            if (bsPokerTeams
+                .get(interaction.channel.id)
+                .some(t => t.includes(bi.user.id))) {
+                bi.update({
+                    content: `:red_circle: ${bi.user.id} you have joined a team while this request was pending, so it has been canceled.`,
+                    components: [],
+                }).catch(handleMessageError);
+                return;
+            }
             if (bi.customId === customIds.accept) {
                 teamWithAsker.push(bi.user.id);
                 bi.update({
@@ -189,7 +207,7 @@ const team = new SlashCommand()
         })
             .catch(() => {
             msg.edit({
-                content: `:orange_circle: ${player} did not join your team.`,
+                content: `:orange_circle: Team request canceled (timed out).`,
                 components: [],
             });
         });

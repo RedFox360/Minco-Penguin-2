@@ -27,6 +27,7 @@ export default async function bsPokerRun(interaction) {
     const playerLimit = interaction.options.getInteger("player_limit") ?? maxPlayerLimit;
     const allowJoinMidGame = interaction.options.getBoolean("allow_join_mid_game") ?? true;
     const useCurses = interaction.options.getBoolean("use_curses") ?? false;
+    const nonStandard = interaction.options.getBoolean("nonstandard") ?? true;
     if (beginCards >= cardsToOut) {
         await interaction.reply({
             content: "The beginning number of cards must be less than the number of cards to be out.",
@@ -43,7 +44,7 @@ Please decrease the player limit to a value less than or equal to ${maxPlayerLim
         return;
     }
     const hostProfile = await getProfile(interaction.user.id);
-    if (hostProfile.mincoDollars < startingBet) {
+    if (startingBet && hostProfile.mincoDollars < startingBet) {
         await interaction.reply({
             content: `You do not have enough Minco Dollars to start this game with a bet of ${startingBet}.`,
             ephemeral: true,
@@ -132,15 +133,13 @@ Otherwise, the game will start ${startTime}`))
                 });
                 return;
             }
-            if (startingBet) {
-                const joinerProfile = await getProfile(buttonInteraction.user.id);
-                if (joinerProfile.mincoDollars < startingBet) {
-                    await buttonInteraction.reply({
-                        content: `You do not have enough Minco Dollars to join this game (the bet is **${startingBet} MD**).`,
-                        ephemeral: true,
-                    });
-                    return;
-                }
+            const joinerProfile = await getProfile(buttonInteraction.user.id);
+            if (startingBet && joinerProfile.mincoDollars < startingBet) {
+                await buttonInteraction.reply({
+                    content: `You do not have enough Minco Dollars to join this game (the bet is **${startingBet} MD**).`,
+                    ephemeral: true,
+                });
+                return;
             }
             if (!players.includes(buttonInteraction.user.id)) {
                 players.push(buttonInteraction.user.id);
@@ -231,7 +230,7 @@ Otherwise, the game will start ${startTime}`))
             .catch(handleMessageError);
         shuffleArrayInPlace(players);
         bsPokerTeams.set(interaction.channelId, players.map(x => [x]));
-        const game = new BSPoker(interaction, players, cardsToOut, startingBet, commonCards, jokerCount, insuranceCount, beginCards, allowJoinMidGame, playerLimit, useSpecialCards, useCurses);
+        const game = new BSPoker(interaction, players, cardsToOut, startingBet, commonCards, jokerCount, insuranceCount, beginCards, allowJoinMidGame, playerLimit, useSpecialCards, useCurses, nonStandard);
         game.gameLogic().catch(e => {
             interaction.channel.send("Sorry, but an unknown error occured while running the game and the game has aborted.");
             console.error(e);

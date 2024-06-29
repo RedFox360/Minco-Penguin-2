@@ -1,4 +1,4 @@
-import { ActivityType, Client, Partials, GatewayIntentBits, REST, Events, } from "discord.js";
+import { ActivityType, Client, GatewayIntentBits, REST, Events, } from "discord.js";
 import { config as loadenv } from "dotenv";
 import chalk from "chalk";
 import slashHandler from "./handlers/slash_handler.js";
@@ -19,14 +19,8 @@ loadenv();
 const client = new Client({
     intents: GatewayIntentBits.Guilds |
         GatewayIntentBits.GuildMessages |
-        GatewayIntentBits.GuildMessageReactions |
-        GatewayIntentBits.GuildMembers |
-        GatewayIntentBits.GuildModeration |
-        GatewayIntentBits.GuildEmojisAndStickers |
-        GatewayIntentBits.GuildVoiceStates |
-        GatewayIntentBits.GuildWebhooks |
-        GatewayIntentBits.MessageContent,
-    partials: [Partials.Channel, Partials.Message, Partials.Reaction],
+        GatewayIntentBits.MessageContent |
+        GatewayIntentBits.GuildMembers,
 });
 const slashCommands = new Map();
 // Map: channelId -> [[player1, player2], [player1]]
@@ -38,7 +32,7 @@ client.once(Events.ClientReady, async (readyClient) => {
     await eventHandler(readyClient);
     await slashHandler(readyClient, updateCommands, inDev);
     console.log(`${chalk.green(readyClient.user.tag)} is online in ${chalk.blue(readyClient.guilds.cache.size)} servers!`);
-    readyClient.user.setActivity(`/bs_poker`, {
+    readyClient.user.setActivity("/bs_poker", {
         type: ActivityType.Listening,
     });
     console.timeEnd(readyEventName);

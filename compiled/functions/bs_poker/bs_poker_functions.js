@@ -404,10 +404,11 @@ const straightCardsTable = {
     2: [2, 14, 13, 12, 11],
     1: [1, 14, 13, 12, 11],
 };
-export async function highestCallInDeck(deck) {
+export async function highestCallInDeck(deck, nonStandard, insuranceCount) {
     // Straight Flush
     if (deck.length >= 5) {
-        for (let value = 14; value >= 2; value--) {
+        const startingValue = insuranceCount === 1 ? 15 : 14;
+        for (let value = startingValue; value >= 2; value--) {
             for (const suit of suits) {
                 const straight = straightCardsTable[value];
                 if (straight.every(value => deck.some(card => card.value === value && card.suit === suit))) {
@@ -431,7 +432,7 @@ export async function highestCallInDeck(deck) {
         }
     }
     // Double Triple
-    if (deck.length >= 6) {
+    if (nonStandard && deck.length >= 6) {
         for (let i = 15; i >= 1; i--) {
             if (deck.filter(card => card.value === i).length >= 3) {
                 for (let j = i - 1; j >= 2; j--) {
@@ -465,7 +466,7 @@ export async function highestCallInDeck(deck) {
     // Double Flush
     // if there are 2 flushes of 4 or more cards, return those flushes
     // find the lowest two flushes in teh deck
-    if (deck.length >= 8) {
+    if (nonStandard && deck.length >= 8) {
         for (let i = 2; i <= 15; i++) {
             for (const suit1 of suits) {
                 for (let j = 2; j <= 15; j++) {
@@ -527,7 +528,7 @@ export async function highestCallInDeck(deck) {
         }
     }
     // Triple Pair
-    if (deck.length >= 6) {
+    if (nonStandard && deck.length >= 6) {
         for (let i = 15; i >= 1; i--) {
             if (deck.filter(card => card.value === i).length >= 2) {
                 for (let j = i - 1; j >= 1; j--) {
