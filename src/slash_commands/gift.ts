@@ -22,8 +22,6 @@ const gift = new SlashCommand()
 	)
 	.setRun(async interaction => {
 		const user = interaction.options.getUser("user");
-		const amount = interaction.options.getInteger("md_amount");
-		const profile = await getProfile(interaction.user.id);
 		if (user.id === interaction.user.id) {
 			await interaction.reply({
 				content: "You can't gift money to yourself.",
@@ -31,6 +29,9 @@ const gift = new SlashCommand()
 			});
 			return;
 		}
+
+		const amount = interaction.options.getInteger("md_amount");
+		const profile = await getProfile(interaction.user.id);
 		if (amount > profile.mincoDollars) {
 			await interaction.reply({
 				content: `You don't have ${amount} Minco Dollars.`,

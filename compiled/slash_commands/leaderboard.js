@@ -2,7 +2,7 @@ import { ButtonStyle, ComponentType, EmbedBuilder, } from "discord.js";
 import { ActionRowBuilder, ButtonBuilder, } from "discord.js";
 import SlashCommand from "../core/SlashCommand.js";
 import { prisma } from "../main.js";
-import { chunkArray, handleMessageError, invalidNumber, } from "../functions/util.js";
+import { chunkArray, invalidNumber } from "../functions/util.js";
 const chunkSize = 15;
 const collectorTime = 180000;
 const customIds = {
@@ -159,14 +159,12 @@ async function run(interaction, givenUsingStats = false, ephemeral = false, give
                 lbEmbed.setDescription(getDescription()).setFooter({
                     text: getFooter(),
                 });
-                buttonInteraction
-                    .update({
+                buttonInteraction.update({
                     embeds: [lbEmbed],
                     components: [
                         new ActionRowBuilder().addComponents(first, previous, next, last),
                     ],
-                })
-                    .catch(handleMessageError);
+                });
                 break;
             }
             case customIds.prev: {
@@ -180,14 +178,12 @@ async function run(interaction, givenUsingStats = false, ephemeral = false, give
                 lbEmbed.setDescription(getDescription()).setFooter({
                     text: getFooter(),
                 });
-                buttonInteraction
-                    .update({
+                buttonInteraction.update({
                     embeds: [lbEmbed],
                     components: [
                         new ActionRowBuilder().addComponents(first, previous, next, last),
                     ],
-                })
-                    .catch(handleMessageError);
+                });
                 break;
             }
             case customIds.next: {
@@ -201,14 +197,12 @@ async function run(interaction, givenUsingStats = false, ephemeral = false, give
                 lbEmbed.setDescription(getDescription()).setFooter({
                     text: getFooter(),
                 });
-                buttonInteraction
-                    .update({
+                buttonInteraction.update({
                     embeds: [lbEmbed],
                     components: [
                         new ActionRowBuilder().addComponents(first, previous, next, last),
                     ],
-                })
-                    .catch(handleMessageError);
+                });
                 break;
             }
             case customIds.last: {
@@ -220,14 +214,12 @@ async function run(interaction, givenUsingStats = false, ephemeral = false, give
                 lbEmbed.setDescription(getDescription()).setFooter({
                     text: getFooter(),
                 });
-                buttonInteraction
-                    .update({
+                buttonInteraction.update({
                     embeds: [lbEmbed],
                     components: [
                         new ActionRowBuilder().addComponents(first, previous, next, last),
                     ],
-                })
-                    .catch(handleMessageError);
+                });
                 break;
             }
         }

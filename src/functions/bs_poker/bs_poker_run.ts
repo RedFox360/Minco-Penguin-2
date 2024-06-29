@@ -12,7 +12,6 @@ import {
 	removeByValue,
 	msToRelTimestamp,
 	shuffleArrayInPlace,
-	handleMessageError,
 } from "../util.js";
 import { getProfile } from "../../prisma/models.js";
 import { colors } from "../util.js";
@@ -195,12 +194,10 @@ Otherwise, the game will start ${startTime}`)
 				players.push(buttonInteraction.user.id);
 				startButton.setDisabled(false);
 			}
-			buttonInteraction
-				.update({
-					embeds: [gameStartEmbed()],
-					components: [row1, row2],
-				})
-				.catch(handleMessageError);
+			buttonInteraction.update({
+				embeds: [gameStartEmbed()],
+				components: [row1, row2],
+			});
 		}
 		if (buttonInteraction.customId === "leave") {
 			if (buttonInteraction.user.id === interaction.user.id) {
@@ -214,12 +211,10 @@ Otherwise, the game will start ${startTime}`)
 			if (players.length <= 1) {
 				startButton.setDisabled(true);
 			}
-			buttonInteraction
-				.update({
-					embeds: [gameStartEmbed()],
-					components: [row1, row2],
-				})
-				.catch(handleMessageError);
+			buttonInteraction.update({
+				embeds: [gameStartEmbed()],
+				components: [row1, row2],
+			});
 		}
 		if (buttonInteraction.customId === "abort") {
 			if (buttonInteraction.user.id !== interaction.user.id) {
@@ -229,13 +224,11 @@ Otherwise, the game will start ${startTime}`)
 				});
 				return;
 			}
-			buttonInteraction
-				.update({
-					content: "Game aborted by host.",
-					embeds: [],
-					components: [],
-				})
-				.catch(handleMessageError);
+			buttonInteraction.update({
+				content: "Game aborted by host.",
+				embeds: [],
+				components: [],
+			});
 			shouldBeginGame = false;
 			collector.stop();
 		}
@@ -247,12 +240,10 @@ Otherwise, the game will start ${startTime}`)
 				});
 				return;
 			}
-			buttonInteraction
-				.update({
-					embeds: [gameStartEmbed(true)],
-					components: [],
-				})
-				.catch(handleMessageError);
+			buttonInteraction.update({
+				embeds: [gameStartEmbed(true)],
+				components: [],
+			});
 			collector.stop();
 		}
 	});
@@ -262,22 +253,18 @@ Otherwise, the game will start ${startTime}`)
 			return;
 		}
 		if (players.length <= 1) {
-			msg
-				.edit({
-					content: "Game aborted due to insufficient players.",
-					embeds: [],
-					components: [],
-				})
-				.catch(handleMessageError);
+			msg.edit({
+				content: "Game aborted due to insufficient players.",
+				embeds: [],
+				components: [],
+			});
 			channelsWithActiveGames.delete(interaction.channelId);
 			return;
 		}
-		msg
-			.edit({
-				embeds: [gameStartEmbed(true)],
-				components: [],
-			})
-			.catch(handleMessageError);
+		msg.edit({
+			embeds: [gameStartEmbed(true)],
+			components: [],
+		});
 		shuffleArrayInPlace(players);
 		bsPokerTeams.set(
 			interaction.channelId,

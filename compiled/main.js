@@ -1,4 +1,4 @@
-import { ActivityType, Client, GatewayIntentBits, REST, Events, } from "discord.js";
+import { ActivityType, Client, GatewayIntentBits, REST, Events, RESTJSONErrorCodes, } from "discord.js";
 import { config as loadenv } from "dotenv";
 import chalk from "chalk";
 import slashHandler from "./handlers/slash_handler.js";
@@ -36,6 +36,22 @@ client.once(Events.ClientReady, async (readyClient) => {
         type: ActivityType.Listening,
     });
     console.timeEnd(readyEventName);
+});
+const errors = [
+    RESTJSONErrorCodes.UnknownMessage,
+    RESTJSONErrorCodes.UnknownInteraction,
+    RESTJSONErrorCodes.UnknownChannel,
+    RESTJSONErrorCodes.UnknownApplicationCommand,
+    RESTJSONErrorCodes.UnknownGuild,
+    RESTJSONErrorCodes.UnknownUser,
+    RESTJSONErrorCodes.UnknownMember,
+];
+process.on("unhandledRejection", (err) => {
+    if (errors.includes(err?.code)) {
+        console.error("Unknown message/interaction.");
+        return;
+    }
+    console.error(err);
 });
 const token = inDev ? process.env.CANARY_TOKEN : process.env.TOKEN;
 const rest = new REST().setToken(token);

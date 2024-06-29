@@ -63,10 +63,9 @@ export function replyThenDelete(
 		})
 		.then(msg => {
 			setTimeout(() => {
-				msg.delete().catch(handleMessageError);
+				msg.delete();
 			}, timeout);
-		})
-		.catch(handleMessageError);
+		});
 }
 
 /**

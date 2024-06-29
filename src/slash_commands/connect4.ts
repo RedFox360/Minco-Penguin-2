@@ -5,13 +5,14 @@ import {
 	ComponentType,
 } from "discord.js";
 import SlashCommand from "../core/SlashCommand.js";
-import { handleMessageError, msToRelTimestamp } from "../functions/util.js";
+import { msToRelTimestamp } from "../functions/util.js";
 import Connect4 from "../functions/connect4/connect4_class.js";
 
 const customIds = {
 	accept: "accept_connect4",
 	decline: "decline_connect4",
 };
+const timeToJoin = 10_000;
 
 const acceptButton = new ButtonBuilder()
 	.setLabel("Accept")
@@ -52,8 +53,8 @@ const connect4 = new SlashCommand()
 		const opponent = interaction.options.getUser("opponent");
 		const bet = interaction.options.getInteger("bet") ?? 0;
 
-		const timeToJoin = msToRelTimestamp(60_000);
-		let msgContent = `${opponent}, ${interaction.user} has challenged you to a game of Connect 4!\nUse the buttons to accept/decline ${timeToJoin}`;
+		const joinTimestamp = msToRelTimestamp(timeToJoin);
+		let msgContent = `${opponent}, ${interaction.user} has challenged you to a game of Connect 4!\nUse the buttons to accept/decline ${joinTimestamp}`;
 		if (bet) msgContent += `\nBet to join: **${bet} MD**`;
 		const msg = await interaction.reply({
 			content: msgContent,
@@ -67,32 +68,30 @@ const connect4 = new SlashCommand()
 				filter: i =>
 					i.user.id === opponent.id &&
 					(i.customId === customIds.accept || i.customId === customIds.decline),
-				time: 60_000,
+				time: timeToJoin,
 			})
 			.then(async i => {
 				if (i.customId === customIds.decline) {
 					i.update({
 						content: `${opponent} has declined the challenge.`,
 						components: [],
-					}).catch(handleMessageError);
+					});
 					return;
 				}
 
 				i.update({
 					content: `${opponent} has accepted the challenge!`,
 					components: [],
-				}).catch(handleMessageError);
+				});
 
 				const game = new Connect4(interaction, opponent.id, bet);
 				await game.gameLogic();
 			})
 			.catch(() => {
-				msg
-					.edit({
-						content: "Connect 4 game canceled — Opponent did not join in time.",
-						components: [],
-					})
-					.catch(handleMessageError);
+				msg.edit({
+					content: "Connect 4 game canceled — Opponent did not join in time.",
+					components: [],
+				});
 			});
 	});
 

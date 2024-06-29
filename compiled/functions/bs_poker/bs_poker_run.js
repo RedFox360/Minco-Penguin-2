@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, userMention, } from "discord.js";
 import BSPoker from "./bs_poker_class.js";
-import { removeByValue, msToRelTimestamp, shuffleArrayInPlace, handleMessageError, } from "../util.js";
+import { removeByValue, msToRelTimestamp, shuffleArrayInPlace, } from "../util.js";
 import { getProfile } from "../../prisma/models.js";
 import { colors } from "../util.js";
 import { bsPokerTeams, channelsWithActiveGames } from "../../main.js";
@@ -145,12 +145,10 @@ Otherwise, the game will start ${startTime}`))
                 players.push(buttonInteraction.user.id);
                 startButton.setDisabled(false);
             }
-            buttonInteraction
-                .update({
+            buttonInteraction.update({
                 embeds: [gameStartEmbed()],
                 components: [row1, row2],
-            })
-                .catch(handleMessageError);
+            });
         }
         if (buttonInteraction.customId === "leave") {
             if (buttonInteraction.user.id === interaction.user.id) {
@@ -164,12 +162,10 @@ Otherwise, the game will start ${startTime}`))
             if (players.length <= 1) {
                 startButton.setDisabled(true);
             }
-            buttonInteraction
-                .update({
+            buttonInteraction.update({
                 embeds: [gameStartEmbed()],
                 components: [row1, row2],
-            })
-                .catch(handleMessageError);
+            });
         }
         if (buttonInteraction.customId === "abort") {
             if (buttonInteraction.user.id !== interaction.user.id) {
@@ -179,13 +175,11 @@ Otherwise, the game will start ${startTime}`))
                 });
                 return;
             }
-            buttonInteraction
-                .update({
+            buttonInteraction.update({
                 content: "Game aborted by host.",
                 embeds: [],
                 components: [],
-            })
-                .catch(handleMessageError);
+            });
             shouldBeginGame = false;
             collector.stop();
         }
@@ -197,12 +191,10 @@ Otherwise, the game will start ${startTime}`))
                 });
                 return;
             }
-            buttonInteraction
-                .update({
+            buttonInteraction.update({
                 embeds: [gameStartEmbed(true)],
                 components: [],
-            })
-                .catch(handleMessageError);
+            });
             collector.stop();
         }
     });
@@ -212,22 +204,18 @@ Otherwise, the game will start ${startTime}`))
             return;
         }
         if (players.length <= 1) {
-            msg
-                .edit({
+            msg.edit({
                 content: "Game aborted due to insufficient players.",
                 embeds: [],
                 components: [],
-            })
-                .catch(handleMessageError);
+            });
             channelsWithActiveGames.delete(interaction.channelId);
             return;
         }
-        msg
-            .edit({
+        msg.edit({
             embeds: [gameStartEmbed(true)],
             components: [],
-        })
-            .catch(handleMessageError);
+        });
         shuffleArrayInPlace(players);
         bsPokerTeams.set(interaction.channelId, players.map(x => [x]));
         const game = new BSPoker(interaction, players, cardsToOut, startingBet, commonCards, jokerCount, insuranceCount, beginCards, allowJoinMidGame, playerLimit, useSpecialCards, useCurses, nonStandard);

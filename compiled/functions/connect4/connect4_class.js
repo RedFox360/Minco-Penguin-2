@@ -1,5 +1,5 @@
 import { EmbedBuilder, RESTJSONErrorCodes, } from "discord.js";
-import { colors, handleMessageError, invalidNumber, replyThenDelete, } from "../util.js";
+import { colors, invalidNumber, replyThenDelete } from "../util.js";
 import { updateProfile } from "../../prisma/models.js";
 class ColumnFullError extends Error {
 }
@@ -73,7 +73,7 @@ class Connect4 {
     }
     async sendGameMsg() {
         if (this.gameMsg)
-            this.gameMsg.delete().catch(handleMessageError);
+            this.gameMsg.delete();
         this.gameMsg = await this.interaction.channel.send({
             embeds: [this.gameEmbed()],
         });
@@ -195,7 +195,7 @@ class Connect4 {
                 if (err instanceof ColumnFullError) {
                     replyThenDelete(msg, "That column is full, please try again.");
                     setTimeout(() => {
-                        msg.delete().catch(handleMessageError);
+                        msg.delete();
                     }, 20000);
                 }
                 else {
@@ -205,7 +205,7 @@ class Connect4 {
             }
             this.round += 1;
             this.lastMove = column;
-            await msg.delete().catch(handleMessageError);
+            await msg.delete();
             if (this.round >= 42) {
                 this.msgCollector.stop();
                 msg.reply("This game has ended in a draw.");

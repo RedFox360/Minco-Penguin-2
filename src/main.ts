@@ -5,6 +5,7 @@ import {
 	REST,
 	Events,
 	Snowflake,
+	RESTJSONErrorCodes,
 } from "discord.js";
 import { config as loadenv } from "dotenv";
 import chalk from "chalk";
@@ -56,6 +57,24 @@ client.once(Events.ClientReady, async readyClient => {
 		type: ActivityType.Listening,
 	});
 	console.timeEnd(readyEventName);
+});
+
+const errors = [
+	RESTJSONErrorCodes.UnknownMessage,
+	RESTJSONErrorCodes.UnknownInteraction,
+	RESTJSONErrorCodes.UnknownChannel,
+	RESTJSONErrorCodes.UnknownApplicationCommand,
+	RESTJSONErrorCodes.UnknownGuild,
+	RESTJSONErrorCodes.UnknownUser,
+	RESTJSONErrorCodes.UnknownMember,
+] as const;
+
+process.on("unhandledRejection", (err: any) => {
+	if (errors.includes(err?.code)) {
+		console.error("Unknown message/interaction.");
+		return;
+	}
+	console.error(err);
 });
 
 const token = inDev ? process.env.CANARY_TOKEN : process.env.TOKEN;

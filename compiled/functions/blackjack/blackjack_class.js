@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, } from "discord.js";
 import { createBasicDeck, formatDeck } from "../basic_card_functions.js";
-import { colors, handleMessageError, invalidNumber, spliceRandom, } from "../util.js";
+import { colors, invalidNumber, spliceRandom } from "../util.js";
 import { getProfile, updateProfile } from "../../prisma/models.js";
 import { promisify } from "util";
 const sleep = promisify(setTimeout);
@@ -326,11 +326,9 @@ class Blackjack {
                     });
                     return;
                 }
-                fbmsg
-                    .edit({
+                fbmsg.edit({
                     components: [],
-                })
-                    .catch(handleMessageError);
+                });
             }
             else {
                 await this.interaction.editReply(this.gameMsg(earned));
@@ -357,9 +355,9 @@ class Blackjack {
             return;
         }
         if (bi.isButton())
-            bi.update(this.gameMsg(earned)).catch(handleMessageError);
+            bi.update(this.gameMsg(earned));
         else if (bi.isCommand())
-            bi.editReply(this.gameMsg(earned)).catch(handleMessageError);
+            bi.editReply(this.gameMsg(earned));
     }
     continueOrEnd(bi) {
         if (this.focusedHand === this.playerHands.length - 1) {
@@ -369,7 +367,7 @@ class Blackjack {
         this.activateSplitButton();
         this.focusedHand += 1;
         this.doubleDownButton.setDisabled(false);
-        bi.update(this.gameMsg()).catch(handleMessageError);
+        bi.update(this.gameMsg());
     }
     deal1Card() {
         this.currentHand.push(spliceRandom(this.deck, 1)[0]);
@@ -382,7 +380,7 @@ class Blackjack {
             this.continueOrEnd(bi);
             return true;
         }
-        bi.update(this.gameMsg()).catch(handleMessageError);
+        bi.update(this.gameMsg());
         return false;
     }
     async doubleDown(bi) {
@@ -418,7 +416,7 @@ class Blackjack {
         ]);
         this.currentHand.push(spliceRandom(this.deck, 1)[0]);
         this.activateSplitButton();
-        bi.update(this.gameMsg()).catch(handleMessageError);
+        bi.update(this.gameMsg());
     }
     async editBet(bi) {
         if (this.session >= this.rounds - 1) {
@@ -452,8 +450,8 @@ Your bet must be between **5** and **250** MD.`,
             await bi.channel.send({
                 content: `${bi.user}, your bet has been updated to **${newBet} MD**.`,
             });
-            msg.delete().catch(handleMessageError);
-            guideMsg.delete().catch(handleMessageError);
+            msg.delete();
+            guideMsg.delete();
         }
         catch (err) {
             bi.followUp({
@@ -504,7 +502,7 @@ Your bet must be between **5** and **250** MD.`,
                     this.endPlayerTurn(bi);
                     return;
                 }
-                bi.update(this.gameMsg()).catch(handleMessageError);
+                bi.update(this.gameMsg());
                 return;
             }
             if (bi.customId === customIds.endSession) {

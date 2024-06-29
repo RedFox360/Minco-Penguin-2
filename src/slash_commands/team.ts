@@ -6,7 +6,7 @@ import {
 	userMention,
 } from "discord.js";
 import SlashCommand from "../core/SlashCommand.js";
-import { handleMessageError, msToRelTimestamp } from "../functions/util.js";
+import { msToRelTimestamp } from "../functions/util.js";
 import { bsPokerTeams, channelsWithActiveGames } from "../main.js";
 
 const timeToJoinTeam = 30_000;
@@ -135,7 +135,7 @@ const team = new SlashCommand()
 			}
 			const timeUpToJoin = msToRelTimestamp(timeToJoinTeam);
 			const msg = await interaction.reply({
-				content: `${player} — ${interaction.user} has asked to join your team. Use the buttons below to accept/decline ${timeUpToJoin}.`,
+				content: `${player} — ${interaction.user} has asked to join your team. Use the buttons below to accept/decline ${timeUpToJoin}.`,
 				components: [accDecRow],
 			});
 			msg
@@ -157,7 +157,7 @@ const team = new SlashCommand()
 						bi.update({
 							content: `:red_circle: ${interaction.user.id} you have joined a team while this request was pending, so it has been canceled.`,
 							components: [],
-						}).catch(handleMessageError);
+						});
 						return;
 					}
 					if (bi.customId === customIds.accept) {
@@ -165,12 +165,12 @@ const team = new SlashCommand()
 						bi.update({
 							content: `:green_circle: ${bi.user}, you have joined a team with ${interaction.user}.`,
 							components: [],
-						}).catch(handleMessageError);
+						});
 					} else {
 						bi.update({
 							content: `:red_circle: ${bi.user} declined your team request.`,
 							components: [],
-						}).catch(handleMessageError);
+						});
 					}
 				})
 				.catch(() => {
@@ -209,7 +209,7 @@ const team = new SlashCommand()
 
 			const timeUpToJoin = msToRelTimestamp(timeToJoinTeam);
 			const msg = await interaction.reply({
-				content: `${player} — ${interaction.user} has invited you to join their team. Use the buttons below to accept/decline ${timeUpToJoin}.`,
+				content: `${player} — ${interaction.user} has invited you to join their team. Use the buttons below to accept/decline ${timeUpToJoin}.`,
 				components: [accDecRow],
 			});
 			msg
@@ -231,7 +231,7 @@ const team = new SlashCommand()
 						bi.update({
 							content: `:red_circle: ${bi.user.id} you have joined a team while this request was pending, so it has been canceled.`,
 							components: [],
-						}).catch(handleMessageError);
+						});
 						return;
 					}
 					if (bi.customId === customIds.accept) {
@@ -239,12 +239,12 @@ const team = new SlashCommand()
 						bi.update({
 							content: `:green_circle: ${bi.user}, you have joined a team with ${interaction.user}.`,
 							components: [],
-						}).catch(handleMessageError);
+						});
 					} else {
 						bi.update({
 							content: `:red_circle: ${bi.user} declined your team invite.`,
 							components: [],
-						}).catch(handleMessageError);
+						});
 					}
 				})
 				.catch(() => {
@@ -280,7 +280,7 @@ const team = new SlashCommand()
 				ephemeral: true,
 			});
 		} else if (subcommand === "view") {
-			if (!teamWithAsker || teamWithAsker.length === 1) {
+			if (!teamWithAsker || teamWithAsker?.length <= 1) {
 				await interaction.reply({
 					content: "You are not in a team.",
 					ephemeral: true,

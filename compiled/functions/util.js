@@ -52,10 +52,9 @@ export function replyThenDelete(message, text, timeout = 20000) {
     })
         .then(msg => {
         setTimeout(() => {
-            msg.delete().catch(handleMessageError);
+            msg.delete();
         }, timeout);
-    })
-        .catch(handleMessageError);
+    });
 }
 /**
  * a certain amount of random elements are removed from the array and returned

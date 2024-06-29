@@ -12,12 +12,7 @@ import {
 } from "discord.js";
 import { Card } from "../basic_card_types.js";
 import { createBasicDeck, formatDeck } from "../basic_card_functions.js";
-import {
-	colors,
-	handleMessageError,
-	invalidNumber,
-	spliceRandom,
-} from "../util.js";
+import { colors, invalidNumber, spliceRandom } from "../util.js";
 import { getProfile, updateProfile } from "../../prisma/models.js";
 import { promisify } from "util";
 const sleep = promisify(setTimeout);
@@ -423,11 +418,9 @@ class Blackjack {
 					});
 					return;
 				}
-				fbmsg
-					.edit({
-						components: [],
-					})
-					.catch(handleMessageError);
+				fbmsg.edit({
+					components: [],
+				});
 			} else {
 				await this.interaction.editReply(this.gameMsg(earned));
 			}
@@ -462,10 +455,8 @@ class Blackjack {
 			return;
 		}
 
-		if (bi.isButton())
-			bi.update(this.gameMsg(earned)).catch(handleMessageError);
-		else if (bi.isCommand())
-			bi.editReply(this.gameMsg(earned)).catch(handleMessageError);
+		if (bi.isButton()) bi.update(this.gameMsg(earned));
+		else if (bi.isCommand()) bi.editReply(this.gameMsg(earned));
 	}
 
 	continueOrEnd(bi: ButtonInteraction<"cached">) {
@@ -476,7 +467,7 @@ class Blackjack {
 		this.activateSplitButton();
 		this.focusedHand += 1;
 		this.doubleDownButton.setDisabled(false);
-		bi.update(this.gameMsg()).catch(handleMessageError);
+		bi.update(this.gameMsg());
 	}
 
 	deal1Card() {
@@ -491,7 +482,7 @@ class Blackjack {
 			this.continueOrEnd(bi);
 			return true;
 		}
-		bi.update(this.gameMsg()).catch(handleMessageError);
+		bi.update(this.gameMsg());
 		return false;
 	}
 
@@ -529,7 +520,7 @@ class Blackjack {
 		]);
 		this.currentHand.push(spliceRandom(this.deck, 1)[0]);
 		this.activateSplitButton();
-		bi.update(this.gameMsg()).catch(handleMessageError);
+		bi.update(this.gameMsg());
 	}
 
 	async editBet(bi: ButtonInteraction<"cached">) {
@@ -562,8 +553,8 @@ Your bet must be between **5** and **250** MD.`,
 			await bi.channel.send({
 				content: `${bi.user}, your bet has been updated to **${newBet} MD**.`,
 			});
-			msg.delete().catch(handleMessageError);
-			guideMsg.delete().catch(handleMessageError);
+			msg.delete();
+			guideMsg.delete();
 		} catch (err) {
 			bi.followUp({
 				content: `${bi.user}, you took too long to respond, so your bet will not be updated.`,
@@ -619,7 +610,7 @@ Your bet must be between **5** and **250** MD.`,
 					this.endPlayerTurn(bi);
 					return;
 				}
-				bi.update(this.gameMsg()).catch(handleMessageError);
+				bi.update(this.gameMsg());
 				return;
 			}
 			if (bi.customId === customIds.endSession) {

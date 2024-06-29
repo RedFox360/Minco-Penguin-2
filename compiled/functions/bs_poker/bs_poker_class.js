@@ -1,7 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, Collection, ComponentType, EmbedBuilder, userMention, } from "discord.js";
 import { HandRank, } from "./bs_poker_types.js";
 import { callInDeck, formatCall, highestCallInDeck, isHigher, parseCall, } from "./bs_poker_functions.js";
-import { msToRelTimestamp, removeByValue, replyThenDelete, invalidNumber, median, handleMessageError, } from "../util.js";
+import { msToRelTimestamp, removeByValue, replyThenDelete, invalidNumber, median, } from "../util.js";
 import { createBasicDeck, formatCardSideways, formatDeck, } from "../basic_card_functions.js";
 import { promisify } from "util";
 import { bsPokerTeams, channelsWithActiveGames, prisma } from "../../main.js";
@@ -162,11 +162,9 @@ class BSPoker {
             .then(handsMsg => {
             highestCallInDeck(this.currentDeck, this.nonStandard, this.insuranceCount)
                 .then(call => {
-                handsMsg
-                    .edit({
+                handsMsg.edit({
                     embeds: [this.getHandsEmbed(handsList, formatCall(call))],
-                })
-                    .catch(handleMessageError);
+                });
             })
                 .catch(console.error);
         });
@@ -279,11 +277,9 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
         await buttonInteraction.reply({
             content: toSend,
         });
-        this.newRoundMsg
-            .edit({
+        this.newRoundMsg.edit({
             embeds: [this.newRoundEmbed(true)],
-        })
-            .catch(handleMessageError);
+        });
         return;
     }
     async handleLeaveMidGame(buttonInteraction) {
@@ -305,11 +301,9 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
         await buttonInteraction.reply({
             content: `${buttonInteraction.user} has left the game.${toAppend}`,
         });
-        this.newRoundMsg
-            .edit({
+        this.newRoundMsg.edit({
             embeds: [this.newRoundEmbed(true)],
-        })
-            .catch(handleMessageError);
+        });
         return;
     }
     getNotifRow(disabled) {
@@ -496,12 +490,10 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
         this.notifTimeout = setTimeout(() => {
             if (this.aborted)
                 return;
-            msg
-                .edit({
+            msg.edit({
                 content: nt,
                 components: [this.getNotifRow(true)],
-            })
-                .catch(handleMessageError);
+            });
             this.interaction.channel.send({
                 content: `<@${this.currentPlayer}> failed to make a call in time. They gain a card and a new round will start now.`,
             });
@@ -511,16 +503,14 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
         this.notification = msg;
     }
     disableNotif() {
-        this.notification
-            .edit({
+        this.notification.edit({
             content: this.notifText,
             components: [this.getNotifRow(true)],
-        })
-            .catch(handleMessageError);
+        });
         clearTimeout(this.notifTimeout);
     }
     disableBX(clearTout = true) {
-        this.bxMsg.edit({ content: this.bxContent }).catch(handleMessageError);
+        this.bxMsg.edit({ content: this.bxContent });
         this.bxOpen = false;
         if (clearTout)
             clearTimeout(this.bxTimeout);
@@ -561,6 +551,8 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
         bsPokerTeams.set(this.interaction.channel.id, bsPokerTeams
             .get(this.interaction.channel.id)
             .map(t => {
+            if (t[0] === player)
+                return null;
             return t.filter(p => p !== player);
         })
             .filter(t => t?.length));
@@ -638,16 +630,14 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
         // Remove duplicates from players
         this.players = [...new Set(this.players)];
         this.dealToPlayers(deck);
-        this.newRoundMsg
-            .edit({
+        this.newRoundMsg.edit({
             embeds: [this.newRoundEmbed(false)],
             components: this.round === 0
                 ? []
                 : this.allowJoinMidGame
                     ? [nrRowJoinDisabled]
                     : [nrRowLeaveDisabled],
-        })
-            .catch(handleMessageError);
+        });
         this.resetState();
         this.sendNewNotif();
     }
