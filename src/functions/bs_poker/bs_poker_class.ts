@@ -309,7 +309,9 @@ Common cards: **${
 		}**
 Allow join mid-game: **${this.allowJoinMidGame ? "True" : "False"}**
 Use special cards: **${this.useSpecialCards ? "True" : "False"}**
-Use curses: **${this.useCurses ? "True" : "False"}**`;
+Use curses: **${this.useCurses ? "True" : "False"}**
+Allow nonstandard calls: **${this.nonStandard ? "True" : "False"}**
+Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
 	}
 
 	gameInfoEmbed() {

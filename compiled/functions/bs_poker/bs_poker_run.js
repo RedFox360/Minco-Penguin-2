@@ -89,7 +89,9 @@ Starting cards: **${beginCards}**
 Common cards: **${commonCards === -1 ? "Median" : commonCards}**
 Allow join mid-game: **${allowJoinMidGame ? "True" : "False"}**
 Use special cards: **${useSpecialCards ? "True" : "False"}**
-Use curses: **${useCurses ? "True" : "False"}**`;
+Use curses: **${useCurses ? "True" : "False"}**
+Allow nonstandard calls: **${nonStandard ? "True" : "False"}**
+Use Blood Joker: **${useBloodJoker ? "True" : "False"}**`;
     const gameStartEmbed = (gameStarted = false) => new EmbedBuilder()
         .setTitle(gameStarted ? "BS Poker Game Started" : "BS Poker")
         .setDescription(`Welcome to a game of BS Poker!
