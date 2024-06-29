@@ -49,6 +49,7 @@ export default async function bsPokerRun(
 		interaction.options.getBoolean("allow_join_mid_game") ?? true;
 	const useCurses = interaction.options.getBoolean("use_curses") ?? false;
 	const nonStandard = interaction.options.getBoolean("nonstandard") ?? true;
+	const useBloodJoker = interaction.options.getBoolean("blood_joker") ?? false;
 
 	if (beginCards >= cardsToOut) {
 		await interaction.reply({
@@ -284,7 +285,8 @@ Otherwise, the game will start ${startTime}`)
 			playerLimit,
 			useSpecialCards,
 			useCurses,
-			nonStandard
+			nonStandard,
+			useBloodJoker
 		);
 
 		game.gameLogic().catch(e => {

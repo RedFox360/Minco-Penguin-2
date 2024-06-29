@@ -79,12 +79,13 @@ const bsButton = new ButtonBuilder()
 	.setCustomId(customIds.bs)
 	.setLabel("BS")
 	.setStyle(ButtonStyle.Danger);
-const curseEmbed = new EmbedBuilder()
-	.setColor(colors.red)
-	.setTitle("Curse activated!")
-	.setDescription(
-		"The previous 3 calls were all false.\nEveryone will gain a card and a new round will start now."
-	);
+const createCurseEmbed = (x = "") =>
+	new EmbedBuilder()
+		.setColor(colors.red)
+		.setTitle("Curse activated!")
+		.setDescription(
+			`The previous 3 calls were all false.\nEveryone will gain a card and a new round will start now.${x}`
+		);
 
 const joinMidGameDisabled = new ButtonBuilder(joinMidGame.toJSON()).setDisabled(
 	true
@@ -159,7 +160,8 @@ class BSPoker {
 		public playerLimit: number,
 		public useSpecialCards: boolean,
 		public useCurses: boolean,
-		public nonStandard: boolean
+		public nonStandard: boolean,
+		public useBloodJoker: boolean
 	) {
 		this.playerHands = new Collection<Snowflake, ExtCard[]>();
 		this.playerCardsEntitled = new Map<Snowflake, number>();
@@ -573,12 +575,12 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
 			let description = "Everyone lost the game due to a curse!";
 			if (this.startingBet)
 				description += "\nThe pot will not be given to any player.";
-			const curseEmbed = new EmbedBuilder()
+			const noWinnerEmbed = new EmbedBuilder()
 				.setTitle("Game Over: Cursed!")
 				.setDescription(description)
 				.setColor(colors.red);
 			await this.interaction.channel.send({
-				embeds: [curseEmbed],
+				embeds: [noWinnerEmbed],
 			});
 			return;
 		}
@@ -735,25 +737,32 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
 		if (clearTout) clearTimeout(this.bxTimeout);
 	}
 
-	updatePlayerRating(player: Snowflake) {
-		if (this.midGamePlayers.includes(player) || this.originalPlayersLen === 2)
-			return;
-		const rankOut = this.playersOut.length - 1;
-		const rating = rankOut * (1 / (this.everPlayersLen - 1));
-		if (rating > 0)
-			return updateProfile(player, {
-				bsPokerRating: {
-					increment: rating,
-				},
-			});
+	updatePlayerRating(...players: Snowflake[]) {
+		if (this.originalPlayersLen === 2) return;
+		const avgRankOut = this.playersOut.length - (1 + players.length) / 2;
+		const rating = avgRankOut * (1 / (this.everPlayersLen - 1));
+
+		return Promise.all(
+			players.map(p => {
+				if (this.midGamePlayers.includes(p)) return;
+				if (rating > 0)
+					return updateProfile(p, {
+						bsPokerRating: {
+							increment: rating,
+						},
+					});
+			})
+		);
 	}
 
-	removePlayerFromGame(player: Snowflake) {
-		this.playerCardsEntitled.delete(player);
-		removeByValue(this.players, player);
-		this.playersOut.push(player);
-		this.updatePlayerRating(player);
-		this.removePlayerFromTeams(player);
+	removePlayerFromGame(...players: Snowflake[]) {
+		players.forEach(player => {
+			this.playerCardsEntitled.delete(player);
+			removeByValue(this.players, player);
+			this.playersOut.push(player);
+			this.updatePlayerRating(player);
+			this.removePlayerFromTeams(player);
+		});
 	}
 
 	async addPlayerMidGame(player: Snowflake, cards: number) {
@@ -792,9 +801,7 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
 				playersToRemove.push(p);
 			}
 		}
-		for (const p of playersToRemove) {
-			this.removePlayerFromGame(p);
-		}
+		this.removePlayerFromGame(...playersToRemove);
 	}
 
 	dealToPlayers(deck: ExtCard[]) {
@@ -1060,11 +1067,31 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
 						this.currentCall.call
 					)}**.`,
 				});
-				this.interaction.channel.send({
-					embeds: [curseEmbed],
-				});
+				let playerWRJ: Snowflake;
+				if (this.useBloodJoker) {
+					playerWRJ = this.playerHands.findKey(hand =>
+						hand.some(card => card.suit === "rj")
+					);
+				}
+				let had1Card = false;
 				this.playerCardsEntitled.forEach((cards, player) => {
-					this.playerCardsEntitled.set(player, cards + 1);
+					if (player === playerWRJ) {
+						if (cards === 1) {
+							had1Card = true;
+						} else {
+							this.playerCardsEntitled.set(player, cards - 1);
+						}
+					} else {
+						this.playerCardsEntitled.set(player, cards + 1);
+					}
+				});
+				const extraDescription = playerWRJ
+					? had1Card
+						? `\n<@${playerWRJ}> had a Red Joker, but they only had 1 card, so they do not lose any cards.`
+						: `\n<@${playerWRJ}> had a Red Joker, so they lose a card.`
+					: "";
+				this.interaction.channel.send({
+					embeds: [createCurseEmbed(extraDescription)],
 				});
 				this.newRound();
 				return;

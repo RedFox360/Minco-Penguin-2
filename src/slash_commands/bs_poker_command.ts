@@ -100,6 +100,14 @@ const bsPokerCommand = new SlashCommand()
 					)
 					.setRequired(false)
 			)
+			.addBooleanOption(option =>
+				option
+					.setName("blood_joker")
+					.setDescription(
+						"If a player has a red joker during a curse, they lose a card. (Default: False)"
+					)
+					.setRequired(false)
+			)
 	)
 	.setCooldown(15)
 	.setRun(bsPokerRun);

@@ -28,6 +28,7 @@ export default async function bsPokerRun(interaction) {
     const allowJoinMidGame = interaction.options.getBoolean("allow_join_mid_game") ?? true;
     const useCurses = interaction.options.getBoolean("use_curses") ?? false;
     const nonStandard = interaction.options.getBoolean("nonstandard") ?? true;
+    const useBloodJoker = interaction.options.getBoolean("blood_joker") ?? false;
     if (beginCards >= cardsToOut) {
         await interaction.reply({
             content: "The beginning number of cards must be less than the number of cards to be out.",
@@ -218,7 +219,7 @@ Otherwise, the game will start ${startTime}`))
         });
         shuffleArrayInPlace(players);
         bsPokerTeams.set(interaction.channelId, players.map(x => [x]));
-        const game = new BSPoker(interaction, players, cardsToOut, startingBet, commonCards, jokerCount, insuranceCount, beginCards, allowJoinMidGame, playerLimit, useSpecialCards, useCurses, nonStandard);
+        const game = new BSPoker(interaction, players, cardsToOut, startingBet, commonCards, jokerCount, insuranceCount, beginCards, allowJoinMidGame, playerLimit, useSpecialCards, useCurses, nonStandard, useBloodJoker);
         game.gameLogic().catch(e => {
             interaction.channel.send("Sorry, but an unknown error occured while running the game and the game has aborted.");
             console.error(e);

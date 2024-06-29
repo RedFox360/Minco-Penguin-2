@@ -61,6 +61,10 @@ const bsPokerCommand = new SlashCommand()
     .addBooleanOption(option => option
     .setName("nonstandard")
     .setDescription("Allow triple pair, double flush, and double triple (Default: True)")
+    .setRequired(false))
+    .addBooleanOption(option => option
+    .setName("blood_joker")
+    .setDescription("If a player has a red joker during a curse, they lose a card. (Default: False)")
     .setRequired(false)))
     .setCooldown(15)
     .setRun(bsPokerRun);
