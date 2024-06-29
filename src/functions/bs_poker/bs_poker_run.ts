@@ -31,26 +31,25 @@ export default async function bsPokerRun(
 	}
 
 	// Retrieving Options
-	const cardsToOut: number = interaction.options.getInteger("cards_to_out");
-	const commonCards: number =
-		interaction.options.getInteger("common_cards") ?? -1;
-	const startingBet: number = interaction.options.getInteger("bet") ?? 0;
-	const jokerCount: number = interaction.options.getInteger("joker_count") ?? 2;
-	const insuranceCount: number =
-		interaction.options.getInteger("insurance_count") ?? 1;
+	const cardsToOut = interaction.options.getInteger("cards_to_out");
+	const commonCards = interaction.options.getInteger("common_cards") ?? -1;
+	const startingBet = interaction.options.getInteger("bet") ?? 0;
+	const jokerCount = interaction.options.getInteger("joker_count") ?? 2;
+	const insuranceCount = interaction.options.getInteger("insurance_count") ?? 1;
 	const useSpecialCards =
 		interaction.options.getBoolean("use_special_cards") ?? false;
 	const deckSize = 52 + jokerCount + insuranceCount + (useSpecialCards ? 2 : 0);
-	const beginCards: number = interaction.options.getInteger("begin_cards") ?? 1;
+	const beginCards = interaction.options.getInteger("begin_cards") ?? 1;
 	const maxCommonCards = commonCards === -1 ? cardsToOut - 1 : commonCards;
 	const maxPlayerLimit = Math.floor(
 		(deckSize - maxCommonCards) / (cardsToOut - 1)
 	);
-	const playerLimit: number =
+	const playerLimit =
 		interaction.options.getInteger("player_limit") ?? maxPlayerLimit;
 	const allowJoinMidGame =
 		interaction.options.getBoolean("allow_join_mid_game") ?? true;
 	const useCurses = interaction.options.getBoolean("use_curses") ?? false;
+	const nonStandard = interaction.options.getBoolean("nonstandard") ?? true;
 
 	if (beginCards >= cardsToOut) {
 		await interaction.reply({
@@ -71,7 +70,7 @@ Please decrease the player limit to a value less than or equal to ${maxPlayerLim
 	}
 
 	const hostProfile = await getProfile(interaction.user.id);
-	if (hostProfile.mincoDollars < startingBet) {
+	if (startingBet && hostProfile.mincoDollars < startingBet) {
 		await interaction.reply({
 			content: `You do not have enough Minco Dollars to start this game with a bet of ${startingBet}.`,
 			ephemeral: true,
@@ -184,15 +183,13 @@ Otherwise, the game will start ${startTime}`)
 				});
 				return;
 			}
-			if (startingBet) {
-				const joinerProfile = await getProfile(buttonInteraction.user.id);
-				if (joinerProfile.mincoDollars < startingBet) {
-					await buttonInteraction.reply({
-						content: `You do not have enough Minco Dollars to join this game (the bet is **${startingBet} MD**).`,
-						ephemeral: true,
-					});
-					return;
-				}
+			const joinerProfile = await getProfile(buttonInteraction.user.id);
+			if (startingBet && joinerProfile.mincoDollars < startingBet) {
+				await buttonInteraction.reply({
+					content: `You do not have enough Minco Dollars to join this game (the bet is **${startingBet} MD**).`,
+					ephemeral: true,
+				});
+				return;
 			}
 			if (!players.includes(buttonInteraction.user.id)) {
 				players.push(buttonInteraction.user.id);
@@ -299,7 +296,8 @@ Otherwise, the game will start ${startTime}`)
 			allowJoinMidGame,
 			playerLimit,
 			useSpecialCards,
-			useCurses
+			useCurses,
+			nonStandard
 		);
 
 		game.gameLogic().catch(e => {

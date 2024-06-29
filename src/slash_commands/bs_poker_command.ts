@@ -21,7 +21,7 @@ const bsPokerCommand = new SlashCommand()
 						"Every player must bet this to join the game, and the winner will take all. (Default: No bet)"
 					)
 					.setRequired(false)
-					.setMinValue(25)
+					.setMinValue(10)
 					.setMaxValue(2000)
 			)
 			.addIntegerOption(option =>
@@ -89,6 +89,14 @@ const bsPokerCommand = new SlashCommand()
 					.setName("use_curses")
 					.setDescription(
 						"If the last 3 calls were false, the round ends and everyone gets a card. (Default: False)"
+					)
+					.setRequired(false)
+			)
+			.addBooleanOption(option =>
+				option
+					.setName("nonstandard")
+					.setDescription(
+						"Allow triple pair, double flush, and double triple (Default: True)"
 					)
 					.setRequired(false)
 			)

@@ -80,6 +80,12 @@ const bsButton = new ButtonBuilder()
 	.setCustomId(customIds.bs)
 	.setLabel("BS")
 	.setStyle(ButtonStyle.Danger);
+const curseEmbed = new EmbedBuilder()
+	.setColor(colors.red)
+	.setTitle("Curse activated!")
+	.setDescription(
+		"The previous 3 calls were all false.\nEveryone will gain a card and a new round will start now."
+	);
 
 const joinMidGameDisabled = new ButtonBuilder(joinMidGame.toJSON()).setDisabled(
 	true
@@ -153,7 +159,8 @@ class BSPoker {
 		public allowJoinMidGame: boolean,
 		public playerLimit: number,
 		public useSpecialCards: boolean,
-		public useCurses: boolean
+		public useCurses: boolean,
+		public nonStandard: boolean
 	) {
 		this.playerHands = new Collection<Snowflake, ExtCard[]>();
 		this.playerCardsEntitled = new Map<Snowflake, number>();
@@ -248,7 +255,7 @@ class BSPoker {
 	async printAllHands() {
 		const handsList = this.playerHands
 			.map((hand, player) => {
-				const teammates = this.displayPlayerTeammates(player);
+				const teammates = this.displayTeammates(player);
 				return `<@${player}>${teammates}\n${formatDeck(hand)}`;
 			})
 			.join("\n");
@@ -258,7 +265,11 @@ class BSPoker {
 				embeds: [this.getHandsEmbed(handsList)],
 			})
 			.then(handsMsg => {
-				highestCallInDeck(this.currentDeck)
+				highestCallInDeck(
+					this.currentDeck,
+					this.nonStandard,
+					this.insuranceCount
+				)
 					.then(call => {
 						handsMsg
 							.edit({
@@ -270,11 +281,11 @@ class BSPoker {
 			});
 	}
 
-	displayPlayerTeammates(p: string) {
+	displayTeammates(p: string) {
 		const teammates = bsPokerTeams
 			.get(this.interaction.channelId)
 			.find(t => t.includes(p))
-			.filter(t => t !== p);
+			?.filter(t => t !== p);
 		if (teammates?.length > 0)
 			return ` (Team: ${teammates.map(userMention).join(" ")})`;
 		return "";
@@ -441,6 +452,21 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
 		if (!call || invalidNumber(call.call) || (call.call as number) === -1) {
 			// Call could not be parsed
 			return false;
+		}
+		if (!this.nonStandard) {
+			if (
+				call.call === HandRank.TriplePair ||
+				call.call === HandRank.DoubleFlush ||
+				call.call === HandRank.DoubleTriple
+			) {
+				replyThenDelete(
+					message,
+					`Nonstandard calls (Triple pair, double flush, and double triple) are not allowed in this game (Your call: ${formatCall(
+						call
+					)}). Please try again.`
+				);
+				return false;
+			}
 		}
 		if (this.currentCall) {
 			if (!isHigher(call, this.currentCall.call)) {
@@ -760,7 +786,10 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
 			this.interaction.channel.id,
 			bsPokerTeams
 				.get(this.interaction.channel.id)
-				.filter(t => !t.includes(player))
+				.map(t => {
+					return t.filter(p => p !== player);
+				})
+				.filter(t => t?.length)
 		);
 	}
 
@@ -1044,8 +1073,7 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
 					)}**.`,
 				});
 				this.interaction.channel.send({
-					content:
-						"Curse activated! The previous 3 calls were all false. A new round will begin now and everyone will gain a card.",
+					embeds: [curseEmbed],
 				});
 				this.playerCardsEntitled.forEach((cards, player) => {
 					this.playerCardsEntitled.set(player, cards + 1);
@@ -1098,8 +1126,8 @@ Use curses: **${this.useCurses ? "True" : "False"}**`;
 						t.includes(buttonInteraction.user.id)
 					);
 					if (!team) return "";
-					const teamPlayerInGame = team.find(p => this.players.includes(p));
-					if (!teamPlayerInGame) return "";
+					const teamPlayerInGame = team[0];
+					if (!this.players.includes(teamPlayerInGame)) return "";
 					const teammateHand = this.playerHands.get(teamPlayerInGame);
 					if (!teammateHand) return "";
 					return `\n*<@${teamPlayerInGame}> is your teammate. Here are their cards.*\n${formatDeck(

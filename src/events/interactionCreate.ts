@@ -32,15 +32,17 @@ export default (client: Client<true>) => {
 		}
 
 		if (!interaction.guild.available) {
-			try {
-				await interaction.user.send(
-					"Minco Penguin cannot talk in the server you just sent a command in due to an outage."
-				);
-			} catch {
-				console.log(
-					`Server Outage in ${interaction.guildId}\nBot failed to DM the user`
-				);
-			}
+			interaction.user
+				.send({
+					content:
+						"Minco Penguin cannot talk in the server you just sent a command in due to an outage.",
+				})
+				.catch(() => {
+					console.log(
+						`Server Outage in ${interaction.guildId}\nBot failed to DM the user`
+					);
+				});
+			return;
 		}
 
 		const command: SlashCommand | UserContextMenu = slashCommands.get(

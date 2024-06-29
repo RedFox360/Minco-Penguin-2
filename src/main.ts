@@ -1,7 +1,6 @@
 import {
 	ActivityType,
 	Client,
-	Partials,
 	GatewayIntentBits,
 	REST,
 	Events,
@@ -34,15 +33,10 @@ const client = new Client({
 	intents:
 		GatewayIntentBits.Guilds |
 		GatewayIntentBits.GuildMessages |
-		GatewayIntentBits.GuildMessageReactions |
-		GatewayIntentBits.GuildMembers |
-		GatewayIntentBits.GuildModeration |
-		GatewayIntentBits.GuildEmojisAndStickers |
-		GatewayIntentBits.GuildVoiceStates |
-		GatewayIntentBits.GuildWebhooks |
-		GatewayIntentBits.MessageContent,
-	partials: [Partials.Channel, Partials.Message, Partials.Reaction],
+		GatewayIntentBits.MessageContent |
+		GatewayIntentBits.GuildMembers,
 });
+
 const slashCommands = new Map<string, SlashCommand | UserContextMenu>();
 // Map: channelId -> [[player1, player2], [player1]]
 const bsPokerTeams = new Map<Snowflake, Snowflake[][]>();
@@ -58,7 +52,7 @@ client.once(Events.ClientReady, async readyClient => {
 			readyClient.guilds.cache.size
 		)} servers!`
 	);
-	readyClient.user.setActivity(`/bs_poker`, {
+	readyClient.user.setActivity("/bs_poker", {
 		type: ActivityType.Listening,
 	});
 	console.timeEnd(readyEventName);

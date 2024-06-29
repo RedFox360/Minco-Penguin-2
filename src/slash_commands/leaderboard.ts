@@ -90,6 +90,9 @@ async function run(
 				if (!profile) return null;
 				const member = members.get(profile.userId);
 				if (usingStats) {
+					if (profile.bsPokerGamesPlayed < 5) {
+						return null;
+					}
 					const winRate = Math.floor(
 						(profile.bsPokerWins / profile.bsPokerGamesPlayed) * 100
 					);
@@ -157,7 +160,9 @@ async function run(
 	);
 	const getDescription = () => {
 		if (usingStats) {
-			return `Win Rate, Skill\n\n${format(slices[currentPage])}`;
+			return `*Only people with 5 or more games played are displayed*\n\n${format(
+				slices[currentPage]
+			)}`;
 		}
 		return `Minco Dollars in circulation: **${inCirculation.toLocaleString(
 			interaction.locale
