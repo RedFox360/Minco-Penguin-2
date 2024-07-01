@@ -28,7 +28,11 @@ const pokerStats = new Subcommand()
         iconURL: member.user.displayAvatarURL(),
         name: `${member.displayName}'s BS Poker Stats`,
     })
-        .setDescription(`Wins: **${wins}**\nGames Played: **${gamesPlayed}**\nWin Rate: **${winPerc}%**\nRaw Rating: **${rawRating.toFixed(2)}**\nSkill: **${skill}%**`);
+        .setDescription(`Wins: **${wins}**
+Games Played: **${gamesPlayed}**
+Win Rate: **${winPerc}%**
+Raw Rating: **${rawRating.toFixed(2)}**
+Skill: **${skill}%**`);
     await interaction.reply({ embeds: [embed] });
 });
 export default pokerStats;

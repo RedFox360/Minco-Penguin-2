@@ -33,13 +33,11 @@ export const RNI = {
 };
 export const RNIKeys = Object.keys(RNI).map(n => parseInt(n));
 export const names = [
-    ["high", "h", "haut"],
-    ["pair", "double", "p", "d", "paire"],
-    ["triple", "t", "brelan"],
-    ["high straight", "straight", "s", "suite"],
+    ["high", "h", "haut", "set"],
+    ["pair", "double", "p", "d", "paire", "light"],
+    ["triple", "t", "brelan", "boom"],
+    ["high straight", "straight", "s", "suite", "countdown"],
     [
-        "high flush:hearts:",
-        "flush:hearts:",
         "flush hearts",
         "hearts flush",
         "high hearts flush",
@@ -47,10 +45,9 @@ export const names = [
         "fh",
         "hf",
         "couleur cœur",
+        "lightning fuse",
     ],
     [
-        "high flush:diamonds:",
-        "flush:diamonds:",
         "flush diamonds",
         "diamonds flush",
         "high diamonds flush",
@@ -58,10 +55,9 @@ export const names = [
         "fd",
         "df",
         "couleur carreau",
+        "fire fuse",
     ],
     [
-        "high flush<:clubst:1241960807005425768>",
-        "flush<:clubst:1241960807005425768>",
         "flush clubs",
         "clubs flush",
         "high clubs flush",
@@ -69,10 +65,9 @@ export const names = [
         "fc",
         "cf",
         "couleur trèfle",
+        "plasma fuse",
     ],
     [
-        "high flush<:spadest:1241960808305659975>",
-        "flush<:spadest:1241960808305659975>",
         "flush spades",
         "spades flush",
         "high spades flush",
@@ -80,11 +75,10 @@ export const names = [
         "fs",
         "sf",
         "couleur pique",
+        "magma fuse",
     ],
-    ["quad", "q", "carré"],
+    ["quad", "q", "carré", "nuke"],
     [
-        "high straight flush:hearts:",
-        "straight flush:hearts:",
         "straight flush hearts",
         "hearts straight flush",
         "high hearts straight flush",
@@ -92,10 +86,9 @@ export const names = [
         "sfh",
         "hsf",
         "quinte flush cœur",
+        "lightning bombshell",
     ],
     [
-        "high straight flush:diamonds:",
-        "straight flush:diamonds:",
         "straight flush diamonds",
         "diamonds straight flush",
         "high diamonds straight flush",
@@ -103,10 +96,9 @@ export const names = [
         "sfd",
         "dsf",
         "quinte flush carreau",
+        "fire bombshell",
     ],
     [
-        "high straight flush<:clubst:1241960807005425768>",
-        "straight flush<:clubst:1241960807005425768>",
         "straight flush clubs",
         "clubs straight flush",
         "high clubs straight flush",
@@ -114,10 +106,9 @@ export const names = [
         "sfc",
         "csf",
         "quinte flush trèfle",
+        "plasma bombshell",
     ],
     [
-        "high straight flush<:spadest:1241960808305659975>",
-        "straight flush<:spadest:1241960808305659975>",
         "straight flush spades",
         "spades straight flush",
         "high spades straight flush",
@@ -125,6 +116,7 @@ export const names = [
         "sfs",
         "ssf",
         "quinte flush pique",
+        "magma bombshell",
     ],
 ];
 export const royalFlushes = [
@@ -136,6 +128,7 @@ export const royalFlushes = [
         "rhf",
         "hrf",
         "quinte flush royale de cœur",
+        "atomic lightning bombshell",
     ],
     [
         "diamonds royal flush",
@@ -145,6 +138,7 @@ export const royalFlushes = [
         "rdf",
         "drf",
         "quinte flush royale de carreau",
+        "atomic fire bombshell",
     ],
     [
         "clubs royal flush",
@@ -154,6 +148,7 @@ export const royalFlushes = [
         "rcf",
         "crf",
         "quinte flush royale de trèfle",
+        "atomic plasma bombshell",
     ],
     [
         "spades royal flush",
@@ -163,6 +158,7 @@ export const royalFlushes = [
         "rsf",
         "srf",
         "quinte flush royale de pique",
+        "atomic magma bombshell",
     ],
 ];
 //# sourceMappingURL=bs_poker_types.js.map

@@ -336,17 +336,17 @@ Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
 		let commonCardsToDisplay = "";
 		if (waiting) {
 			if (this.round > 0) {
-				commonCardsToDisplay = `will be shown ${this.roundBeginTimestamp}`;
+				commonCardsToDisplay = `The round will begin ${this.roundBeginTimestamp}`;
 			}
 		} else if (this.commonCards.length > 0) {
-			commonCardsToDisplay = `\n${formatDeck(this.commonCards)}`;
+			commonCardsToDisplay = `Common Cards:\n${formatDeck(this.commonCards)}`;
 		} else {
-			commonCardsToDisplay = "None";
+			commonCardsToDisplay = "Common Cards: None";
 		}
 		const pwsc = waiting ? "" : this.formatPWSC();
 		return {
 			title: `New Round (${this.round + 1})`,
-			description: `${this.betInfo()}Common Cards: ${commonCardsToDisplay}\n${pwsc}\n<@${
+			description: `${this.betInfo()}${commonCardsToDisplay}\n${pwsc}\n<@${
 				this.currentPlayer
 			}> will start the round.`,
 			fields: [
@@ -1089,8 +1089,8 @@ Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
 				});
 				const extraDescription = playerWRJ
 					? had1Card
-						? `\n<@${playerWRJ}> had a Red Joker, but they only had 1 card, so they do not lose any cards.`
-						: `\n<@${playerWRJ}> had a Red Joker, so they lose a card.`
+						? `\n<@${playerWRJ}> had a Blood Joker, but they only had 1 card, so they do not lose any cards.`
+						: `\n<@${playerWRJ}> had a Blood Joker, so they lose a card.`
 					: "";
 				this.interaction.channel.send({
 					embeds: [createCurseEmbed(extraDescription)],

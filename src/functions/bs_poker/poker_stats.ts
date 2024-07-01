@@ -32,9 +32,11 @@ const pokerStats = new Subcommand()
 				name: `${member.displayName}'s BS Poker Stats`,
 			})
 			.setDescription(
-				`Wins: **${wins}**\nGames Played: **${gamesPlayed}**\nWin Rate: **${winPerc}%**\nRaw Rating: **${rawRating.toFixed(
-					2
-				)}**\nSkill: **${skill}%**`
+				`Wins: **${wins}**
+Games Played: **${gamesPlayed}**
+Win Rate: **${winPerc}%**
+Raw Rating: **${rawRating.toFixed(2)}**
+Skill: **${skill}%**`
 			);
 		await interaction.reply({ embeds: [embed] });
 	});

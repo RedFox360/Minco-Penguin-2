@@ -181,26 +181,30 @@ export function parseCall(givenCall) {
 const symbolToValueObj = {
     joker: 1,
     x: 1,
+    spark: 1,
     insurance: 15,
     i: 15,
     assurance: 15,
+    flashbang: 15,
     ace: 14,
     a: 14,
     as: 14,
     king: 13,
     k: 13,
     roi: 13,
+    dynamite: 13,
     queen: 12,
     q: 12,
     dame: 12,
+    tnt: 12,
     jack: 11,
     j: 11,
     knave: 11,
     valet: 11,
+    grenade: 11,
     deuce: 2,
     t: 10,
 };
-// convert text to value, e.g. "2" -> 2, "Joker" -> 0, "K" or "King" -> 13
 function symbolToValue(textGiven) {
     const text = textGiven.toLowerCase().trim();
     const lookup = symbolToValueObj[text];
