@@ -34,6 +34,23 @@ export default (client) => {
             message.reply(`Added **${amount} MD** to ${mention}'s profile`);
             return;
         }
+        if (message.content.startsWith("!increment")) {
+            const args = message.content.split(" ");
+            const mention = message.mentions.users.first();
+            if (!mention)
+                return;
+            const dataToIncrement = args[1];
+            const incrementStr = args[2];
+            const incrementValue = parseInt(incrementStr);
+            if (invalidNumber(incrementValue))
+                return;
+            await updateProfile(mention.id, {
+                [dataToIncrement]: { increment: incrementValue },
+            });
+            await message.reply({
+                content: `Incremented \`${dataToIncrement}\` by \`${incrementValue}\` for ${mention}`,
+            });
+        }
         if (message.content.startsWith("!echo")) {
             const text = message.content.slice(6);
             message.channel.send(text);

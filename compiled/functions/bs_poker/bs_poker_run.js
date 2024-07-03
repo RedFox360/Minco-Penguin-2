@@ -29,6 +29,7 @@ export default async function bsPokerRun(interaction) {
     const useCurses = interaction.options.getBoolean("use_curses") ?? false;
     const nonStandard = interaction.options.getBoolean("nonstandard") ?? true;
     const useBloodJoker = interaction.options.getBoolean("blood_joker") ?? false;
+    const useClown = interaction.options.getBoolean("clown") ?? false;
     if (beginCards >= cardsToOut) {
         await interaction.reply({
             content: "The beginning number of cards must be less than the number of cards to be out.",
@@ -91,7 +92,8 @@ Allow join mid-game: **${allowJoinMidGame ? "True" : "False"}**
 Use special cards: **${useSpecialCards ? "True" : "False"}**
 Use curses: **${useCurses ? "True" : "False"}**
 Allow nonstandard calls: **${nonStandard ? "True" : "False"}**
-Use Blood Joker: **${useBloodJoker ? "True" : "False"}**`;
+Use Blood Joker: **${useBloodJoker ? "True" : "False"}**
+Use Clown Joker: **${useClown ? "True" : "False"}**`;
     const gameStartEmbed = (gameStarted = false) => new EmbedBuilder()
         .setTitle(gameStarted ? "BS Poker Game Started" : "BS Poker")
         .setDescription(`Welcome to a game of BS Poker!
@@ -221,7 +223,7 @@ Otherwise, the game will start ${startTime}`))
         });
         shuffleArrayInPlace(players);
         bsPokerTeams.set(interaction.channelId, players.map(x => [x]));
-        const game = new BSPoker(interaction, players, cardsToOut, startingBet, commonCards, jokerCount, insuranceCount, beginCards, allowJoinMidGame, playerLimit, useSpecialCards, useCurses, nonStandard, useBloodJoker);
+        const game = new BSPoker(interaction, players, cardsToOut, startingBet, commonCards, jokerCount, insuranceCount, beginCards, allowJoinMidGame, playerLimit, useSpecialCards, useCurses, nonStandard, useBloodJoker, useClown);
         game.gameLogic().catch(e => {
             interaction.channel.send("Sorry, but an unknown error occured while running the game and the game has aborted.");
             console.error(e);

@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { bsPokerTeams, channelsWithActiveGames, prisma } from "../../main.js";
 import { getProfile, updateProfile } from "../../prisma/models.js";
 import { colors, spliceRandom } from "../util.js";
+import { emoji, emojiRaw } from "../basic_card_types.js";
 const sleep = promisify(setTimeout);
 const customIds = {
     joinMidGame: "join_mid_game_bspoker",
@@ -14,6 +15,7 @@ const customIds = {
     viewCards: "view_cards_bspoker",
     viewGameInfo: "view_game_info_bspoker",
     bs: "bs_bspoker",
+    clown: "clown_bspoker",
 };
 const customIdValues = Object.values(customIds);
 const timeToMakeCall = 60000;
@@ -39,6 +41,12 @@ const bsButton = new ButtonBuilder()
     .setCustomId(customIds.bs)
     .setLabel("BS")
     .setStyle(ButtonStyle.Danger);
+const clownButton = new ButtonBuilder()
+    .setCustomId(customIds.clown)
+    .setLabel("Clown")
+    .setStyle(ButtonStyle.Secondary)
+    .setEmoji(emojiRaw.clown);
+const clownRow = new ActionRowBuilder().addComponents(clownButton);
 const createCurseEmbed = (x = "") => new EmbedBuilder()
     .setColor(colors.red)
     .setTitle("Curse activated!")
@@ -52,7 +60,7 @@ const nrRowJoinDisabled = new ActionRowBuilder().addComponents(joinMidGameDisabl
 const nrRowLeaveDisabled = new ActionRowBuilder().addComponents(leaveMidGameDisabled);
 const kickRegex = /kick <@\d+>/;
 class BSPoker {
-    constructor(interaction, players, cardsToOut, startingBet, commonCardsAmount, jokerCount, insuranceCount, beginCards, allowJoinMidGame, playerLimit, useSpecialCards, useCurses, nonStandard, useBloodJoker) {
+    constructor(interaction, players, cardsToOut, startingBet, commonCardsAmount, jokerCount, insuranceCount, beginCards, allowJoinMidGame, playerLimit, useSpecialCards, useCurses, nonStandard, useBloodJoker, useClown) {
         this.interaction = interaction;
         this.players = players;
         this.cardsToOut = cardsToOut;
@@ -67,6 +75,7 @@ class BSPoker {
         this.useCurses = useCurses;
         this.nonStandard = nonStandard;
         this.useBloodJoker = useBloodJoker;
+        this.useClown = useClown;
         this.currentCall = null;
         this._currPlayerIdx = 0;
         this.playerWBJ = null;
@@ -76,6 +85,7 @@ class BSPoker {
         this.bsCalled = false;
         this.aborted = false;
         this.bxOpen = false;
+        this.clowned = 0; // 0 = not clowned, 1 = clowned, 2 = clowned and called
         this.round = 0;
         this.playerHands = new Collection();
         this.playerCardsEntitled = new Map();
@@ -199,7 +209,8 @@ Allow join mid-game: **${this.allowJoinMidGame ? "True" : "False"}**
 Use special cards: **${this.useSpecialCards ? "True" : "False"}**
 Use curses: **${this.useCurses ? "True" : "False"}**
 Allow nonstandard calls: **${this.nonStandard ? "True" : "False"}**
-Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
+Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**
+Use Clown Joker: **${this.useClown ? "True" : "False"}`;
     }
     gameInfoEmbed() {
         const embed = new EmbedBuilder()
@@ -320,6 +331,17 @@ Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
         if (!call || invalidNumber(call.call) || call.call === -1) {
             // Call could not be parsed
             return false;
+        }
+        if (this.useClown) {
+            const hasClown = this.playerHands
+                .get(this.currentPlayer)
+                ?.some(c => c.suit === "rj");
+            if (hasClown && this.clowned === 2) {
+                message.reply({
+                    content: `${emoji.clown} You have clowned this round and now it is your turn. You must call BS. ${emoji.clown}`,
+                });
+                return false;
+            }
         }
         if (!this.nonStandard) {
             if (call.call === HandRank.TriplePair ||
@@ -591,6 +613,8 @@ Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
         this.round += 1;
         this.currentCall = null;
         this.callsOpen = true;
+        this.clowned = 0;
+        this.bserId = null;
         this.updateCurrentDeck();
         this.lastThreeCallTracker = [true, true, true];
     }
@@ -652,7 +676,9 @@ Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
     handleBS() {
         this.playerWBJ = null;
         const bserHand = this.playerHands.get(this.bserId);
-        const bserHasRJ = this.useSpecialCards && bserHand.some(card => card.suit === "rj");
+        const bserHasRJ = this.useSpecialCards &&
+            !this.useClown &&
+            bserHand.some(card => card.suit === "rj");
         const callIsTrue = callInDeck(this.currentCall.call, this.updateCurrentDeck());
         let cardGainer = this.currentPlayer;
         if (callIsTrue) {
@@ -763,7 +789,7 @@ Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
                 content: `<@${this.currentPlayer}> has called **${formatCall(this.currentCall.call)}**.`,
             });
             let playerWRJ;
-            if (this.useBloodJoker) {
+            if (this.useBloodJoker && !this.useClown) {
                 playerWRJ = this.playerHands.findKey(hand => hand.some(card => card.suit === "rj"));
             }
             let had1Card = false;
@@ -792,6 +818,118 @@ Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
             return true;
         }
         return false;
+    }
+    async bsButtonClicked(buttonInteraction) {
+        if (!this.callsOpen) {
+            await buttonInteraction.reply({
+                content: "The buttons have not finished loading. Please try again.",
+                ephemeral: true,
+            });
+            return;
+        }
+        if (this.bsCalled) {
+            await buttonInteraction.reply({
+                content: "Sorry, another player seems to have pressed the BS button before you.",
+                ephemeral: true,
+            });
+            return;
+        }
+        if (buttonInteraction.user.id === this.currentCall.player) {
+            await buttonInteraction.reply({
+                content: "You may not call BS on your own call.",
+                ephemeral: true,
+            });
+            return;
+        }
+        this.bsCalled = true;
+        this.disableNotif();
+        await buttonInteraction.reply({
+            content: `BS called by <@${buttonInteraction.user.id}>!`,
+        });
+        this.bserId = buttonInteraction.user.id;
+        const playerWBJ = this.playerHands.findKey(hand => hand.some(card => card.suit === "bj"));
+        // If the player has a black joker
+        if (playerWBJ &&
+            playerWBJ !== this.currentCall.player &&
+            this.commonCards.length > 0) {
+            this.playerWBJ = playerWBJ;
+            await this.blackJokerBS();
+        }
+        else {
+            this.handleBS();
+        }
+    }
+    async viewCardsClicked(buttonInteraction, isPlayer) {
+        const playerHand = this.playerHands.get(buttonInteraction.user.id);
+        if (!isPlayer || !playerHand) {
+            let toSendN = "*You are not a player in this game.*";
+            if (this.commonCards.length > 0)
+                toSendN += `\nCommon Cards:\n${formatDeck(this.commonCards)}`;
+            const channelTeams = bsPokerTeams.get(this.interaction.channelId);
+            toSendN += (() => {
+                if (channelTeams.length === 0)
+                    return "";
+                const team = channelTeams.find(t => t.includes(buttonInteraction.user.id));
+                if (!team)
+                    return "";
+                const teamPlayerInGame = team[0];
+                if (!this.players.includes(teamPlayerInGame))
+                    return "";
+                const teammateHand = this.playerHands.get(teamPlayerInGame);
+                if (!teammateHand)
+                    return "";
+                return `\n*<@${teamPlayerInGame}> is your teammate. Here are their cards.*\n${formatDeck(teammateHand)}`;
+            })();
+            if (this.useSpecialCards)
+                toSendN += `\n${this.formatPWSC()}`;
+            await buttonInteraction.reply({
+                content: toSendN,
+                ephemeral: true,
+            });
+            return;
+        }
+        const hasClown = this.useClown && playerHand.some(card => card.suit === "rj");
+        const components = hasClown ? [clownRow] : undefined;
+        await buttonInteraction.reply({
+            content: `**Your Hand:**\n${formatDeck(playerHand)}\n**Common Cards:** ${this.commonCards.length === 0
+                ? "None"
+                : `\n${formatDeck(this.commonCards)}`}${this.useSpecialCards ? `\n${this.formatPWSC()}` : ""}`,
+            ephemeral: true,
+            components,
+        });
+    }
+    async clownClicked(buttonInteraction) {
+        const playerHand = this.playerHands.get(buttonInteraction.user.id);
+        if (!playerHand) {
+            await buttonInteraction.reply({
+                content: "You are not in the game.",
+                ephemeral: true,
+            });
+            return;
+        }
+        const clownCardIndex = playerHand.findIndex(card => card.suit === "rj");
+        if (clownCardIndex === -1) {
+            await buttonInteraction.reply({
+                content: "You do not have a Clown Joker in your hand.",
+                ephemeral: true,
+            });
+            return;
+        }
+        if (this.players.length === 2) {
+            await buttonInteraction.reply({
+                content: "You may not use your Clown Joker when there are only 2 players.",
+                ephemeral: true,
+            });
+            return;
+        }
+        playerHand.splice(clownCardIndex, 1);
+        this.players.reverse();
+        this.playerHands.reverse();
+        this.currentPlayerIndex = this.players.length - this.currentPlayerIndex - 1;
+        this.clowned = 1;
+        await buttonInteraction.reply({
+            content: `${buttonInteraction.user} has used their Clown Joker.\nThe order of players has been reversed.`,
+        });
     }
     async messageCollect(msg) {
         if (msg.author.id === this.hostId) {
@@ -867,120 +1005,51 @@ Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
             if (cursed)
                 return;
         }
+        if (this.clowned === 1) {
+            this.clowned = 2;
+        }
         this.forward(); // go to the next player with callsOpen remaining true.
         await this.sendNewNotif();
         this.callsOpen = true;
     }
     async buttonCollect(buttonInteraction) {
         if (!this.roundInProgress) {
-            if (buttonInteraction.customId === customIds.viewCards ||
-                buttonInteraction.customId === customIds.viewGameInfo ||
-                buttonInteraction.customId === customIds.bs) {
+            if (buttonInteraction.customId === customIds.joinMidGame) {
+                this.handleJoinMidGame(buttonInteraction);
+            }
+            else if (buttonInteraction.customId === customIds.leaveMidGame) {
+                this.handleLeaveMidGame(buttonInteraction);
+            }
+            else {
                 await buttonInteraction.reply({
                     content: "Please wait for the round to begin.",
                     ephemeral: true,
                 });
-                return;
-            }
-            if (buttonInteraction.customId === customIds.joinMidGame) {
-                this.handleJoinMidGame(buttonInteraction);
-            }
-            if (buttonInteraction.customId === customIds.leaveMidGame) {
-                this.handleLeaveMidGame(buttonInteraction);
             }
             return;
         }
         const buttonClickerIsPlayer = this.players.includes(buttonInteraction.user.id);
         if (buttonInteraction.customId === customIds.viewCards) {
-            if (!buttonClickerIsPlayer) {
-                let toSendN = "*You are not a player in this game.*";
-                if (this.commonCards.length > 0)
-                    toSendN += `\nCommon Cards:\n${formatDeck(this.commonCards)}`;
-                const channelTeams = bsPokerTeams.get(this.interaction.channelId);
-                toSendN += (() => {
-                    if (channelTeams.length === 0)
-                        return "";
-                    const team = channelTeams.find(t => t.includes(buttonInteraction.user.id));
-                    if (!team)
-                        return "";
-                    const teamPlayerInGame = team[0];
-                    if (!this.players.includes(teamPlayerInGame))
-                        return "";
-                    const teammateHand = this.playerHands.get(teamPlayerInGame);
-                    if (!teammateHand)
-                        return "";
-                    return `\n*<@${teamPlayerInGame}> is your teammate. Here are their cards.*\n${formatDeck(teammateHand)}`;
-                })();
-                if (this.useSpecialCards)
-                    toSendN += `\n${this.formatPWSC()}`;
-                await buttonInteraction.reply({
-                    content: toSendN,
-                    ephemeral: true,
-                });
-                return;
-            }
-            await buttonInteraction.reply({
-                content: `**Your Hand:**\n${formatDeck(this.playerHands.get(buttonInteraction.user.id))}\n**Common Cards:** ${this.commonCards.length === 0
-                    ? "None"
-                    : `\n${formatDeck(this.commonCards)}`}${this.useSpecialCards ? `\n\n${this.formatPWSC()}` : ""}`,
-                ephemeral: true,
-            });
-            return;
+            await this.viewCardsClicked(buttonInteraction, buttonClickerIsPlayer);
         }
-        if (buttonInteraction.customId === customIds.viewGameInfo) {
+        else if (buttonInteraction.customId === customIds.viewGameInfo) {
             await buttonInteraction.reply({
                 embeds: [this.gameInfoEmbed()],
                 ephemeral: true,
             });
-            return;
         }
-        // BS button
-        if (buttonInteraction.customId !== customIds.bs)
-            return;
-        if (!this.callsOpen) {
-            await buttonInteraction.reply({
-                content: "The buttons have not finished loading. Please try again.",
-                ephemeral: true,
-            });
-            return;
+        else if (buttonInteraction.customId === customIds.bs) {
+            if (!buttonClickerIsPlayer) {
+                await buttonInteraction.reply({
+                    content: "You may not BS as you are not a player in this game.",
+                    ephemeral: true,
+                });
+                return;
+            }
+            await this.bsButtonClicked(buttonInteraction);
         }
-        if (!buttonClickerIsPlayer) {
-            await buttonInteraction.reply({
-                content: "You may not BS as you are not a player in this game.",
-                ephemeral: true,
-            });
-            return;
-        }
-        if (this.bsCalled) {
-            await buttonInteraction.reply({
-                content: "Sorry, another player seems to have pressed the BS button before you.",
-                ephemeral: true,
-            });
-            return;
-        }
-        if (buttonInteraction.user.id === this.currentCall.player) {
-            await buttonInteraction.reply({
-                content: "You may not call BS on your own call.",
-                ephemeral: true,
-            });
-            return;
-        }
-        this.bsCalled = true;
-        this.disableNotif();
-        await buttonInteraction.reply({
-            content: `BS called by <@${buttonInteraction.user.id}>!`,
-        });
-        this.bserId = buttonInteraction.user.id;
-        const playerWBJ = this.playerHands.findKey(hand => hand.some(card => card.suit === "bj"));
-        // If the player has a black joker
-        if (playerWBJ &&
-            playerWBJ !== this.currentCall.player &&
-            this.commonCards.length > 0) {
-            this.playerWBJ = playerWBJ;
-            await this.blackJokerBS();
-        }
-        else {
-            this.handleBS();
+        else if (buttonInteraction.customId === customIds.clown) {
+            await this.clownClicked(buttonInteraction);
         }
     }
     async gameLogic() {

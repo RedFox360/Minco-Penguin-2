@@ -65,6 +65,10 @@ const bsPokerCommand = new SlashCommand()
     .addBooleanOption(option => option
     .setName("blood_joker")
     .setDescription("If a player has a red joker during a curse, they lose a card. (Default: False)")
+    .setRequired(false))
+    .addBooleanOption(option => option
+    .setName("clown")
+    .setDescription("Allow a player with a red joker to reverse the order of play. (Default: False)")
     .setRequired(false)))
     .setCooldown(15)
     .setRun(bsPokerRun);

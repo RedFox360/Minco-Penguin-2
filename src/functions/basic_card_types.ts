@@ -33,6 +33,7 @@ export const emoji = {
 	spades: "<:spadest:1241960808305659975>",
 	joker: ":black_joker:",
 	insurance: ":information_source:",
+	clown: ":clown:",
 } as const;
 
 export const emojiRaw = {
@@ -42,6 +43,7 @@ export const emojiRaw = {
 	spades: "1241960808305659975",
 	joker: "🃏",
 	insurance: "ℹ️",
+	clown: "🤡",
 } as const;
 
 export const newEmoji = [

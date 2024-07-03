@@ -50,6 +50,7 @@ export default async function bsPokerRun(
 	const useCurses = interaction.options.getBoolean("use_curses") ?? false;
 	const nonStandard = interaction.options.getBoolean("nonstandard") ?? true;
 	const useBloodJoker = interaction.options.getBoolean("blood_joker") ?? false;
+	const useClown = interaction.options.getBoolean("clown") ?? false;
 
 	if (beginCards >= cardsToOut) {
 		await interaction.reply({
@@ -129,7 +130,8 @@ Allow join mid-game: **${allowJoinMidGame ? "True" : "False"}**
 Use special cards: **${useSpecialCards ? "True" : "False"}**
 Use curses: **${useCurses ? "True" : "False"}**
 Allow nonstandard calls: **${nonStandard ? "True" : "False"}**
-Use Blood Joker: **${useBloodJoker ? "True" : "False"}**`;
+Use Blood Joker: **${useBloodJoker ? "True" : "False"}**
+Use Clown Joker: **${useClown ? "True" : "False"}**`;
 
 	const gameStartEmbed = (gameStarted = false) =>
 		new EmbedBuilder()
@@ -288,7 +290,8 @@ Otherwise, the game will start ${startTime}`)
 			useSpecialCards,
 			useCurses,
 			nonStandard,
-			useBloodJoker
+			useBloodJoker,
+			useClown
 		);
 
 		game.gameLogic().catch(e => {

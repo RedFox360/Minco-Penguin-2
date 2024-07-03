@@ -108,6 +108,14 @@ const bsPokerCommand = new SlashCommand()
 					)
 					.setRequired(false)
 			)
+			.addBooleanOption(option =>
+				option
+					.setName("clown")
+					.setDescription(
+						"Allow a player with a red joker to reverse the order of play. (Default: False)"
+					)
+					.setRequired(false)
+			)
 	)
 	.setCooldown(15)
 	.setRun(bsPokerRun);
