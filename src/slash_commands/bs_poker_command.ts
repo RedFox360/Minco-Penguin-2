@@ -80,7 +80,7 @@ const bsPokerCommand = new SlashCommand()
 				option
 					.setName("use_special_cards")
 					.setDescription(
-						"/help poker Special Cards for more info (Default: False)"
+						"/poker help Special Cards for more info (Default: False)"
 					)
 					.setRequired(false)
 			)

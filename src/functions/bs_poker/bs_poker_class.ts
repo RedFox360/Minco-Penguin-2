@@ -54,7 +54,6 @@ const customIds = {
 	bs: "bs_bspoker",
 };
 const customIdValues = Object.values(customIds);
-
 const timeToMakeCall = 60_000;
 const timeBetweenRounds = 12_000;
 const timeToTakeCard = 20_000;
@@ -110,6 +109,7 @@ const nrRowLeaveDisabled = new ActionRowBuilder<ButtonBuilder>().addComponents(
 	leaveMidGameDisabled
 );
 
+const kickRegex = /kick <@\d+>/;
 class BSPoker {
 	// Players
 	playersOut: Snowflake[];
@@ -295,7 +295,7 @@ class BSPoker {
 			.map(p => {
 				const cardsEntitled = this.playerCardsEntitled.get(p);
 				if (cardsEntitled === 1) return `<@${p}>: 1 card`;
-				return `<@${p}>: ${this.playerCardsEntitled.get(p)} cards`;
+				return `<@${p}>: ${cardsEntitled} cards`;
 			})
 			.join("\n");
 	}
@@ -425,7 +425,7 @@ Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
 			toAppend = ` Since they were the host, host privileges have been transferred to <@${this.hostId}>.`;
 			return;
 		}
-		this.removePlayerFromGame(buttonInteraction.user.id);
+		this.removePlayers(buttonInteraction.user.id);
 		await buttonInteraction.reply({
 			content: `${buttonInteraction.user} has left the game.${toAppend}`,
 		});
@@ -551,7 +551,7 @@ Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
 			if (highCards.some(x => x.value === 1)) {
 				replyThenDelete(
 					message,
-					`Jokers cannot be used as a high card in flush calls (Your call: ${formatCall(
+					`Jokers may not be used as a high card in flush calls (Your call: ${formatCall(
 						call
 					)}). Please try again.`
 				);
@@ -562,7 +562,7 @@ Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
 			if (call.high.value === 1) {
 				replyThenDelete(
 					message,
-					`Jokers cannot be used as a high card in flush calls (Your call: ${formatCall(
+					`Jokers may not be used as a high card in flush calls (Your call: ${formatCall(
 						call
 					)}). Please try again.`
 				);
@@ -725,8 +725,8 @@ Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
 		this.notification = msg;
 	}
 
-	disableNotif() {
-		this.notification.edit({
+	async disableNotif() {
+		await this.notification.edit({
 			content: this.notifText,
 			components: [this.getNotifRow(true)],
 		});
@@ -757,14 +757,14 @@ Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
 		);
 	}
 
-	removePlayerFromGame(...players: Snowflake[]) {
-		players.forEach(player => {
+	removePlayers(...players: Snowflake[]) {
+		this.playersOut.push(...players);
+		for (const player of players) {
 			this.playerCardsEntitled.delete(player);
 			removeByValue(this.players, player);
-			this.playersOut.push(player);
-			this.updatePlayerRating(player);
 			this.removePlayerFromTeams(player);
-		});
+		}
+		this.updatePlayerRating(...players);
 	}
 
 	async addPlayerMidGame(player: Snowflake, cards: number) {
@@ -803,7 +803,7 @@ Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
 				playersToRemove.push(p);
 			}
 		}
-		this.removePlayerFromGame(...playersToRemove);
+		this.removePlayers(...playersToRemove);
 	}
 
 	dealToPlayers(deck: ExtCard[]) {
@@ -1016,16 +1016,84 @@ Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
 		});
 	}
 
-	async messageCollect(msg: Message) {
-		if (
-			msg.author.id === this.hostId &&
-			msg.content.toLowerCase() === "abort"
-		) {
-			await msg.reply({
-				content: "Game aborted.",
+	handleCurses(): boolean {
+		const callIsTrue = callInDeck(this.currentCall.call, this.currentDeck);
+		this.lastThreeCallTracker.shift();
+		this.lastThreeCallTracker.push(callIsTrue);
+		if (this.lastThreeCallTracker.every(x => x === false)) {
+			this.interaction.channel.send({
+				content: `<@${this.currentPlayer}> has called **${formatCall(
+					this.currentCall.call
+				)}**.`,
 			});
-			await this.abort();
-			return;
+			let playerWRJ: Snowflake;
+			if (this.useBloodJoker) {
+				playerWRJ = this.playerHands.findKey(hand =>
+					hand.some(card => card.suit === "rj")
+				);
+			}
+			let had1Card = false;
+			this.playerCardsEntitled.forEach((cards, player) => {
+				if (player === playerWRJ) {
+					if (cards === 1) {
+						had1Card = true;
+					} else {
+						this.playerCardsEntitled.set(player, cards - 1);
+					}
+				} else {
+					this.playerCardsEntitled.set(player, cards + 1);
+				}
+			});
+			const extraDescription = playerWRJ
+				? had1Card
+					? `\n<@${playerWRJ}> had a Blood Joker, but they only had 1 card, so they do not lose any cards.`
+					: `\n<@${playerWRJ}> had a Blood Joker, so they lose a card.`
+				: "";
+			this.interaction.channel.send({
+				embeds: [createCurseEmbed(extraDescription)],
+			});
+			this.newRound();
+			return true;
+		}
+		return false;
+	}
+
+	async messageCollect(msg: Message) {
+		if (msg.author.id === this.hostId) {
+			const content = msg.content.toLowerCase().trim();
+			if (content === "abort") {
+				await msg.reply({
+					content: "Game aborted.",
+				});
+				await this.abort();
+				return;
+			}
+			if (kickRegex.test(content)) {
+				const playerToKick = msg.mentions.users.first()?.id;
+				if (!playerToKick) return;
+				if (!this.players.includes(playerToKick)) {
+					replyThenDelete(msg, "That player is not in the game.");
+					return;
+				}
+				if (playerToKick === msg.author.id) {
+					replyThenDelete(msg, "You may not kick yourself from the game.");
+					return;
+				}
+				this.callsOpen = false;
+				const currentPlayerBeforeKick = this.currentPlayer;
+				this.removePlayers(playerToKick);
+				msg.reply(`<@${playerToKick}> has been kicked from the game.`);
+				if (this.players.length === 1) {
+					this.newRound();
+					return;
+				}
+				if (currentPlayerBeforeKick === playerToKick) {
+					this.disableNotif();
+					await this.sendNewNotif();
+				}
+				this.callsOpen = true;
+				return;
+			}
 		}
 
 		if (this.bxOpen && msg.author.id === this.playerWBJ) {
@@ -1060,44 +1128,8 @@ Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
 		this.disableNotif();
 		this.currentCall = { call, player: this.currentPlayer };
 		if (this.useCurses && this.players.length > 2) {
-			const callIsTrue = callInDeck(call, this.currentDeck);
-			this.lastThreeCallTracker.shift();
-			this.lastThreeCallTracker.push(callIsTrue);
-			if (this.lastThreeCallTracker.every(x => x === false)) {
-				this.interaction.channel.send({
-					content: `<@${this.currentPlayer}> has called **${formatCall(
-						this.currentCall.call
-					)}**.`,
-				});
-				let playerWRJ: Snowflake;
-				if (this.useBloodJoker) {
-					playerWRJ = this.playerHands.findKey(hand =>
-						hand.some(card => card.suit === "rj")
-					);
-				}
-				let had1Card = false;
-				this.playerCardsEntitled.forEach((cards, player) => {
-					if (player === playerWRJ) {
-						if (cards === 1) {
-							had1Card = true;
-						} else {
-							this.playerCardsEntitled.set(player, cards - 1);
-						}
-					} else {
-						this.playerCardsEntitled.set(player, cards + 1);
-					}
-				});
-				const extraDescription = playerWRJ
-					? had1Card
-						? `\n<@${playerWRJ}> had a Blood Joker, but they only had 1 card, so they do not lose any cards.`
-						: `\n<@${playerWRJ}> had a Blood Joker, so they lose a card.`
-					: "";
-				this.interaction.channel.send({
-					embeds: [createCurseEmbed(extraDescription)],
-				});
-				this.newRound();
-				return;
-			}
+			const cursed = this.handleCurses();
+			if (cursed) return;
 		}
 
 		this.forward(); // go to the next player with callsOpen remaining true.
@@ -1218,9 +1250,9 @@ Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**`;
 		});
 		this.bserId = buttonInteraction.user.id;
 
-		const playerWBJ = this.playerHands
-			.filter(hand => hand.some(card => card.suit === "bj"))
-			.firstKey();
+		const playerWBJ = this.playerHands.findKey(hand =>
+			hand.some(card => card.suit === "bj")
+		);
 
 		// If the player has a black joker
 		if (

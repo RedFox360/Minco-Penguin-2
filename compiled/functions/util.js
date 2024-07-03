@@ -103,4 +103,12 @@ export function handleMessageError(err) {
         console.error(err);
     }
 }
+export function countInArray(arr, callback) {
+    let count = 0;
+    for (const x of arr) {
+        if (callback(x))
+            count += 1;
+    }
+    return count;
+}
 //# sourceMappingURL=util.js.map

@@ -52,7 +52,7 @@ const bsPokerCommand = new SlashCommand()
     .setRequired(false))
     .addBooleanOption(option => option
     .setName("use_special_cards")
-    .setDescription("/help poker Special Cards for more info (Default: False)")
+    .setDescription("/poker help Special Cards for more info (Default: False)")
     .setRequired(false))
     .addBooleanOption(option => option
     .setName("use_curses")

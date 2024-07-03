@@ -122,3 +122,11 @@ export function handleMessageError(err: any) {
 		console.error(err);
 	}
 }
+
+export function countInArray<T>(arr: T[], callback: (x: T) => boolean): number {
+	let count = 0;
+	for (const x of arr) {
+		if (callback(x)) count += 1;
+	}
+	return count;
+}
