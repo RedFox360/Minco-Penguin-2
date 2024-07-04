@@ -324,7 +324,7 @@ Use special cards: **${this.useSpecialCards ? "True" : "False"}**
 Use curses: **${this.useCurses ? "True" : "False"}**
 Allow nonstandard calls: **${this.nonStandard ? "True" : "False"}**
 Use Blood Joker: **${this.useBloodJoker ? "True" : "False"}**
-Use Clown Joker: **${this.useClown ? "True" : "False"}`;
+Use Clown Joker: **${this.useClown ? "True" : "False"}**`;
 	}
 
 	gameInfoEmbed() {
@@ -1167,7 +1167,9 @@ Use Clown Joker: **${this.useClown ? "True" : "False"}`;
 			return;
 		}
 		const hasClown =
-			this.useClown && playerHand.some(card => card.suit === "rj");
+			this.useClown &&
+			this.clowned === 0 &&
+			playerHand.some(card => card.suit === "rj");
 		const components = hasClown ? [clownRow] : undefined;
 		await buttonInteraction.reply({
 			content: `**Your Hand:**\n${formatDeck(playerHand)}\n**Common Cards:** ${
@@ -1205,7 +1207,13 @@ Use Clown Joker: **${this.useClown ? "True" : "False"}`;
 			});
 			return;
 		}
-		playerHand.splice(clownCardIndex, 1);
+		if (this.clowned !== 0) {
+			await buttonInteraction.reply({
+				content: "The Clown Joker has already been used this round.",
+				ephemeral: true,
+			});
+			return;
+		}
 		this.players.reverse();
 		this.playerHands.reverse();
 		this.currentPlayerIndex = this.players.length - this.currentPlayerIndex - 1;

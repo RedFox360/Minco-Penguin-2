@@ -355,7 +355,7 @@ export function callInDeck(call, deck, gInsurances, gJokers) {
         return (countInArray(deck, card => card.value === call.high[0]) >= 3 &&
             countInArray(deck, card => card.value === call.high[1]) >= 3);
     if (call.call === HandRank.Quad)
-        countInArray(deck, card => card.value === call.high.value) >= 4;
+        return countInArray(deck, card => card.value === call.high.value) >= 4;
     if (call.call === HandRank.Flush) {
         if (!deck.some(card => (card.suit === call.high.suit || card.suit === "i") &&
             card.value === call.high.value))
@@ -454,10 +454,23 @@ export async function highestCallInDeck(deck, nonStandard, insuranceCount) {
     }
     // Full House
     if (triples.length >= 1 && pairs.length >= 1) {
-        return {
-            high: [triples.at(-1)[0].value, pairs.at(-1)[0].value],
-            call: HandRank.FullHouse,
-        };
+        const tripleVal = triples.at(-1)[0].value;
+        let pairVal = pairs.at(-1)[0].value;
+        let hasFullHouse = true;
+        if (tripleVal === pairVal) {
+            if (pairs.length >= 2) {
+                pairVal = pairs.at(-2)[0].value;
+            }
+            else {
+                hasFullHouse = false;
+            }
+        }
+        if (hasFullHouse) {
+            return {
+                high: [tripleVal, pairVal],
+                call: HandRank.FullHouse,
+            };
+        }
     }
     const insurances = insurancesInDeck(deck);
     const jokers = jokersInDeck(deck);
