@@ -119,7 +119,8 @@ const nrRowLeaveDisabled = new ActionRowBuilder<ButtonBuilder>().addComponents(
 	leaveMidGameDisabled
 );
 
-const kickRegex = /kick <@\d+>/;
+const kickRegex = /^kick <@\d+>/;
+
 class BSPoker {
 	// Players
 	playersOut: Snowflake[];
@@ -240,13 +241,12 @@ class BSPoker {
 	formatPWSC() {
 		if (!this.useSpecialCards) return "";
 		if (this.playerHands.size === 0) return "";
-		const pwsc = Array.from(
-			this.playerHands
-				.filter(hand => hand.some(c => c.suit === "bj" || c.suit === "rj"))
-				.keys()
-		);
+		const pwsc = this.playerHands
+			.filter(hand => hand.some(c => c.suit === "bj" || c.suit === "rj"))
+			.map((_, player) => userMention(player));
+
 		return `Players with special cards: ${
-			pwsc.length === 0 ? "None" : pwsc.map(userMention).join(" ")
+			pwsc.length === 0 ? "None" : pwsc.join(" ")
 		}`;
 	}
 
@@ -398,13 +398,15 @@ Use Clown Joker: **${this.useClown ? "True" : "False"}**`;
 			});
 			return;
 		}
-		const joinerProfile = await getProfile(buttonInteraction.user.id);
-		if (joinerProfile.mincoDollars < this.startingBet) {
-			await buttonInteraction.reply({
-				content: `You do not have enough Minco Dollars to join this game (the bet is ${this.startingBet.toLocaleString()}).`,
-				ephemeral: true,
-			});
-			return;
+		if (this.startingBet) {
+			const joinerProfile = await getProfile(buttonInteraction.user.id);
+			if (joinerProfile.mincoDollars < this.startingBet) {
+				await buttonInteraction.reply({
+					content: `You do not have enough Minco Dollars to join this game (the bet is ${this.startingBet.toLocaleString()}).`,
+					ephemeral: true,
+				});
+				return;
+			}
 		}
 
 		const startingAmount = Math.max(...this.playerCardsEntitled.values());
@@ -616,11 +618,13 @@ Use Clown Joker: **${this.useClown ? "True" : "False"}**`;
 			this.midGamePlayers.includes(winnerId) ||
 			this.originalPlayersLen === 2
 		) {
-			await updateProfile(winnerId, {
-				mincoDollars: {
-					increment: this.pot,
-				},
-			});
+			if (this.startingBet) {
+				await updateProfile(winnerId, {
+					mincoDollars: {
+						increment: this.pot,
+					},
+				});
+			}
 		} else {
 			await updateProfile(winnerId, {
 				mincoDollars: {
@@ -672,19 +676,6 @@ Use Clown Joker: **${this.useClown ? "True" : "False"}**`;
 	}
 
 	async blackJokerBS() {
-		if (this.commonCards.length === 1) {
-			await this.interaction.channel.send({
-				content: `<@${
-					this.playerWBJ
-				}> had a black joker. There is 1 common card, so they will take it: **${formatCardSideways(
-					this.commonCards[0]
-				)}**.`,
-			});
-			this.commonCards = [];
-			this.handleBS();
-			return;
-		}
-
 		const timeUpToTakeCard = msToRelTimestamp(timeToTakeCard);
 		const commonCardsFormattedWithNumbers = this.commonCards
 			.map((card, i) => `\`${i + 1}\` **${formatCardSideways(card)}**`)
@@ -763,7 +754,7 @@ Use Clown Joker: **${this.useClown ? "True" : "False"}**`;
 		if (clearTout) clearTimeout(this.bxTimeout);
 	}
 
-	updatePlayerRating(...players: Snowflake[]) {
+	updatePlayerRating(players: Snowflake[]) {
 		if (this.originalPlayersLen === 2) return;
 		const avgRankOut = this.playersOut.length - (1 + players.length) / 2;
 		const rating = avgRankOut * (1 / (this.everPlayersLen - 1));
@@ -786,16 +777,15 @@ Use Clown Joker: **${this.useClown ? "True" : "False"}**`;
 		for (const player of players) {
 			this.playerCardsEntitled.delete(player);
 			removeByValue(this.players, player);
-			this.removePlayerFromTeams(player);
 		}
-		this.updatePlayerRating(...players);
+		this.removePlayerFromTeams(...players);
+		this.updatePlayerRating(players);
 	}
 
 	async addPlayerMidGame(player: Snowflake, cards: number) {
 		this.players.push(player);
 		this.removePlayerFromTeams(player);
 		this.playerCardsEntitled.set(player, cards);
-		this.removePlayerFromTeams(player);
 		this.midGamePlayers.push(player);
 		bsPokerTeams.get(this.interaction.channelId).push([player]);
 		await updateProfile(player, {
@@ -805,14 +795,14 @@ Use Clown Joker: **${this.useClown ? "True" : "False"}**`;
 		});
 	}
 
-	removePlayerFromTeams(player: Snowflake) {
+	removePlayerFromTeams(...players: Snowflake[]) {
 		bsPokerTeams.set(
 			this.interaction.channel.id,
 			bsPokerTeams
 				.get(this.interaction.channel.id)
 				.map(t => {
-					if (t[0] === player) return null;
-					return t.filter(p => p !== player);
+					if (players.some(p => t[0] === p)) return null;
+					return t.filter(p => !players.includes(p));
 				})
 				.filter(t => t?.length)
 		);
@@ -1225,7 +1215,7 @@ Use Clown Joker: **${this.useClown ? "True" : "False"}**`;
 
 	async messageCollect(msg: Message) {
 		if (msg.author.id === this.hostId) {
-			const content = msg.content.toLowerCase().trim();
+			const content = msg.content.toLowerCase();
 			if (content === "abort") {
 				await msg.reply({
 					content: "Game aborted.",

@@ -28,12 +28,14 @@ export function absTimeToRelTimestamp(unixTimeMS: number) {
 
 /**
  * removes the first instance of the value in the array
+ * returns true if it existed & was removed and false if it did not exist
  */
-export function removeByValue<T>(arr: T[], value: T) {
+export function removeByValue<T>(arr: T[], value: T): boolean {
 	const index = arr.indexOf(value);
-	if (index !== -1) {
-		arr.splice(index, 1);
-	}
+	if (index === -1) return false;
+
+	arr.splice(index, 1);
+	return true;
 }
 
 /**
@@ -50,12 +52,12 @@ export function shuffleArrayInPlace(arr: any[]) {
 
 /**
  * sends a message and deletes it after a certain amount of time (default = 20s)
- * @param timeout time in milliseconds (default = 20,000)
+ * @param timeoutMS time in milliseconds (default = 20,000)
  */
 export function replyThenDelete(
 	message: Message,
 	text: string,
-	timeout = 20_000
+	timeoutMS = 20_000
 ) {
 	message
 		.reply({
@@ -64,7 +66,7 @@ export function replyThenDelete(
 		.then(msg => {
 			setTimeout(() => {
 				msg.delete();
-			}, timeout);
+			}, timeoutMS);
 		});
 }
 
@@ -81,11 +83,11 @@ export function spliceRandom<T>(arr: T[], count = 1): T[] {
 	return spliced;
 }
 
-export function chunkArray<T>(myArray: T[], chunkSize: number): T[][] {
+export function chunkArray<T>(array: T[], chunkSize: number): T[][] {
 	const tempArray: T[][] = [];
 
-	for (let index = 0; index < myArray.length; index += chunkSize) {
-		const myChunk = myArray.slice(index, index + chunkSize);
+	for (let i = 0; i < array.length; i += chunkSize) {
+		const myChunk = array.slice(i, i + chunkSize);
 		tempArray.push(myChunk);
 	}
 
@@ -100,11 +102,11 @@ export function clean(text: any) {
 	else return text;
 }
 
-export function invalidNumber(x: any) {
+export function invalidNumber(x: any): boolean {
 	return Number.isNaN(x) || x == null;
 }
 
-export function median(x: number[]) {
+export function median(x: number[]): number {
 	const sorted = x.sort((a, b) => a - b);
 	const mid = Math.floor(sorted.length / 2);
 	return sorted.length % 2 !== 0

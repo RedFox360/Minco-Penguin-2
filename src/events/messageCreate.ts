@@ -40,7 +40,7 @@ export default (client: Client<true>) => {
 			if (!mention) return;
 			const dataToIncrement = args[1];
 			const incrementStr = args[2];
-			const incrementValue = parseInt(incrementStr);
+			const incrementValue = parseFloat(incrementStr);
 			if (invalidNumber(incrementValue)) return;
 			await updateProfile(mention.id, {
 				[dataToIncrement]: { increment: incrementValue },
