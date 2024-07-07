@@ -1,10 +1,15 @@
-import { HandRank, names, RNI, RNIKeys, royalFlushes, } from "./bs_poker_types.js";
+import { HandRank, names, RNI, RNIKeys, royalFlushes, symbolToValueObj, } from "./bs_poker_types.js";
 import { emoji, suits } from "../basic_card_types.js";
 import { suitToBasicEmoji, valueToSymbol } from "../basic_card_functions.js";
 import { countInArray, invalidNumber } from "../util.js";
+const toEmptyRgx = /[.,]/g;
+const toSpacesRgx = /-/g;
 export function parseCall(givenCall) {
     try {
-        const call = givenCall.toLowerCase().trim();
+        const call = givenCall
+            .toLowerCase()
+            .replace(toEmptyRgx, "")
+            .replace(toSpacesRgx, " ");
         const royalIndex = royalFlushes.findIndex(x => x.includes(call));
         if (royalIndex !== -1) {
             const suit = suits[royalIndex];
@@ -135,10 +140,8 @@ export function parseCall(givenCall) {
                 if (!suit1 || !suit2)
                     return null;
                 const high1 = symbolToValue(newSplit[0]);
-                if (invalidNumber(high1))
-                    return null;
                 const high2 = symbolToValue(newSplit[2]);
-                if (invalidNumber(high2))
+                if (invalidNumber(high1) || invalidNumber(high2))
                     return null;
                 return {
                     high: [
@@ -178,33 +181,6 @@ export function parseCall(givenCall) {
         return null;
     }
 }
-const symbolToValueObj = {
-    joker: 1,
-    x: 1,
-    spark: 1,
-    insurance: 15,
-    i: 15,
-    assurance: 15,
-    flashbang: 15,
-    ace: 14,
-    a: 14,
-    as: 14,
-    king: 13,
-    k: 13,
-    roi: 13,
-    dynamite: 13,
-    queen: 12,
-    q: 12,
-    dame: 12,
-    tnt: 12,
-    jack: 11,
-    j: 11,
-    knave: 11,
-    valet: 11,
-    grenade: 11,
-    deuce: 2,
-    t: 10,
-};
 function symbolToValue(textGiven) {
     const text = textGiven.toLowerCase().trim();
     const lookup = symbolToValueObj[text];

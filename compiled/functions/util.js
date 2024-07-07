@@ -23,12 +23,14 @@ export function absTimeToRelTimestamp(unixTimeMS) {
 }
 /**
  * removes the first instance of the value in the array
+ * returns true if it existed & was removed and false if it did not exist
  */
 export function removeByValue(arr, value) {
     const index = arr.indexOf(value);
-    if (index !== -1) {
-        arr.splice(index, 1);
-    }
+    if (index === -1)
+        return false;
+    arr.splice(index, 1);
+    return true;
 }
 /**
  * shuffles the array into a random order
@@ -43,9 +45,9 @@ export function shuffleArrayInPlace(arr) {
 }
 /**
  * sends a message and deletes it after a certain amount of time (default = 20s)
- * @param timeout time in milliseconds (default = 20,000)
+ * @param timeoutMS time in milliseconds (default = 20,000)
  */
-export function replyThenDelete(message, text, timeout = 20000) {
+export function replyThenDelete(message, text, timeoutMS = 20000) {
     message
         .reply({
         content: text,
@@ -53,7 +55,7 @@ export function replyThenDelete(message, text, timeout = 20000) {
         .then(msg => {
         setTimeout(() => {
             msg.delete();
-        }, timeout);
+        }, timeoutMS);
     });
 }
 /**
@@ -68,10 +70,10 @@ export function spliceRandom(arr, count = 1) {
     }
     return spliced;
 }
-export function chunkArray(myArray, chunkSize) {
+export function chunkArray(array, chunkSize) {
     const tempArray = [];
-    for (let index = 0; index < myArray.length; index += chunkSize) {
-        const myChunk = myArray.slice(index, index + chunkSize);
+    for (let i = 0; i < array.length; i += chunkSize) {
+        const myChunk = array.slice(i, i + chunkSize);
         tempArray.push(myChunk);
     }
     return tempArray;

@@ -58,7 +58,7 @@ const nrRowJoin = new ActionRowBuilder().addComponents(joinMidGame, leaveMidGame
 const nrRowLeave = new ActionRowBuilder().addComponents(leaveMidGame);
 const nrRowJoinDisabled = new ActionRowBuilder().addComponents(joinMidGameDisabled, leaveMidGameDisabled);
 const nrRowLeaveDisabled = new ActionRowBuilder().addComponents(leaveMidGameDisabled);
-const kickRegex = /kick <@\d+>/;
+const kickRegex = /^kick <@\d+>/;
 class BSPoker {
     constructor(interaction, players, cardsToOut, startingBet, commonCardsAmount, jokerCount, insuranceCount, beginCards, allowJoinMidGame, playerLimit, useSpecialCards, useCurses, nonStandard, useBloodJoker, useClown) {
         this.interaction = interaction;
@@ -147,10 +147,10 @@ class BSPoker {
             return "";
         if (this.playerHands.size === 0)
             return "";
-        const pwsc = Array.from(this.playerHands
+        const pwsc = this.playerHands
             .filter(hand => hand.some(c => c.suit === "bj" || c.suit === "rj"))
-            .keys());
-        return `Players with special cards: ${pwsc.length === 0 ? "None" : pwsc.map(userMention).join(" ")}`;
+            .map((_, player) => userMention(player));
+        return `Players with special cards: ${pwsc.length === 0 ? "None" : pwsc.join(" ")}`;
     }
     getHandsEmbed(handsList, highestCall) {
         return new EmbedBuilder()
@@ -276,13 +276,15 @@ Use Clown Joker: **${this.useClown ? "True" : "False"}**`;
             });
             return;
         }
-        const joinerProfile = await getProfile(buttonInteraction.user.id);
-        if (joinerProfile.mincoDollars < this.startingBet) {
-            await buttonInteraction.reply({
-                content: `You do not have enough Minco Dollars to join this game (the bet is ${this.startingBet.toLocaleString()}).`,
-                ephemeral: true,
-            });
-            return;
+        if (this.startingBet) {
+            const joinerProfile = await getProfile(buttonInteraction.user.id);
+            if (joinerProfile.mincoDollars < this.startingBet) {
+                await buttonInteraction.reply({
+                    content: `You do not have enough Minco Dollars to join this game (the bet is ${this.startingBet.toLocaleString()}).`,
+                    ephemeral: true,
+                });
+                return;
+            }
         }
         const startingAmount = Math.max(...this.playerCardsEntitled.values());
         await this.addPlayerMidGame(buttonInteraction.user.id, startingAmount);
@@ -423,11 +425,13 @@ Use Clown Joker: **${this.useClown ? "True" : "False"}**`;
         const winnerId = this.players[0];
         if (this.midGamePlayers.includes(winnerId) ||
             this.originalPlayersLen === 2) {
-            await updateProfile(winnerId, {
-                mincoDollars: {
-                    increment: this.pot,
-                },
-            });
+            if (this.startingBet) {
+                await updateProfile(winnerId, {
+                    mincoDollars: {
+                        increment: this.pot,
+                    },
+                });
+            }
         }
         else {
             await updateProfile(winnerId, {
@@ -470,14 +474,6 @@ Use Clown Joker: **${this.useClown ? "True" : "False"}**`;
         this.endCollectors();
     }
     async blackJokerBS() {
-        if (this.commonCards.length === 1) {
-            await this.interaction.channel.send({
-                content: `<@${this.playerWBJ}> had a black joker. There is 1 common card, so they will take it: **${formatCardSideways(this.commonCards[0])}**.`,
-            });
-            this.commonCards = [];
-            this.handleBS();
-            return;
-        }
         const timeUpToTakeCard = msToRelTimestamp(timeToTakeCard);
         const commonCardsFormattedWithNumbers = this.commonCards
             .map((card, i) => `\`${i + 1}\` **${formatCardSideways(card)}**`)
@@ -541,7 +537,7 @@ Use Clown Joker: **${this.useClown ? "True" : "False"}**`;
         if (clearTout)
             clearTimeout(this.bxTimeout);
     }
-    updatePlayerRating(...players) {
+    updatePlayerRating(players) {
         if (this.originalPlayersLen === 2)
             return;
         const avgRankOut = this.playersOut.length - (1 + players.length) / 2;
@@ -562,15 +558,14 @@ Use Clown Joker: **${this.useClown ? "True" : "False"}**`;
         for (const player of players) {
             this.playerCardsEntitled.delete(player);
             removeByValue(this.players, player);
-            this.removePlayerFromTeams(player);
         }
-        this.updatePlayerRating(...players);
+        this.removePlayerFromTeams(...players);
+        this.updatePlayerRating(players);
     }
     async addPlayerMidGame(player, cards) {
         this.players.push(player);
         this.removePlayerFromTeams(player);
         this.playerCardsEntitled.set(player, cards);
-        this.removePlayerFromTeams(player);
         this.midGamePlayers.push(player);
         bsPokerTeams.get(this.interaction.channelId).push([player]);
         await updateProfile(player, {
@@ -579,13 +574,13 @@ Use Clown Joker: **${this.useClown ? "True" : "False"}**`;
             },
         });
     }
-    removePlayerFromTeams(player) {
+    removePlayerFromTeams(...players) {
         bsPokerTeams.set(this.interaction.channel.id, bsPokerTeams
             .get(this.interaction.channel.id)
             .map(t => {
-            if (t[0] === player)
+            if (players.some(p => t[0] === p))
                 return null;
-            return t.filter(p => p !== player);
+            return t.filter(p => !players.includes(p));
         })
             .filter(t => t?.length));
     }
@@ -941,7 +936,7 @@ Use Clown Joker: **${this.useClown ? "True" : "False"}**`;
     }
     async messageCollect(msg) {
         if (msg.author.id === this.hostId) {
-            const content = msg.content.toLowerCase().trim();
+            const content = msg.content.toLowerCase();
             if (content === "abort") {
                 await msg.reply({
                     content: "Game aborted.",
