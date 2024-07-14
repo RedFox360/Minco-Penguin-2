@@ -3,7 +3,7 @@ import { ClownState, customIds, customIdValues, } from "../bs_poker_types.js";
 import { callInDeck, formatCall, highestCallInDeck, parseCall, } from "../bs_poker_functions.js";
 import { msToRelTimestamp, replyThenDelete, invalidNumber, median, } from "../../util.js";
 import { formatCardSideways, formatDeck, } from "../../cards/basic_card_functions.js";
-import { bsPokerTeams, channelsWithActiveGames, prisma, } from "../../../main.js";
+import { bsPokerTeams, channelsWithActiveGames } from "../../../main.js";
 import { getProfile, updateProfile } from "../../../prisma/models.js";
 import { colors, spliceRandom, sleep } from "../../util.js";
 import { emojiRaw } from "../../cards/basic_card_types.js";
@@ -197,7 +197,7 @@ class BSPoker {
             toAppend = ` Since they were the host, host privileges have been transferred to <@${this.hostId}>.`;
             return;
         }
-        this.players.removePlayers(buttonInteraction.user.id);
+        this.players.removePlayers(this.players.get(buttonInteraction.user.id));
         buttonInteraction.reply({
             content: `${buttonInteraction.user} has left the game.${toAppend}`,
         });
@@ -221,7 +221,7 @@ class BSPoker {
             return;
         }
         const winner = this.players.first();
-        if (winner.joinedMidGame || this.players.originalPlayersLen === 2) {
+        if (winner.joinedMidGame || this.players.originalPlayers === 2) {
             if (this.options.startingBet) {
                 await updateProfile(winner.id, {
                     mincoDollars: {
@@ -234,6 +234,9 @@ class BSPoker {
             await updateProfile(winner.id, {
                 mincoDollars: {
                     increment: this.pot,
+                },
+                bsPokerGamesPlayed: {
+                    increment: 1,
                 },
                 bsPokerWins: {
                     increment: 1,
@@ -265,10 +268,6 @@ class BSPoker {
         this.msgColl.stop();
         this.mcompColl.stop();
         // abort handled in the end of msgColl
-    }
-    async abort() {
-        await this.returnBets();
-        this.endCollectors();
     }
     async blackJokerBS(playerWBJ, bserId) {
         const timeUpToTakeCard = msToRelTimestamp(timeToTakeCard);
@@ -327,7 +326,7 @@ class BSPoker {
                 invalidNumber(entitled) ||
                 !entitled) {
                 this.interaction.channel.send(`${p} is out of the game.`);
-                playersToRemove.push(p.id);
+                playersToRemove.push(p);
             }
         }
         this.players.removePlayers(...playersToRemove);
@@ -344,10 +343,10 @@ class BSPoker {
         this.notifications.clearNotifTimeout();
         this.state.roundInProgress = false;
         const deck = this.options.createDeck();
-        if (this.state.round !== 0)
+        if (this.state.round !== 0) {
             this.printAllHands();
-        // Remove players from game with cards >= cardsToOut
-        this.removePlayersWithCardsAbove();
+            this.removePlayersWithCardsAbove();
+        }
         // Only 1 player left -> handle win
         if (this.players.size <= 1) {
             await this.endGameSuccess();
@@ -423,74 +422,6 @@ class BSPoker {
         this.state.setIdxToIdxOf(cardGainer.id);
         this.newRound();
     }
-    async takeBets() {
-        if (this.players.size === 2) {
-            if (!this.options.startingBet)
-                return;
-            await prisma.profile.updateMany({
-                where: {
-                    userId: {
-                        in: this.players.ids,
-                    },
-                },
-                data: {
-                    mincoDollars: {
-                        decrement: this.options.startingBet,
-                    },
-                },
-            });
-            return;
-        }
-        await prisma.profile.updateMany({
-            where: {
-                userId: {
-                    in: this.players.ids,
-                },
-            },
-            data: {
-                mincoDollars: {
-                    decrement: this.options.startingBet,
-                },
-                bsPokerGamesPlayed: {
-                    increment: 1,
-                },
-            },
-        });
-    }
-    async returnBets() {
-        if (this.players.originalPlayersLen === 2) {
-            if (!this.options.startingBet)
-                return;
-            await prisma.profile.updateMany({
-                where: {
-                    userId: {
-                        in: this.players.ids,
-                    },
-                },
-                data: {
-                    mincoDollars: {
-                        increment: this.options.startingBet,
-                    },
-                },
-            });
-            return;
-        }
-        await prisma.profile.updateMany({
-            where: {
-                userId: {
-                    in: this.players.ids,
-                },
-            },
-            data: {
-                mincoDollars: {
-                    increment: this.options.startingBet,
-                },
-                bsPokerGamesPlayed: {
-                    decrement: 1,
-                },
-            },
-        });
-    }
     async kickPlayer(msg) {
         const kickId = msg.mentions.users.firstKey();
         if (!kickId)
@@ -505,7 +436,7 @@ class BSPoker {
         }
         this.state.callsOpen = false;
         const currentPlayerBeforeKick = this.state.currentPlayer.id;
-        this.players.removePlayers(kickId);
+        this.players.removePlayers(this.players.get(kickId));
         msg.reply(`<@${kickId}> has been kicked from the game.`);
         if (this.players.size === 1) {
             this.newRound();
@@ -680,7 +611,7 @@ class BSPoker {
                 await msg.reply({
                     content: "Game aborted.",
                 });
-                await this.abort();
+                this.endCollectors();
                 return;
             }
             if (kickRegex.test(content)) {
@@ -763,7 +694,6 @@ class BSPoker {
         for (const p of this.players.values()) {
             p.cardsEntitled = this.options.beginCards;
         }
-        await this.takeBets();
         await this.newRound(); // start the game with the 1st round
         this.msgColl.on("collect", async (m) => {
             this.messageCollect(m);

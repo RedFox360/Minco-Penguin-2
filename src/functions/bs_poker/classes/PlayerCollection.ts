@@ -1,7 +1,6 @@
 import { Collection, Snowflake, userMention } from "discord.js";
 import Player from "./Player.js";
 import { bsPokerTeams, prisma } from "../../../main.js";
-import { countInArray } from "../../util.js";
 import { updateProfile } from "../../../prisma/models.js";
 import OptionManager from "./OptionManager.js";
 import { ExtCard } from "../bs_poker_types.js";
@@ -10,6 +9,7 @@ type ArrayForm = Iterable<readonly [Snowflake, Player]>;
 
 export default class PlayerCollection extends Collection<Snowflake, Player> {
 	public out: Snowflake[] = [];
+	public originalPlayers: number;
 
 	public static fromIds(
 		playerIds: Snowflake[],
@@ -29,10 +29,7 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 		private readonly options: OptionManager
 	) {
 		super(iterable);
-	}
-
-	public get originalPlayersLen(): number {
-		return countInArray(this.values(), p => !p.joinedMidGame);
+		this.originalPlayers = this.size;
 	}
 
 	public get everPlayersLen(): number {
@@ -55,30 +52,63 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 		return this.map(p => p.displayEntitled()).join("\n");
 	}
 
-	private updatePlayerRating(playerIds: Snowflake[]) {
-		if (this.originalPlayersLen === 2) return;
-		const avgRankOut = this.out.length - (1 + playerIds.length) / 2;
+	private updatePlayerData(players: Player[]) {
+		if (this.originalPlayers === 2) return;
+		const avgRankOut = this.out.length - (1 + players.length) / 2;
 		const rating = avgRankOut * (1 / (this.everPlayersLen - 1));
-
-		return prisma.profile.updateMany({
-			where: {
-				userId: {
-					in: playerIds,
-				},
-			},
-			data: {
-				bsPokerRating: {
-					increment: rating,
-				},
-			},
-		});
+		const joinedMidGame = players.filter(p => p.joinedMidGame).map(p => p.id);
+		const didNotJoinMidgame = players
+			.filter(p => !p.joinedMidGame)
+			.map(p => p.id);
+		const promises: Promise<unknown>[] = [];
+		if (joinedMidGame.length) {
+			if (this.options.startingBet) {
+				promises.push(
+					prisma.profile.updateMany({
+						where: {
+							userId: {
+								in: joinedMidGame,
+							},
+						},
+						data: {
+							mincoDollars: {
+								decrement: this.options.startingBet,
+							},
+						},
+					})
+				);
+			}
+		} else if (didNotJoinMidgame.length) {
+			promises.push(
+				prisma.profile.updateMany({
+					where: {
+						userId: {
+							in: didNotJoinMidgame,
+						},
+					},
+					data: {
+						bsPokerRating: {
+							increment: rating,
+						},
+						bsPokerGamesPlayed: {
+							increment: 1,
+						},
+						mincoDollars: {
+							decrement: this.options.startingBet,
+						},
+					},
+				})
+			);
+		}
+		return Promise.all(promises);
 	}
 
-	public removePlayers(...playerIds: Snowflake[]) {
+	public async removePlayers(...players: Player[]) {
+		const playerIds = players.map(p => p.id);
 		for (const id of playerIds) this.delete(id);
 		this.out.push(...playerIds);
 		this.removePlayerFromTeams(...playerIds);
-		this.updatePlayerRating(playerIds);
+		await this.updatePlayerData(players);
 	}
 
 	public removePlayerFromTeams(...playerIds: Snowflake[]) {

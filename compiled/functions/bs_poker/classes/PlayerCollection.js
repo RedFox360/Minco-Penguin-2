@@ -1,7 +1,6 @@
 import { Collection, userMention } from "discord.js";
 import Player from "./Player.js";
 import { bsPokerTeams, prisma } from "../../../main.js";
-import { countInArray } from "../../util.js";
 import { updateProfile } from "../../../prisma/models.js";
 export default class PlayerCollection extends Collection {
     static fromIds(playerIds, channelId, options) {
@@ -16,9 +15,7 @@ export default class PlayerCollection extends Collection {
         this.channelId = channelId;
         this.options = options;
         this.out = [];
-    }
-    get originalPlayersLen() {
-        return countInArray(this.values(), p => !p.joinedMidGame);
+        this.originalPlayers = this.size;
     }
     get everPlayersLen() {
         return this.size + this.out.length;
@@ -35,30 +32,61 @@ export default class PlayerCollection extends Collection {
     displayEntitled() {
         return this.map(p => p.displayEntitled()).join("\n");
     }
-    updatePlayerRating(playerIds) {
-        if (this.originalPlayersLen === 2)
+    updatePlayerData(players) {
+        if (this.originalPlayers === 2)
             return;
-        const avgRankOut = this.out.length - (1 + playerIds.length) / 2;
+        const avgRankOut = this.out.length - (1 + players.length) / 2;
         const rating = avgRankOut * (1 / (this.everPlayersLen - 1));
-        return prisma.profile.updateMany({
-            where: {
-                userId: {
-                    in: playerIds,
+        const joinedMidGame = players.filter(p => p.joinedMidGame).map(p => p.id);
+        const didNotJoinMidgame = players
+            .filter(p => !p.joinedMidGame)
+            .map(p => p.id);
+        const promises = [];
+        if (joinedMidGame.length) {
+            if (this.options.startingBet) {
+                promises.push(prisma.profile.updateMany({
+                    where: {
+                        userId: {
+                            in: joinedMidGame,
+                        },
+                    },
+                    data: {
+                        mincoDollars: {
+                            decrement: this.options.startingBet,
+                        },
+                    },
+                }));
+            }
+        }
+        else if (didNotJoinMidgame.length) {
+            promises.push(prisma.profile.updateMany({
+                where: {
+                    userId: {
+                        in: didNotJoinMidgame,
+                    },
                 },
-            },
-            data: {
-                bsPokerRating: {
-                    increment: rating,
+                data: {
+                    bsPokerRating: {
+                        increment: rating,
+                    },
+                    bsPokerGamesPlayed: {
+                        increment: 1,
+                    },
+                    mincoDollars: {
+                        decrement: this.options.startingBet,
+                    },
                 },
-            },
-        });
+            }));
+        }
+        return Promise.all(promises);
     }
-    removePlayers(...playerIds) {
+    async removePlayers(...players) {
+        const playerIds = players.map(p => p.id);
         for (const id of playerIds)
             this.delete(id);
         this.out.push(...playerIds);
         this.removePlayerFromTeams(...playerIds);
-        this.updatePlayerRating(playerIds);
+        await this.updatePlayerData(players);
     }
     removePlayerFromTeams(...playerIds) {
         bsPokerTeams.set(this.channelId, bsPokerTeams
