@@ -20,6 +20,7 @@ import {
 	ExtCard,
 } from "../bs_poker_types.js";
 import {
+	callInDeck,
 	formatCall,
 	highestCallInDeck,
 	parseCall,
@@ -519,7 +520,10 @@ class BSPoker {
 			!this.options.useClown &&
 			bser.hand.some(card => card.suit === "rj");
 
-		const callIsTrue = this.state.currentCallIsInDeck(true);
+		const callIsTrue = callInDeck(
+			this.state.currentCall.call,
+			this.state.currentDeck
+		);
 
 		let cardGainer = this.state.currentPlayer;
 
@@ -648,7 +652,10 @@ class BSPoker {
 	}
 
 	private handleCurses(): boolean {
-		const callIsTrue = this.state.currentCallIsInDeck();
+		const callIsTrue = callInDeck(
+			this.state.currentCall.call,
+			this.state.currentDeck
+		);
 		this.state.addToTracker(callIsTrue);
 		if (this.state.lastThreeCallTracker.every(x => x === false)) {
 			this.interaction.channel.send({

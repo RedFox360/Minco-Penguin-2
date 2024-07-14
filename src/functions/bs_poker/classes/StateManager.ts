@@ -17,7 +17,6 @@ export default class StateManager {
 	public bxOpen = false;
 	public clowned: ClownState;
 	public currentCall: PlayerCall | null = null;
-	public currentDeck: ExtCard[];
 	private _round = 0;
 	private _currPlayerIdx = 0;
 
@@ -62,10 +61,10 @@ export default class StateManager {
 		this.currentPlayerIndex = this.players.size - this.currentPlayerIndex - 1;
 	}
 
-	public updateCurrentDeck(): ExtCard[] {
-		this.currentDeck = this.players.hands.flat(1);
-		this.currentDeck.push(...this.commonCards);
-		return this.currentDeck;
+	public get currentDeck(): ExtCard[] {
+		const deck = this.players.hands.flat(1);
+		deck.push(...this.commonCards);
+		return deck;
 	}
 
 	public reset() {
@@ -74,7 +73,6 @@ export default class StateManager {
 		this.currentCall = null;
 		this.callsOpen = true;
 		this.clowned = 0;
-		this.updateCurrentDeck();
 		this.lastThreeCallTracker = [true, true, true];
 	}
 
@@ -89,10 +87,5 @@ export default class StateManager {
 	public addToTracker(val: boolean) {
 		this.lastThreeCallTracker.shift();
 		this.lastThreeCallTracker.push(val);
-	}
-
-	public currentCallIsInDeck(update = false) {
-		if (update) this.updateCurrentDeck();
-		return callInDeck(this.currentCall?.call, this.currentDeck);
 	}
 }

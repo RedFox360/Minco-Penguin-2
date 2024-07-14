@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, } from "discord.js";
 import { ClownState, customIds, customIdValues, } from "../bs_poker_types.js";
-import { formatCall, highestCallInDeck, parseCall, } from "../bs_poker_functions.js";
+import { callInDeck, formatCall, highestCallInDeck, parseCall, } from "../bs_poker_functions.js";
 import { msToRelTimestamp, replyThenDelete, invalidNumber, median, } from "../../util.js";
 import { formatCardSideways, formatDeck, } from "../../cards/basic_card_functions.js";
 import { bsPokerTeams, channelsWithActiveGames, prisma, } from "../../../main.js";
@@ -385,7 +385,7 @@ class BSPoker {
         const bserHasRJ = this.options.useSpecialCards &&
             !this.options.useClown &&
             bser.hand.some(card => card.suit === "rj");
-        const callIsTrue = this.state.currentCallIsInDeck(true);
+        const callIsTrue = callInDeck(this.state.currentCall.call, this.state.currentDeck);
         let cardGainer = this.state.currentPlayer;
         if (callIsTrue) {
             cardGainer = bser;
@@ -512,7 +512,7 @@ class BSPoker {
         this.state.callsOpen = true;
     }
     handleCurses() {
-        const callIsTrue = this.state.currentCallIsInDeck();
+        const callIsTrue = callInDeck(this.state.currentCall.call, this.state.currentDeck);
         this.state.addToTracker(callIsTrue);
         if (this.state.lastThreeCallTracker.every(x => x === false)) {
             this.interaction.channel.send({

@@ -1,4 +1,4 @@
-import { callInDeck, formatCall } from "../bs_poker_functions.js";
+import { formatCall } from "../bs_poker_functions.js";
 export default class StateManager {
     constructor(players, commonCards) {
         this.players = players;
@@ -44,10 +44,10 @@ export default class StateManager {
     reverseIdx() {
         this.currentPlayerIndex = this.players.size - this.currentPlayerIndex - 1;
     }
-    updateCurrentDeck() {
-        this.currentDeck = this.players.hands.flat(1);
-        this.currentDeck.push(...this.commonCards);
-        return this.currentDeck;
+    get currentDeck() {
+        const deck = this.players.hands.flat(1);
+        deck.push(...this.commonCards);
+        return deck;
     }
     reset() {
         this.roundInProgress = true;
@@ -55,7 +55,6 @@ export default class StateManager {
         this.currentCall = null;
         this.callsOpen = true;
         this.clowned = 0;
-        this.updateCurrentDeck();
         this.lastThreeCallTracker = [true, true, true];
     }
     nextRound() {
@@ -67,11 +66,6 @@ export default class StateManager {
     addToTracker(val) {
         this.lastThreeCallTracker.shift();
         this.lastThreeCallTracker.push(val);
-    }
-    currentCallIsInDeck(update = false) {
-        if (update)
-            this.updateCurrentDeck();
-        return callInDeck(this.currentCall?.call, this.currentDeck);
     }
 }
 //# sourceMappingURL=StateManager.js.map
