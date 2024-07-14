@@ -10,12 +10,11 @@ import {
 	EmbedBuilder,
 	InteractionCollector,
 } from "discord.js";
-import { Card } from "../basic_card_types.js";
-import { createBasicDeck, formatDeck } from "../basic_card_functions.js";
-import { colors, invalidNumber, spliceRandom } from "../util.js";
+import { Card } from "../cards/basic_card_types.js";
+import { createBasicDeck, formatDeck } from "../cards/basic_card_functions.js";
+import { colors, invalidNumber, spliceRandom, sleep } from "../util.js";
 import { getProfile, updateProfile } from "../../prisma/models.js";
-import { promisify } from "util";
-const sleep = promisify(setTimeout);
+
 enum Outcome {
 	DealerBlackjack = -4,
 	Loss = -3,

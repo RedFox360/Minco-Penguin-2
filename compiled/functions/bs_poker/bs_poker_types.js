@@ -197,4 +197,19 @@ export const symbolToValueObj = {
     valet: 11,
     grenade: 11,
 };
+export var ClownState;
+(function (ClownState) {
+    ClownState[ClownState["NotClowned"] = 0] = "NotClowned";
+    ClownState[ClownState["Clowned"] = 1] = "Clowned";
+    ClownState[ClownState["ClownedAndCalled"] = 2] = "ClownedAndCalled";
+})(ClownState || (ClownState = {}));
+export const customIds = {
+    joinMidGame: "join_mid_game_bspoker",
+    leaveMidGame: "leave_mid_game_bspoker",
+    viewCards: "view_cards_bspoker",
+    viewGameInfo: "view_game_info_bspoker",
+    bs: "bs_bspoker",
+    clown: "clown_bspoker",
+};
+export const customIdValues = Object.values(customIds);
 //# sourceMappingURL=bs_poker_types.js.map

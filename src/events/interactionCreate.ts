@@ -1,9 +1,11 @@
 import {
 	ChatInputCommandInteraction,
 	Client,
+	Collection,
 	EmbedBuilder,
 	Events,
 	Interaction,
+	RESTJSONErrorCodes,
 	Snowflake,
 	UserContextMenuCommandInteraction,
 } from "discord.js";
@@ -13,7 +15,7 @@ import prettyMs from "pretty-ms";
 import { clean, colors } from "../functions/util.js";
 import { slashCommands } from "../main.js";
 // Map: {commandName -> [Map: userId -> timestamp]}
-const cooldowns = new Map<string, Map<Snowflake, number>>();
+const cooldowns = new Collection<string, Map<Snowflake, number>>();
 const ownerId = process.env.OWNER_ID;
 
 export default (client: Client<true>) => {
@@ -25,7 +27,7 @@ export default (client: Client<true>) => {
 
 		if (!interaction.inCachedGuild()) {
 			await interaction.reply({
-				content: "Sorry, I can only be used in servers.",
+				content: "Sorry, Minco Penguin can only be used in servers.",
 				ephemeral: true,
 			});
 			return;
@@ -89,9 +91,8 @@ function handleCooldowns(
 		builder: { name: commandName },
 		cooldown: cooldown,
 	} = command;
-	if (!cooldowns.has(commandName)) cooldowns.set(commandName, new Map());
 	const currentTime = Date.now();
-	const timeStamps = cooldowns.get(commandName);
+	const timeStamps = cooldowns.ensure(commandName, () => new Map());
 	if (timeStamps.has(interaction.user.id)) {
 		const expTime = timeStamps.get(interaction.user.id) + cooldown;
 		if (currentTime < expTime) {
@@ -114,7 +115,7 @@ async function handleError(
 		| UserContextMenuCommandInteraction<"cached">,
 	err: any
 ) {
-	if (err.code !== 10062) console.error(err);
+	if (err?.code !== RESTJSONErrorCodes.UnknownInteraction) console.error(err);
 	if (interaction.user.id === ownerId) {
 		const errorEmbed = new EmbedBuilder()
 			.setTitle("**ERROR** ")

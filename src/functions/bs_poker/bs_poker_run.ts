@@ -7,16 +7,21 @@ import {
 	EmbedBuilder,
 	userMention,
 } from "discord.js";
-import BSPoker from "./bs_poker_class.js";
-import {
-	removeByValue,
-	msToRelTimestamp,
-	shuffleArrayInPlace,
-} from "../util.js";
+import BSPoker from "./classes/BSPokerGame.js";
+import { removeByValue, msToRelTimestamp, shuffleArray } from "../util.js";
 import { getProfile } from "../../prisma/models.js";
 import { colors } from "../util.js";
 import { bsPokerTeams, channelsWithActiveGames } from "../../main.js";
+import OptionManager, { OptionCreationError } from "./classes/OptionManager.js";
 const collectorTime = 60_000;
+
+const customIds = {
+	join: "join_bspoker_s",
+	leave: "leave_bspoker_s",
+	abort: "abort_bspoker_s",
+	start: "start_bspoker_s",
+};
+const customIdValues = Object.values(customIds);
 
 export default async function bsPokerRun(
 	interaction: ChatInputCommandInteraction<"cached">
@@ -30,50 +35,25 @@ export default async function bsPokerRun(
 	}
 
 	// Retrieving Options
-	const cardsToOut = interaction.options.getInteger("cards_to_out");
-	const commonCards = interaction.options.getInteger("common_cards") ?? -1;
-	const startingBet = interaction.options.getInteger("bet") ?? 0;
-	const jokerCount = interaction.options.getInteger("joker_count") ?? 2;
-	const insuranceCount = interaction.options.getInteger("insurance_count") ?? 1;
-	const useSpecialCards =
-		interaction.options.getBoolean("use_special_cards") ?? false;
-	const deckSize = 52 + jokerCount + insuranceCount + (useSpecialCards ? 2 : 0);
-	const beginCards = interaction.options.getInteger("begin_cards") ?? 1;
-	const maxCommonCards = commonCards === -1 ? cardsToOut - 1 : commonCards;
-	const maxPlayerLimit = Math.floor(
-		(deckSize - maxCommonCards) / (cardsToOut - 1)
-	);
-	const playerLimit =
-		interaction.options.getInteger("player_limit") ?? maxPlayerLimit;
-	const allowJoinMidGame =
-		interaction.options.getBoolean("allow_join_mid_game") ?? true;
-	const useCurses = interaction.options.getBoolean("use_curses") ?? false;
-	const nonStandard = interaction.options.getBoolean("nonstandard") ?? true;
-	const useBloodJoker = interaction.options.getBoolean("blood_joker") ?? false;
-	const useClown = interaction.options.getBoolean("clown") ?? false;
-
-	if (beginCards >= cardsToOut) {
-		await interaction.reply({
-			content:
-				"The beginning number of cards must be less than the number of cards to be out.",
-			ephemeral: true,
-		});
-		return;
-	}
-
-	if (playerLimit > maxPlayerLimit) {
-		await interaction.reply({
-			content: `The maximum number of cards to be dealt is greater than the size of the deck.
-Please decrease the player limit to a value less than or equal to ${maxPlayerLimit}.`,
-			ephemeral: true,
-		});
+	let options: OptionManager;
+	try {
+		options = new OptionManager(interaction);
+	} catch (e) {
+		if (e instanceof OptionCreationError) {
+			await interaction.reply({
+				content: e.message,
+				ephemeral: true,
+			});
+		} else {
+			console.error(e);
+		}
 		return;
 	}
 
 	const hostProfile = await getProfile(interaction.user.id);
-	if (startingBet && hostProfile.mincoDollars < startingBet) {
+	if (options.startingBet && hostProfile.mincoDollars < options.startingBet) {
 		await interaction.reply({
-			content: `You do not have enough Minco Dollars to start this game with a bet of ${startingBet}.`,
+			content: `You do not have enough Minco Dollars to start this game with a bet of ${options.startingBet}.`,
 			ephemeral: true,
 		});
 		return;
@@ -85,22 +65,22 @@ Please decrease the player limit to a value less than or equal to ${maxPlayerLim
 	// Game Start
 
 	const joinButton = new ButtonBuilder()
-		.setCustomId("join")
+		.setCustomId(customIds.join)
 		.setLabel("Join")
 		.setStyle(ButtonStyle.Primary)
 		.setEmoji("✅");
 	const leaveButton = new ButtonBuilder()
-		.setCustomId("leave")
+		.setCustomId(customIds.leave)
 		.setLabel("Leave")
 		.setStyle(ButtonStyle.Primary)
 		.setEmoji("❎");
 	const abortButton = new ButtonBuilder()
-		.setCustomId("abort")
+		.setCustomId(customIds.abort)
 		.setLabel("Abort")
 		.setStyle(ButtonStyle.Danger)
 		.setEmoji("⏹️");
 	const startButton = new ButtonBuilder()
-		.setCustomId("start")
+		.setCustomId(customIds.start)
 		.setLabel("Start Now")
 		.setStyle(ButtonStyle.Success)
 		.setEmoji("⏩")
@@ -115,23 +95,13 @@ Please decrease the player limit to a value less than or equal to ${maxPlayerLim
 		startButton
 	);
 
-	const betDisplay = startingBet
-		? `Bet to Join: **${startingBet} MD**`
+	const betDisplay = options.startingBet
+		? `Bet to Join: **${options.startingBet} MD**`
 		: "**No bet required.**";
 
 	const startTime = msToRelTimestamp(collectorTime);
 
-	const optionsFieldValue = `Cards to get out: **${cardsToOut}**
-Jokers in deck: **${jokerCount}**
-Insurance cards in deck: **${insuranceCount}**
-Starting cards: **${beginCards}**
-Common cards: **${commonCards === -1 ? "Median" : commonCards}**
-Allow join mid-game: **${allowJoinMidGame ? "True" : "False"}**
-Use special cards: **${useSpecialCards ? "True" : "False"}**
-Use curses: **${useCurses ? "True" : "False"}**
-Allow nonstandard calls: **${nonStandard ? "True" : "False"}**
-Use Blood Joker: **${useBloodJoker ? "True" : "False"}**
-Use Clown Joker: **${useClown ? "True" : "False"}**`;
+	const optionsFieldValue = options.display();
 
 	const gameStartEmbed = (gameStarted = false) =>
 		new EmbedBuilder()
@@ -141,7 +111,7 @@ Use Clown Joker: **${useClown ? "True" : "False"}**`;
 Current players: ${players.map(userMention).join(", ")}\n` +
 					(gameStarted
 						? betDisplay
-						: `${playerLimit - players.length} more players can join.${
+						: `${options.playerLimit - players.length} more players can join.${
 								players.length >= 2
 									? ""
 									: " Minimum 2 players required to start the game."
@@ -169,18 +139,14 @@ Otherwise, the game will start ${startTime}`)
 	});
 
 	const collector = msg.createMessageComponentCollector({
-		filter: i =>
-			i.customId === "join" ||
-			i.customId === "leave" ||
-			i.customId === "abort" ||
-			i.customId === "start",
+		filter: i => customIdValues.includes(i.customId),
 		time: collectorTime,
 		componentType: ComponentType.Button,
 	});
 	let shouldBeginGame = true;
 	collector.on("collect", async buttonInteraction => {
-		if (buttonInteraction.customId === "join") {
-			if (players.length >= playerLimit) {
+		if (buttonInteraction.customId === customIds.join) {
+			if (players.length >= options.playerLimit) {
 				await buttonInteraction.reply({
 					content: "Sorry, the player limit has been reached.",
 					ephemeral: true,
@@ -188,9 +154,12 @@ Otherwise, the game will start ${startTime}`)
 				return;
 			}
 			const joinerProfile = await getProfile(buttonInteraction.user.id);
-			if (startingBet && joinerProfile.mincoDollars < startingBet) {
+			if (
+				options.startingBet &&
+				joinerProfile.mincoDollars < options.startingBet
+			) {
 				await buttonInteraction.reply({
-					content: `You do not have enough Minco Dollars to join this game (the bet is **${startingBet} MD**).`,
+					content: `You do not have enough Minco Dollars to join this game (the bet is **${options.startingBet} MD**).`,
 					ephemeral: true,
 				});
 				return;
@@ -204,7 +173,7 @@ Otherwise, the game will start ${startTime}`)
 				components: [row1, row2],
 			});
 		}
-		if (buttonInteraction.customId === "leave") {
+		if (buttonInteraction.customId === customIds.leave) {
 			if (buttonInteraction.user.id === interaction.user.id) {
 				await buttonInteraction.reply({
 					content: "You may not leave as you are the host of the game.",
@@ -221,7 +190,7 @@ Otherwise, the game will start ${startTime}`)
 				components: [row1, row2],
 			});
 		}
-		if (buttonInteraction.customId === "abort") {
+		if (buttonInteraction.customId === customIds.abort) {
 			if (buttonInteraction.user.id !== interaction.user.id) {
 				await buttonInteraction.reply({
 					content: "Only the host can abort the game.",
@@ -237,7 +206,7 @@ Otherwise, the game will start ${startTime}`)
 			shouldBeginGame = false;
 			collector.stop();
 		}
-		if (buttonInteraction.customId === "start") {
+		if (buttonInteraction.customId === customIds.start) {
 			if (buttonInteraction.user.id !== interaction.user.id) {
 				await buttonInteraction.reply({
 					content: "Only the host can start the game.",
@@ -270,29 +239,13 @@ Otherwise, the game will start ${startTime}`)
 			embeds: [gameStartEmbed(true)],
 			components: [],
 		});
-		shuffleArrayInPlace(players);
+		shuffleArray(players);
 		bsPokerTeams.set(
 			interaction.channelId,
 			players.map(x => [x])
 		);
 
-		const game = new BSPoker(
-			interaction,
-			players,
-			cardsToOut,
-			startingBet,
-			commonCards,
-			jokerCount,
-			insuranceCount,
-			beginCards,
-			allowJoinMidGame,
-			playerLimit,
-			useSpecialCards,
-			useCurses,
-			nonStandard,
-			useBloodJoker,
-			useClown
-		);
+		const game = new BSPoker(interaction, players, options);
 
 		game.gameLogic().catch(e => {
 			interaction.channel.send(

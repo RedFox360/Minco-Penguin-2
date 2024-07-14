@@ -3,7 +3,7 @@ import SlashCommand from "../core/SlashCommand.js";
 const gift = new SlashCommand()
     .setCommandData(builder => builder
     .setName("gift")
-    .setDescription("Gift money to a user!")
+    .setDescription("Gift money to someone!")
     .addUserOption(option => option
     .setName("user")
     .setDescription("The user to gift money to")

@@ -3,18 +3,19 @@ import { Client } from "discord.js";
 import chalk from "chalk";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
-export default async function eventHandler(client: Client) {
+
+type EventPromises = Promise<{
+	default: (client: Client<true>) => unknown;
+}>[];
+
+export default async function eventHandler(client: Client<true>) {
 	const dir = dirname(fileURLToPath(import.meta.url));
 	const eventsPath = path.join(dir, "..", "events");
 	const eventFiles = readdirSync(eventsPath).filter(
 		file => file.endsWith(".ts") || file.endsWith(".js")
 	);
-	const eventPromises: Array<
-		Promise<{
-			default: (client: Client) => unknown;
-		}>
-	> = [];
-	const eventNames: Array<string> = [];
+	const eventPromises: EventPromises = [];
+	const eventNames: string[] = [];
 	for (const file of eventFiles) {
 		eventPromises.push(import(path.join(eventsPath, file)));
 		const eventName = file.split(".")[0];

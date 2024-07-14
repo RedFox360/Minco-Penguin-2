@@ -1,10 +1,10 @@
-import { rest, slashCommands } from "../main.js";
+import { inDev, rest, slashCommands } from "../main.js";
 import { Routes, } from "discord.js";
 import { readdirSync } from "fs";
 import chalk from "chalk";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
-export default async function slashHandler(client, updateCommands = false, inDev = false) {
+export default async function slashHandler(client, updateCommands = false) {
     const dir = dirname(fileURLToPath(import.meta.url));
     const slashPath = path.join(dir, "..", "slash_commands");
     const slashFiles = readdirSync(slashPath).filter(file => file.endsWith(".ts") || file.endsWith(".js"));
@@ -31,9 +31,11 @@ export default async function slashHandler(client, updateCommands = false, inDev
         await rest.put(Routes.applicationGuildCommands(client.user.id, "999133276478373919"), {
             body: data,
         });
+        console.log(chalk.green("Commands updated in dev!"));
     }
     await rest.put(Routes.applicationCommands(client.user.id), {
         body: data,
     });
+    console.log(chalk.green("Commands updated globally!"));
 }
 //# sourceMappingURL=slash_handler.js.map

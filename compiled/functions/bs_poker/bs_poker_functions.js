@@ -1,6 +1,6 @@
 import { HandRank, names, RNI, RNIKeys, royalFlushes, symbolToValueObj, } from "./bs_poker_types.js";
-import { emoji, suits } from "../basic_card_types.js";
-import { suitToBasicEmoji, valueToSymbol } from "../basic_card_functions.js";
+import { emoji, suits } from "../cards/basic_card_types.js";
+import { suitToBasicEmoji, valueToSymbol, } from "../cards/basic_card_functions.js";
 import { countInArray, invalidNumber } from "../util.js";
 const toEmptyRgx = /[.,]/g;
 const toSpacesRgx = /-/g;
@@ -225,29 +225,29 @@ function isLowerArray(arr1, arr2) {
     }
     return false;
 }
-// returns whether call1 is a higher call than call2
+/**
+ * returns whether call1 is a higher call than call2
+ * */
 export function isHigher(call1, call2) {
-    const call_call1 = call1.call;
-    const call_call2 = call2.call;
-    if (call_call1 > call_call2)
+    if (call1.call > call2.call)
         return true;
-    if (call_call1 < call_call2)
+    if (call1.call < call2.call)
         return false;
-    if (call_call1 === HandRank.DoublePair ||
-        call_call1 === HandRank.DoubleTriple ||
-        call_call1 === HandRank.TriplePair) {
+    if (call1.call === HandRank.DoublePair ||
+        call1.call === HandRank.DoubleTriple ||
+        call1.call === HandRank.TriplePair) {
         const arr1 = call1.high.sort((a, b) => a - b);
         const arr2 = call2.high.sort((a, b) => a - b);
         return isHigherArray(arr1, arr2);
     }
-    if (call_call1 === HandRank.FullHouse) {
+    if (call1.call === HandRank.FullHouse) {
         if (call1.high[0] > call2.high[0])
             return true;
         if (call1.high[0] < call2.high[0])
             return false;
         return call1.high[1] > call2.high[1];
     }
-    if (call_call1 === HandRank.DoubleFlush) {
+    if (call1.call === HandRank.DoubleFlush) {
         const arr1 = call1.high
             .map(card => card.value)
             .sort((a, b) => a - b);
@@ -258,11 +258,13 @@ export function isHigher(call1, call2) {
     }
     const call1_high = call1.high.value;
     const call2_high = call2.high.value;
-    if (call_call1 !== HandRank.Flush)
+    if (call1.call !== HandRank.Flush)
         return call1_high > call2_high;
     return call1_high < call2_high;
 }
 export function formatCall(call) {
+    if (!call || call.call == null)
+        return "Unknown Call";
     if (call.call === HandRank.StraightFlush && call.high.value === 14) {
         switch (call.high.suit) {
             case "H":
@@ -296,7 +298,8 @@ export function formatCall(call) {
         return `${valueToSymbol(call.high.value)} Straight Flush${suitToBasicEmoji(call.high.suit)}`;
     }
     if (call.call === HandRank.DoubleFlush) {
-        return `${valueToSymbol(call.high[0].value)} Flush${suitToBasicEmoji(call.high[0].suit)} ${valueToSymbol(call.high[1].value)} Flush${suitToBasicEmoji(call.high[1].suit)}`;
+        const high = call.high;
+        return `${valueToSymbol(high[0].value)} Flush${suitToBasicEmoji(high[0].suit)} ${valueToSymbol(high[1].value)} Flush${suitToBasicEmoji(high[1].suit)}`;
     }
     return `${valueToSymbol(call.high.value)} ${callNumberToName(call.call)}`;
 }

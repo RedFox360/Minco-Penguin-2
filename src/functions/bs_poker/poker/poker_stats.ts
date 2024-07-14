@@ -1,7 +1,7 @@
 import { EmbedBuilder } from "discord.js";
-import Subcommand from "../../core/Subcommand.js";
-import { getProfile } from "../../prisma/models.js";
-import { colors, invalidNumber } from "../util.js";
+import Subcommand from "../../../core/Subcommand.js";
+import { getProfile } from "../../../prisma/models.js";
+import { colors, invalidNumber } from "../../util.js";
 
 const pokerStats = new Subcommand()
 	.setCommandData(subcommand =>
@@ -17,10 +17,11 @@ const pokerStats = new Subcommand()
 	)
 	.setRun(async interaction => {
 		const member = interaction.options.getMember("user") ?? interaction.member;
-		const profile = await getProfile(member.id);
-		const wins = profile.bsPokerWins;
-		const gamesPlayed = profile.bsPokerGamesPlayed;
-		const rawRating = profile.bsPokerRating;
+		const {
+			bsPokerWins: wins,
+			bsPokerGamesPlayed: gamesPlayed,
+			bsPokerRating: rawRating,
+		} = await getProfile(member.id);
 		let winPerc = Math.floor((wins / gamesPlayed) * 100);
 		if (invalidNumber(winPerc)) winPerc = 0;
 		let skill = Math.floor((rawRating / gamesPlayed) * 100);

@@ -1,4 +1,4 @@
-import { ContextMenuCommandBuilder, ApplicationCommandType, } from "discord.js";
+import { ContextMenuCommandBuilder, ApplicationCommandType } from "discord.js";
 export default class UserContextMenu {
     get builder() {
         return this._builder;

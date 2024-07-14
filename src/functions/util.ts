@@ -1,4 +1,11 @@
-import { Message, RESTJSONErrorCodes, TimestampStyles, time } from "discord.js";
+import {
+	ApplicationCommandOptionChoiceData,
+	Message,
+	RESTJSONErrorCodes,
+	TimestampStyles,
+	time,
+} from "discord.js";
+import { promisify } from "util";
 
 export const colors = {
 	blurple: 0x7289da,
@@ -38,10 +45,17 @@ export function removeByValue<T>(arr: T[], value: T): boolean {
 	return true;
 }
 
+export function removeC<T>(arr: T[], callback: (x: T) => boolean): boolean {
+	const index = arr.findIndex(callback);
+	if (index === -1) return false;
+	arr.splice(index, 1);
+	return true;
+}
+
 /**
  * shuffles the array into a random order
  */
-export function shuffleArrayInPlace(arr: any[]) {
+export function shuffleArray(arr: any[]) {
 	for (let i = arr.length - 1; i > 0; i--) {
 		const j = Math.floor(Math.random() * (i + 1));
 		const temp = arr[i];
@@ -83,6 +97,10 @@ export function spliceRandom<T>(arr: T[], count = 1): T[] {
 	return spliced;
 }
 
+export function randomElement<T>(arr: T[]): T {
+	return arr[Math.floor(Math.random() * arr.length)];
+}
+
 export function chunkArray<T>(array: T[], chunkSize: number): T[][] {
 	const tempArray: T[][] = [];
 
@@ -107,6 +125,7 @@ export function invalidNumber(x: any): boolean {
 }
 
 export function median(x: number[]): number {
+	// x is sorted in place, sorted is just a reference to x
 	const sorted = x.sort((a, b) => a - b);
 	const mid = Math.floor(sorted.length / 2);
 	return sorted.length % 2 !== 0
@@ -125,10 +144,38 @@ export function handleMessageError(err: any) {
 	}
 }
 
-export function countInArray<T>(arr: T[], callback: (x: T) => boolean): number {
+export function countInArray<T>(
+	arr: Iterable<T>,
+	callback: (x: T) => boolean
+): number {
 	let count = 0;
 	for (const x of arr) {
 		if (callback(x)) count += 1;
 	}
 	return count;
 }
+
+export function formatBool(bool: boolean): string {
+	return bool ? "**True**" : "**False**";
+}
+
+function autocompleteFilter(
+	autocompleteName: string,
+	autocompleteValue: string
+): boolean {
+	const name = autocompleteName.toLowerCase();
+	const value = autocompleteValue.trim().toLowerCase();
+	return name.startsWith(value) || name.includes(value) || value.includes(name);
+}
+
+export function autocomplete(
+	autocompleteData: ApplicationCommandOptionChoiceData[],
+	value: string
+) {
+	const matching = autocompleteData.filter(a =>
+		autocompleteFilter(a.name, value)
+	);
+	return matching.slice(0, 25);
+}
+
+export const sleep = promisify(setTimeout);

@@ -1,6 +1,7 @@
 import {
 	AutocompleteInteraction,
 	ChatInputCommandInteraction,
+	UserContextMenuCommandInteraction,
 } from "discord.js";
 
 export const cooldownMax = 18_000;
@@ -12,3 +13,6 @@ type FuncHelper<T> = (
 ) => Promise<unknown>;
 export type RunFunc = FuncHelper<ChatInputCommandInteraction<"cached">>;
 export type AutocompleteFunc = FuncHelper<AutocompleteInteraction>;
+export type ContextMenuRunFunc = FuncHelper<
+	UserContextMenuCommandInteraction<"cached">
+>;

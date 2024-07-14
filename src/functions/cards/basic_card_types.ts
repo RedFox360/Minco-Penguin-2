@@ -1,4 +1,4 @@
-import { type ExtCard } from "./bs_poker/bs_poker_types.js";
+import { type ExtCard } from "../bs_poker/bs_poker_types.js";
 
 export type Suit = "H" | "D" | "C" | "S";
 export type Value =

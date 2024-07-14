@@ -1,5 +1,5 @@
 import { AnyCard, emoji, newEmoji, newEmojiSuits } from "./basic_card_types.js";
-import { ExtValue } from "./bs_poker/bs_poker_types.js";
+import { ExtValue } from "../bs_poker/bs_poker_types.js";
 
 export function suitToBasicEmoji(suit: string) {
 	switch (suit) {

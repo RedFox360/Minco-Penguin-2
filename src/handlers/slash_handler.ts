@@ -1,4 +1,4 @@
-import { rest, slashCommands } from "../main.js";
+import { inDev, rest, slashCommands } from "../main.js";
 import {
 	Routes,
 	Client,
@@ -12,23 +12,23 @@ import UserContextMenu from "../core/UserContextMenu.js";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 
+type CommandPromises = Promise<{ default: SlashCommand | UserContextMenu }>[];
+type CommandData = (
+	| RESTPostAPIChatInputApplicationCommandsJSONBody
+	| RESTPostAPIContextMenuApplicationCommandsJSONBody
+)[];
+
 export default async function slashHandler(
 	client: Client<true>,
-	updateCommands = false,
-	inDev = false
+	updateCommands = false
 ) {
 	const dir = dirname(fileURLToPath(import.meta.url));
 	const slashPath = path.join(dir, "..", "slash_commands");
 	const slashFiles = readdirSync(slashPath).filter(
 		file => file.endsWith(".ts") || file.endsWith(".js")
 	);
-	const commandPromises: Array<
-		Promise<{ default: SlashCommand | UserContextMenu }>
-	> = [];
-	const data: (
-		| RESTPostAPIChatInputApplicationCommandsJSONBody
-		| RESTPostAPIContextMenuApplicationCommandsJSONBody
-	)[] = [];
+	const commandPromises: CommandPromises = [];
+	const data: CommandData = [];
 	slashFiles.forEach(fileName => {
 		commandPromises.push(import(path.join(slashPath, fileName)));
 	});
@@ -55,8 +55,10 @@ export default async function slashHandler(
 				body: data,
 			}
 		);
+		console.log(chalk.green("Commands updated in dev!"));
 	}
 	await rest.put(Routes.applicationCommands(client.user.id), {
 		body: data,
 	});
+	console.log(chalk.green("Commands updated globally!"));
 }

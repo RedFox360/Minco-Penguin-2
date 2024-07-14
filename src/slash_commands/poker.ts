@@ -1,6 +1,6 @@
 import SlashCommand from "../core/SlashCommand.js";
-import pokerHelp from "../functions/bs_poker/poker_help.js";
-import pokerStats from "../functions/bs_poker/poker_stats.js";
+import pokerHelp from "../functions/bs_poker/poker/poker_help.js";
+import pokerStats from "../functions/bs_poker/poker/poker_stats.js";
 
 const poker = new SlashCommand()
 	.setCommandData(builder =>

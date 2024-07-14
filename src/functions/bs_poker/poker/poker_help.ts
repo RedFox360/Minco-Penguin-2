@@ -3,9 +3,9 @@ import {
 	ComponentType,
 	StringSelectMenuBuilder,
 } from "discord.js";
-import Subcommand from "../../core/Subcommand.js";
-import helpEmbeds from "./bs_poker_help_embed.js";
-import { emojiRaw } from "../basic_card_types.js";
+import Subcommand from "../../../core/Subcommand.js";
+import helpEmbeds from "../bs_poker_help_embed.js";
+import { emojiRaw } from "../../cards/basic_card_types.js";
 
 const pokerHelp = new Subcommand()
 	.setCommandData(subcommand =>

@@ -5,7 +5,7 @@ const gift = new SlashCommand()
 	.setCommandData(builder =>
 		builder
 			.setName("gift")
-			.setDescription("Gift money to a user!")
+			.setDescription("Gift money to someone!")
 			.addUserOption(option =>
 				option
 					.setName("user")

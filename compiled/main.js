@@ -1,12 +1,11 @@
-import { ActivityType, Client, GatewayIntentBits, REST, Events, RESTJSONErrorCodes, } from "discord.js";
+import { Client, GatewayIntentBits, REST, Events, RESTJSONErrorCodes, } from "discord.js";
 import { config as loadenv } from "dotenv";
 import chalk from "chalk";
-import slashHandler from "./handlers/slash_handler.js";
-import eventHandler from "./handlers/event_handler.js";
 import { PrismaClient } from "@prisma/client";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
+import ready from "./ready.js";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.tz.setDefault("America/Los_Angeles");
@@ -26,16 +25,8 @@ const slashCommands = new Map();
 // Map: channelId -> [[player1, player2], [player1]]
 const bsPokerTeams = new Map();
 const channelsWithActiveGames = new Set();
-const readyEventName = "⏰ Ready Event";
 client.once(Events.ClientReady, async (readyClient) => {
-    console.time(readyEventName);
-    await eventHandler(readyClient);
-    await slashHandler(readyClient, updateCommands, inDev);
-    console.log(`${chalk.green(readyClient.user.tag)} is online in ${chalk.blue(readyClient.guilds.cache.size)} servers!`);
-    readyClient.user.setActivity("/bs_poker", {
-        type: ActivityType.Listening,
-    });
-    console.timeEnd(readyEventName);
+    ready(readyClient, updateCommands);
 });
 const errors = [
     RESTJSONErrorCodes.UnknownMessage,
@@ -56,5 +47,5 @@ process.on("unhandledRejection", (err) => {
 const token = inDev ? process.env.CANARY_TOKEN : process.env.TOKEN;
 const rest = new REST().setToken(token);
 client.login(token);
-export { rest, prisma, bsPokerTeams, channelsWithActiveGames, slashCommands };
+export { rest, prisma, bsPokerTeams, channelsWithActiveGames, slashCommands, inDev, };
 //# sourceMappingURL=main.js.map

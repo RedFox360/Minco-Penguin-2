@@ -206,7 +206,7 @@ const team = new SlashCommand()
             }
         })
             .catch(() => {
-            msg.edit({
+            interaction.editReply({
                 content: `:orange_circle: Team request canceled (timed out).`,
                 components: [],
             });
@@ -246,11 +246,12 @@ const team = new SlashCommand()
             });
             return;
         }
+        const displayTeamMembers = teamWithAsker
+            .filter(teamMemberId => teamMemberId !== interaction.user.id)
+            .map(userMention)
+            .join(" ");
         await interaction.reply({
-            content: `Your team members: ${teamWithAsker
-                .filter(x => x !== interaction.user.id)
-                .map(userMention)
-                .join(" ")}`,
+            content: `Your team members: ${displayTeamMembers}`,
             ephemeral: true,
         });
     }

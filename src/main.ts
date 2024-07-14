@@ -1,5 +1,4 @@
 import {
-	ActivityType,
 	Client,
 	GatewayIntentBits,
 	REST,
@@ -9,14 +8,13 @@ import {
 } from "discord.js";
 import { config as loadenv } from "dotenv";
 import chalk from "chalk";
-import slashHandler from "./handlers/slash_handler.js";
-import eventHandler from "./handlers/event_handler.js";
 import { PrismaClient } from "@prisma/client";
 import SlashCommand from "./core/SlashCommand.js";
 import UserContextMenu from "./core/UserContextMenu.js";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
+import ready from "./ready.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -43,20 +41,8 @@ const slashCommands = new Map<string, SlashCommand | UserContextMenu>();
 const bsPokerTeams = new Map<Snowflake, Snowflake[][]>();
 const channelsWithActiveGames = new Set<Snowflake>();
 
-const readyEventName = "⏰ Ready Event";
 client.once(Events.ClientReady, async readyClient => {
-	console.time(readyEventName);
-	await eventHandler(readyClient);
-	await slashHandler(readyClient, updateCommands, inDev);
-	console.log(
-		`${chalk.green(readyClient.user.tag)} is online in ${chalk.blue(
-			readyClient.guilds.cache.size
-		)} servers!`
-	);
-	readyClient.user.setActivity("/bs_poker", {
-		type: ActivityType.Listening,
-	});
-	console.timeEnd(readyEventName);
+	ready(readyClient, updateCommands);
 });
 
 const errors = [
@@ -82,4 +68,11 @@ const rest = new REST().setToken(token);
 
 client.login(token);
 
-export { rest, prisma, bsPokerTeams, channelsWithActiveGames, slashCommands };
+export {
+	rest,
+	prisma,
+	bsPokerTeams,
+	channelsWithActiveGames,
+	slashCommands,
+	inDev,
+};

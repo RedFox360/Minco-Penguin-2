@@ -1,4 +1,5 @@
-import { RESTJSONErrorCodes, TimestampStyles, time } from "discord.js";
+import { RESTJSONErrorCodes, TimestampStyles, time, } from "discord.js";
+import { promisify } from "util";
 export const colors = {
     blurple: 0x7289da,
     green: 0x76d7c4,
@@ -32,10 +33,17 @@ export function removeByValue(arr, value) {
     arr.splice(index, 1);
     return true;
 }
+export function removeC(arr, callback) {
+    const index = arr.findIndex(callback);
+    if (index === -1)
+        return false;
+    arr.splice(index, 1);
+    return true;
+}
 /**
  * shuffles the array into a random order
  */
-export function shuffleArrayInPlace(arr) {
+export function shuffleArray(arr) {
     for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         const temp = arr[i];
@@ -70,6 +78,9 @@ export function spliceRandom(arr, count = 1) {
     }
     return spliced;
 }
+export function randomElement(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
 export function chunkArray(array, chunkSize) {
     const tempArray = [];
     for (let i = 0; i < array.length; i += chunkSize) {
@@ -90,6 +101,7 @@ export function invalidNumber(x) {
     return Number.isNaN(x) || x == null;
 }
 export function median(x) {
+    // x is sorted in place, sorted is just a reference to x
     const sorted = x.sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
     return sorted.length % 2 !== 0
@@ -113,4 +125,17 @@ export function countInArray(arr, callback) {
     }
     return count;
 }
+export function formatBool(bool) {
+    return bool ? "**True**" : "**False**";
+}
+function autocompleteFilter(autocompleteName, autocompleteValue) {
+    const name = autocompleteName.toLowerCase();
+    const value = autocompleteValue.trim().toLowerCase();
+    return name.startsWith(value) || name.includes(value) || value.includes(name);
+}
+export function autocomplete(autocompleteData, value) {
+    const matching = autocompleteData.filter(a => autocompleteFilter(a.name, value));
+    return matching.slice(0, 25);
+}
+export const sleep = promisify(setTimeout);
 //# sourceMappingURL=util.js.map

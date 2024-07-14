@@ -36,10 +36,6 @@ const ping = new SlashCommand()
 		const pingEmbed = new EmbedBuilder()
 			.setColor(color)
 			.setTitle(":robot: Pong!")
-			.setAuthor({
-				name: interaction.member?.displayName ?? interaction.user.username,
-				iconURL: interaction.member.displayAvatarURL(),
-			})
 			.addFields(
 				{ name: "Status", value: status },
 				{

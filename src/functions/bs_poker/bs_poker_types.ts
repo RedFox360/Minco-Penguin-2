@@ -1,5 +1,7 @@
 import { Snowflake } from "discord.js";
-import { Suit, Value } from "../basic_card_types.js";
+import { Suit, Value } from "../cards/basic_card_types.js";
+import Player from "./classes/Player.js";
+import PlayerCollection from "./classes/PlayerCollection.js";
 
 export type ExtSuit = Suit | "j" | "i" | "bj" | "rj" | null;
 // Hearts, Diamonds, Clubs, Spades, Joker, Insurance, Black Joker, Red Joker, [No Suit/Unprovided]
@@ -162,7 +164,7 @@ export const names = [
 
 export type PlayerCall = {
 	call: Call;
-	player: Snowflake;
+	player: Player;
 };
 
 export const royalFlushes = [
@@ -252,3 +254,26 @@ export const symbolToValueObj = {
 	valet: 11,
 	grenade: 11,
 } as const;
+
+export type ReadonlyPlayerCollection = Omit<
+	PlayerCollection,
+	"delete" | "ensure" | "forEach" | "get" | "reverse" | "set" | "sort" | "sweep"
+> &
+	ReadonlyMap<Snowflake, Player>;
+
+export enum ClownState {
+	NotClowned = 0,
+	Clowned = 1,
+	ClownedAndCalled = 2,
+}
+
+export const customIds = {
+	joinMidGame: "join_mid_game_bspoker",
+	leaveMidGame: "leave_mid_game_bspoker",
+	viewCards: "view_cards_bspoker",
+	viewGameInfo: "view_game_info_bspoker",
+	bs: "bs_bspoker",
+	clown: "clown_bspoker",
+};
+
+export const customIdValues = Object.values(customIds);

@@ -1,11 +1,11 @@
-import { EmbedBuilder, Events, } from "discord.js";
+import { Collection, EmbedBuilder, Events, RESTJSONErrorCodes, } from "discord.js";
 import SlashCommand from "../core/SlashCommand.js";
 import UserContextMenu from "../core/UserContextMenu.js";
 import prettyMs from "pretty-ms";
 import { clean, colors } from "../functions/util.js";
 import { slashCommands } from "../main.js";
 // Map: {commandName -> [Map: userId -> timestamp]}
-const cooldowns = new Map();
+const cooldowns = new Collection();
 const ownerId = process.env.OWNER_ID;
 export default (client) => {
     client.on(Events.InteractionCreate, async (interaction) => {
@@ -15,7 +15,7 @@ export default (client) => {
             return;
         if (!interaction.inCachedGuild()) {
             await interaction.reply({
-                content: "Sorry, I can only be used in servers.",
+                content: "Sorry, Minco Penguin can only be used in servers.",
                 ephemeral: true,
             });
             return;
@@ -58,10 +58,8 @@ async function displayCooldowns(interaction, command) {
 }
 function handleCooldowns(interaction, command) {
     const { builder: { name: commandName }, cooldown: cooldown, } = command;
-    if (!cooldowns.has(commandName))
-        cooldowns.set(commandName, new Map());
     const currentTime = Date.now();
-    const timeStamps = cooldowns.get(commandName);
+    const timeStamps = cooldowns.ensure(commandName, () => new Map());
     if (timeStamps.has(interaction.user.id)) {
         const expTime = timeStamps.get(interaction.user.id) + cooldown;
         if (currentTime < expTime) {
@@ -76,7 +74,7 @@ function handleCooldowns(interaction, command) {
     return { cooldown: false };
 }
 async function handleError(interaction, err) {
-    if (err.code !== 10062)
+    if (err?.code !== RESTJSONErrorCodes.UnknownInteraction)
         console.error(err);
     if (interaction.user.id === ownerId) {
         const errorEmbed = new EmbedBuilder()
