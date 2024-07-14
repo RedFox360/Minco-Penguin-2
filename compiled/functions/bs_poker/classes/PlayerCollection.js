@@ -1,7 +1,6 @@
 import { Collection, userMention } from "discord.js";
 import Player from "./Player.js";
 import { bsPokerTeams, prisma } from "../../../main.js";
-import { updateProfile } from "../../../prisma/models.js";
 export default class PlayerCollection extends Collection {
     static fromIds(playerIds, channelId, options) {
         const players = playerIds.map(id => [
@@ -102,11 +101,6 @@ export default class PlayerCollection extends Collection {
         this.set(playerId, new Player(playerId, this.channelId, cards, true));
         this.removePlayerFromTeams(playerId);
         bsPokerTeams.get(this.channelId).push([playerId]);
-        await updateProfile(playerId, {
-            mincoDollars: {
-                decrement: this.options.startingBet,
-            },
-        });
     }
     formatPWSC() {
         if (!this.options.useSpecialCards)

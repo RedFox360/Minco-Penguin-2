@@ -128,11 +128,6 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 		this.set(playerId, new Player(playerId, this.channelId, cards, true));
 		this.removePlayerFromTeams(playerId);
 		bsPokerTeams.get(this.channelId).push([playerId]);
-		await updateProfile(playerId, {
-			mincoDollars: {
-				decrement: this.options.startingBet,
-			},
-		});
 	}
 
 	public formatPWSC() {
