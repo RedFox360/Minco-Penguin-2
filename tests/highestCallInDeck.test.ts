@@ -7,6 +7,8 @@ import {
 	Call,
 	HandRank,
 } from "../src/functions/bs_poker/bs_poker_types";
+import BSPokerPlayer from "../src/functions/bs_poker/classes/Player";
+import PlayerCollection from "../src/functions/bs_poker/classes/PlayerCollection";
 import { countInArray } from "../src/functions/util";
 
 const exampleDeck: ExtCard[] = [
@@ -39,33 +41,38 @@ describe("highest call in deck", () => {
 });
 
 const exampleDeck2: ExtCard[] = [
-	{ value: 1, suit: "j" },
-	{ value: 4, suit: "H" },
-	{ value: 10, suit: "C" },
-	{ value: 2, suit: "C" },
-	{ value: 2, suit: "H" },
-	{ value: 10, suit: "H" },
-	{ value: 10, suit: "S" },
-	{ value: 7, suit: "S" },
-	{ value: 7, suit: "D" },
-	{ value: 10, suit: "D" },
+	{ suit: "C", value: 2 },
+	{ suit: "S", value: 7 },
+	{ suit: "C", value: 14 },
+	{ suit: "C", value: 3 },
+	{ suit: "S", value: 3 },
+	{ suit: "S", value: 4 },
+	{ suit: "H", value: 12 },
+	{ suit: "bj", value: 1 },
+	{ suit: "D", value: 6 },
+	{ suit: "S", value: 8 },
+	{ suit: "H", value: 13 },
+	{ suit: "H", value: 6 },
+	{ suit: "D", value: 9 },
+	{ suit: "D", value: 14 },
+	{ suit: "i", value: 15 },
 ];
 
-describe("10 quad", () => {
-	test("test count", () => {
-		expect(
-			countInArray(exampleDeck2, x => x.value === 10)
-		).toBeGreaterThanOrEqual(4);
-	});
-	test("10 quad", () => {
-		const call: Call = {
-			call: HandRank.Quad,
-			high: {
-				value: 10,
-				suit: null,
-			},
-		};
-
-		expect(callInDeck(call, exampleDeck2)).toBe(true);
+describe("highest call", () => {
+	test("highest call 2", async () => {
+		const result = await highestCallInDeck(exampleDeck2, true, 0);
+		expect(result).toEqual({
+			call: HandRank.DoubleFlush,
+			high: [
+				{
+					value: 7,
+					suit: "S",
+				},
+				{
+					value: 15,
+					suit: "H",
+				},
+			],
+		});
 	});
 });

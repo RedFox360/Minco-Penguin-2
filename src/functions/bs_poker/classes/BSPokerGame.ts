@@ -140,7 +140,7 @@ class BSPoker {
 		return this.players.everPlayersLen * this.options.startingBet;
 	}
 
-	private get currentDeck(): ExtCard[] {
+	private getCurrentDeck(): ExtCard[] {
 		const deck = this.players.hands.flat(1);
 		deck.push(...this.commonCards);
 		return deck;
@@ -171,17 +171,17 @@ class BSPoker {
 		const handsList = this.players
 			.map(player => {
 				const teammates = player.displayTeammates();
-				return `<@${player.id}>${teammates}\n${player.formatHand()}`;
+				return `${player}${teammates}\n${player.formatHand()}`;
 			})
 			.join("\n");
-
+		const deck = this.getCurrentDeck();
 		this.interaction.channel
 			.send({
 				embeds: [this.getHandsEmbed(handsList)],
 			})
 			.then(handsMsg => {
 				highestCallInDeck(
-					this.currentDeck,
+					deck,
 					this.options.nonStandard,
 					this.options.insuranceCount
 				)
@@ -528,7 +528,7 @@ class BSPoker {
 
 		const callIsTrue = callInDeck(
 			this.state.currentCall.call,
-			this.currentDeck
+			this.getCurrentDeck()
 		);
 
 		let cardGainer = this.state.currentPlayer;
@@ -660,7 +660,7 @@ class BSPoker {
 	private handleCurses(): boolean {
 		const callIsTrue = callInDeck(
 			this.state.currentCall.call,
-			this.currentDeck
+			this.getCurrentDeck()
 		);
 		this.state.addToTracker(callIsTrue);
 		if (this.state.lastThreeCallTracker.every(x => x === false)) {

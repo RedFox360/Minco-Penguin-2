@@ -59,7 +59,7 @@ class BSPoker {
     get pot() {
         return this.players.everPlayersLen * this.options.startingBet;
     }
-    get currentDeck() {
+    getCurrentDeck() {
         const deck = this.players.hands.flat(1);
         deck.push(...this.commonCards);
         return deck;
@@ -81,15 +81,16 @@ class BSPoker {
         const handsList = this.players
             .map(player => {
             const teammates = player.displayTeammates();
-            return `<@${player.id}>${teammates}\n${player.formatHand()}`;
+            return `${player}${teammates}\n${player.formatHand()}`;
         })
             .join("\n");
+        const deck = this.getCurrentDeck();
         this.interaction.channel
             .send({
             embeds: [this.getHandsEmbed(handsList)],
         })
             .then(handsMsg => {
-            highestCallInDeck(this.currentDeck, this.options.nonStandard, this.options.insuranceCount)
+            highestCallInDeck(deck, this.options.nonStandard, this.options.insuranceCount)
                 .then(call => {
                 handsMsg.edit({
                     embeds: [this.getHandsEmbed(handsList, formatCall(call))],
@@ -390,7 +391,7 @@ class BSPoker {
         const bserHasRJ = this.options.useSpecialCards &&
             !this.options.useClown &&
             bser.hand.some(card => card.suit === "rj");
-        const callIsTrue = callInDeck(this.state.currentCall.call, this.currentDeck);
+        const callIsTrue = callInDeck(this.state.currentCall.call, this.getCurrentDeck());
         let cardGainer = this.state.currentPlayer;
         if (callIsTrue) {
             cardGainer = bser;
@@ -517,7 +518,7 @@ class BSPoker {
         this.state.callsOpen = true;
     }
     handleCurses() {
-        const callIsTrue = callInDeck(this.state.currentCall.call, this.currentDeck);
+        const callIsTrue = callInDeck(this.state.currentCall.call, this.getCurrentDeck());
         this.state.addToTracker(callIsTrue);
         if (this.state.lastThreeCallTracker.every(x => x === false)) {
             this.interaction.channel.send({

@@ -9,6 +9,7 @@ import ready from "./ready.js";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.tz.setDefault("America/Los_Angeles");
+console.log("@2024-07-13");
 const prisma = new PrismaClient();
 console.log(chalk.yellow("Connected to the database!"));
 const inDev = !process.argv.includes("--prod");
