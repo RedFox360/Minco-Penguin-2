@@ -45,7 +45,7 @@ class BSPoker {
         this.commonCards = [];
         this.players = PlayerCollection.fromIds(playerIds, this.interaction.channelId, options);
         this.hostId = interaction.user.id;
-        this.state = new StateManager(this.players, this.commonCards);
+        this.state = new StateManager(this.players);
         this.callValidator = new CallValidator(options, this.state);
         this.notifications = new NotificationManager(interaction.channel, this.state);
     }
@@ -58,6 +58,11 @@ class BSPoker {
     }
     get pot() {
         return this.players.everPlayersLen * this.options.startingBet;
+    }
+    get currentDeck() {
+        const deck = this.players.hands.flat(1);
+        deck.push(...this.commonCards);
+        return deck;
     }
     async sendNewNotif() {
         await this.notifications.sendNewNotif(() => {
@@ -84,7 +89,7 @@ class BSPoker {
             embeds: [this.getHandsEmbed(handsList)],
         })
             .then(handsMsg => {
-            highestCallInDeck(this.state.currentDeck, this.options.nonStandard, this.options.insuranceCount)
+            highestCallInDeck(this.currentDeck, this.options.nonStandard, this.options.insuranceCount)
                 .then(call => {
                 handsMsg.edit({
                     embeds: [this.getHandsEmbed(handsList, formatCall(call))],
@@ -385,7 +390,7 @@ class BSPoker {
         const bserHasRJ = this.options.useSpecialCards &&
             !this.options.useClown &&
             bser.hand.some(card => card.suit === "rj");
-        const callIsTrue = callInDeck(this.state.currentCall.call, this.state.currentDeck);
+        const callIsTrue = callInDeck(this.state.currentCall.call, this.currentDeck);
         let cardGainer = this.state.currentPlayer;
         if (callIsTrue) {
             cardGainer = bser;
@@ -512,7 +517,7 @@ class BSPoker {
         this.state.callsOpen = true;
     }
     handleCurses() {
-        const callIsTrue = callInDeck(this.state.currentCall.call, this.state.currentDeck);
+        const callIsTrue = callInDeck(this.state.currentCall.call, this.currentDeck);
         this.state.addToTracker(callIsTrue);
         if (this.state.lastThreeCallTracker.every(x => x === false)) {
             this.interaction.channel.send({

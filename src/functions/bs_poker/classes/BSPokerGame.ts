@@ -122,7 +122,7 @@ class BSPoker {
 			options
 		);
 		this.hostId = interaction.user.id;
-		this.state = new StateManager(this.players, this.commonCards);
+		this.state = new StateManager(this.players);
 		this.callValidator = new CallValidator(options, this.state);
 		this.notifications = new NotificationManager(
 			interaction.channel,
@@ -138,6 +138,12 @@ class BSPoker {
 
 	private get pot(): number {
 		return this.players.everPlayersLen * this.options.startingBet;
+	}
+
+	private get currentDeck(): ExtCard[] {
+		const deck = this.players.hands.flat(1);
+		deck.push(...this.commonCards);
+		return deck;
 	}
 
 	private async sendNewNotif() {
@@ -175,7 +181,7 @@ class BSPoker {
 			})
 			.then(handsMsg => {
 				highestCallInDeck(
-					this.state.currentDeck,
+					this.currentDeck,
 					this.options.nonStandard,
 					this.options.insuranceCount
 				)
@@ -522,7 +528,7 @@ class BSPoker {
 
 		const callIsTrue = callInDeck(
 			this.state.currentCall.call,
-			this.state.currentDeck
+			this.currentDeck
 		);
 
 		let cardGainer = this.state.currentPlayer;
@@ -654,7 +660,7 @@ class BSPoker {
 	private handleCurses(): boolean {
 		const callIsTrue = callInDeck(
 			this.state.currentCall.call,
-			this.state.currentDeck
+			this.currentDeck
 		);
 		this.state.addToTracker(callIsTrue);
 		if (this.state.lastThreeCallTracker.every(x => x === false)) {

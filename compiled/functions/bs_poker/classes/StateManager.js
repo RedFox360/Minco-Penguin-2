@@ -1,8 +1,7 @@
 import { formatCall } from "../bs_poker_functions.js";
 export default class StateManager {
-    constructor(players, commonCards) {
+    constructor(players) {
         this.players = players;
-        this.commonCards = commonCards;
         this.roundInProgress = false;
         this.lastThreeCallTracker = [true, true, true];
         this.callsOpen = true;
@@ -43,11 +42,6 @@ export default class StateManager {
     }
     reverseIdx() {
         this.currentPlayerIndex = this.players.size - this.currentPlayerIndex - 1;
-    }
-    get currentDeck() {
-        const deck = this.players.hands.flat(1);
-        deck.push(...this.commonCards);
-        return deck;
     }
     reset() {
         this.roundInProgress = true;

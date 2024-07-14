@@ -1,12 +1,11 @@
 import { Snowflake } from "discord.js";
 import {
 	ClownState,
-	ExtCard,
 	PlayerCall,
 	ReadonlyPlayerCollection,
 } from "../bs_poker_types.js";
 import Player from "./Player.js";
-import { callInDeck, formatCall } from "../bs_poker_functions.js";
+import { formatCall } from "../bs_poker_functions.js";
 
 export default class StateManager {
 	public roundInProgress = false;
@@ -20,10 +19,7 @@ export default class StateManager {
 	private _round = 0;
 	private _currPlayerIdx = 0;
 
-	constructor(
-		private readonly players: ReadonlyPlayerCollection,
-		private readonly commonCards: ExtCard[]
-	) {}
+	constructor(private readonly players: ReadonlyPlayerCollection) {}
 
 	public get round() {
 		return this._round;
@@ -59,12 +55,6 @@ export default class StateManager {
 
 	public reverseIdx() {
 		this.currentPlayerIndex = this.players.size - this.currentPlayerIndex - 1;
-	}
-
-	public get currentDeck(): ExtCard[] {
-		const deck = this.players.hands.flat(1);
-		deck.push(...this.commonCards);
-		return deck;
 	}
 
 	public reset() {
