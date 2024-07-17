@@ -19,8 +19,10 @@ export default class StateManager {
         return this._round;
     }
     setCurrentCall(call) {
-        this._currentCall.call = call;
-        this._currentCall.player = this.currentPlayer;
+        this._currentCall = {
+            call,
+            player: this.currentPlayer,
+        };
     }
     get currentPlayerIndex() {
         if (this._currPlayerIdx < 0 || this._currPlayerIdx >= this.players.size) {

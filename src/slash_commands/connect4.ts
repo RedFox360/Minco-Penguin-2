@@ -12,7 +12,7 @@ const customIds = {
 	accept: "accept_connect4",
 	decline: "decline_connect4",
 };
-const timeToJoin = 10_000;
+const timeToJoin = 60_000;
 
 const acceptButton = new ButtonBuilder()
 	.setLabel("Accept")

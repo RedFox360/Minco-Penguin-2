@@ -23,11 +23,14 @@ export default class CallValidator {
 			// Call could not be parsed
 			return false;
 		}
-		if (this.options.useClown) {
+		if (
+			this.options.useClown &&
+			this.state.clowned === ClownState.ClownedAndCalled
+		) {
 			const hasClown = this.state.currentPlayer.hand?.some(
 				c => c.suit === "rj"
 			);
-			if (hasClown && this.state.clowned === ClownState.ClownedAndCalled) {
+			if (hasClown) {
 				message.reply({
 					content: `${emoji.clown} You have clowned this round and now it is your turn. You must call BS. ${emoji.clown}`,
 				});

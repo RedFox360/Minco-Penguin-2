@@ -167,7 +167,7 @@ function autocompleteFilter(
 }
 
 export function autocomplete(
-	autocompleteData: ApplicationCommandOptionChoiceData[],
+	autocompleteData: readonly ApplicationCommandOptionChoiceData[],
 	value: string
 ) {
 	const matching = autocompleteData.filter(a =>
@@ -186,7 +186,7 @@ interface TableReturnData {
 }
 
 export function asciiTable(
-	items: readonly TableItem[],
+	items: readonly Readonly<TableItem>[],
 	data: ReadonlyArray<ReadonlyArray<string>>
 ): TableReturnData {
 	const top = items.map(item => item.name.padEnd(item.pad)).join("");

@@ -4,6 +4,9 @@ import { suitToBasicEmoji, valueToSymbol, } from "../cards/basic_card_functions.
 import { countInArray, invalidNumber } from "../util.js";
 const toEmptyRgx = /[.,!]/g;
 const toSpacesRgx = /-/g;
+function namesHas(index, given) {
+    return names[index].some(name => given.startsWith(name));
+}
 export function parseCall(givenCall) {
     try {
         const call = givenCall
@@ -19,15 +22,15 @@ export function parseCall(givenCall) {
                 call: HandRank.StraightFlush,
             };
         }
-        const split = call.split(" ");
-        const pairAppearances = countInArray(split, x => names[RNI[HandRank.Pair]].includes(x));
+        const tokens = call.split(" ");
+        const pairAppearances = countInArray(tokens, x => names[RNI[HandRank.Pair]].includes(x));
         if (pairAppearances === 2) {
             // double pair case
             // double pairs are asked like this: 2 pair 4 pair
-            const high1 = symbolToValue(split[0]);
+            const high1 = symbolToValue(tokens[0]);
             if (invalidNumber(high1))
                 return null;
-            const high2 = symbolToValue(split[2]);
+            const high2 = symbolToValue(tokens[2]);
             if (invalidNumber(high2))
                 return null;
             return {
@@ -38,13 +41,13 @@ export function parseCall(givenCall) {
         if (pairAppearances === 3) {
             // triple pair case
             // triple pairs are asked like this: 2 pair 4 pair 6 pair
-            const high1 = symbolToValue(split[0]);
+            const high1 = symbolToValue(tokens[0]);
             if (invalidNumber(high1))
                 return null;
-            const high2 = symbolToValue(split[2]);
+            const high2 = symbolToValue(tokens[2]);
             if (invalidNumber(high2))
                 return null;
-            const high3 = symbolToValue(split[4]);
+            const high3 = symbolToValue(tokens[4]);
             if (invalidNumber(high3))
                 return null;
             return {
@@ -52,14 +55,14 @@ export function parseCall(givenCall) {
                 call: HandRank.TriplePair,
             };
         }
-        const tripleAppearances = countInArray(split, x => names[RNI[HandRank.Triple]].includes(x));
+        const tripleAppearances = countInArray(tokens, x => names[RNI[HandRank.Triple]].includes(x));
         if (tripleAppearances === 2) {
             // double triple case
             // double triples are asked like this: 2 triple 4 triple
-            const high1 = symbolToValue(split[0]);
+            const high1 = symbolToValue(tokens[0]);
             if (invalidNumber(high1))
                 return null;
-            const high2 = symbolToValue(split[2]);
+            const high2 = symbolToValue(tokens[2]);
             if (invalidNumber(high2))
                 return null;
             return {
@@ -69,13 +72,13 @@ export function parseCall(givenCall) {
         }
         // Full Houses
         if (pairAppearances === 1 && tripleAppearances === 1) {
-            const tripleIndex = split.findIndex(x => names[RNI[HandRank.Triple]].includes(x));
-            const pairIndex = split.findIndex(x => names[RNI[HandRank.Pair]].includes(x));
+            const tripleIndex = tokens.findIndex(x => names[RNI[HandRank.Triple]].includes(x));
+            const pairIndex = tokens.findIndex(x => names[RNI[HandRank.Pair]].includes(x));
             const indices = tripleIndex < pairIndex ? [0, 2] : [2, 0];
-            const high1 = symbolToValue(split[indices[0]]);
+            const high1 = symbolToValue(tokens[indices[0]]);
             if (invalidNumber(high1))
                 return null;
-            const high2 = symbolToValue(split[indices[1]]);
+            const high2 = symbolToValue(tokens[indices[1]]);
             if (invalidNumber(high2))
                 return null;
             return {
@@ -83,48 +86,47 @@ export function parseCall(givenCall) {
                 call: HandRank.FullHouse,
             };
         }
-        const high = symbolToValue(split[0]);
+        const high = symbolToValue(tokens[0]);
         if (high === null)
             return null;
-        const callName = split.slice(1).join(" ");
+        const callName = tokens.slice(1).join(" ");
         const callIndex = names.findIndex(name => name.includes(callName));
-        const call1 = split.findIndex(x => symbolToValue(x) !== null);
-        const call2 = split.findLastIndex(x => symbolToValue(x) !== null);
+        const call1 = tokens.findIndex(x => symbolToValue(x) !== null);
+        const call2 = tokens.findLastIndex(x => symbolToValue(x) !== null);
         const c1c2good = call1 !== -1 && call2 !== -1 && call1 !== call2;
         // Split the call into 4 sections
         // Example call: A flush hearts K flush clubs -> ["A", "flush hearts", "K", "flush clubs"]
         // the indexes of the A and K are given in call1 and call2
         const newSplit = c1c2good
             ? [
-                split
+                tokens
                     .slice(0, call1 + 1)
                     .join(" ")
                     .trim(),
-                split
+                tokens
                     .slice(call1 + 1, call2)
                     .join(" ")
                     .trim(),
-                split
+                tokens
                     .slice(call2, call2 + 1)
                     .join(" ")
                     .trim(),
-                split
+                tokens
                     .slice(call2 + 1)
                     .join(" ")
                     .trim(),
             ]
             : null;
-        const has = (index, x) => names[index].some(y => x.startsWith(y));
         const flushAppearances = newSplit
             ? newSplit
                 .map((x) => {
-                if (has(RNI[HandRank.Flush], x))
+                if (namesHas(RNI[HandRank.Flush], x))
                     return "H";
-                if (has(RNI[HandRank.Flush + 1], x))
+                if (namesHas(RNI[HandRank.Flush + 1], x))
                     return "D";
-                if (has(RNI[HandRank.Flush + 2], x))
+                if (namesHas(RNI[HandRank.Flush + 2], x))
                     return "C";
-                if (has(RNI[HandRank.Flush + 3], x))
+                if (namesHas(RNI[HandRank.Flush + 3], x))
                     return "S";
                 return null;
             })

@@ -31,8 +31,10 @@ export default class StateManager {
 	}
 
 	public setCurrentCall(call: Call) {
-		this._currentCall.call = call;
-		this._currentCall.player = this.currentPlayer;
+		this._currentCall = {
+			call,
+			player: this.currentPlayer,
+		};
 	}
 
 	private get currentPlayerIndex(): number {

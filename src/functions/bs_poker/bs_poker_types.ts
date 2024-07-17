@@ -269,9 +269,9 @@ export type ReadonlyPlayerCollection = Omit<
 	ReadonlyMap<Snowflake, Player>;
 
 export enum ClownState {
-	NotClowned = 0,
-	Clowned = 1,
-	ClownedAndCalled = 2,
+	NotClowned,
+	Clowned,
+	ClownedAndCalled,
 }
 
 export const customIds = {

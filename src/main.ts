@@ -5,7 +5,6 @@ import {
 	REST,
 	Events,
 	RESTJSONErrorCodes,
-	Collection,
 } from "discord.js";
 import { config as loadenv } from "dotenv";
 import chalk from "chalk";
