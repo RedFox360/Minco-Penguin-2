@@ -1,4 +1,4 @@
-import { APIEmbed } from "discord.js";
+import { type APIEmbed } from "discord.js";
 import { colors } from "../util.js";
 
 const helpEmbeds: APIEmbed[] = [

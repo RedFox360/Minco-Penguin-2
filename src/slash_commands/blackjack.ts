@@ -54,7 +54,12 @@ const blackjackCommand = new SlashCommand()
 		}
 		await interaction.deferReply();
 		const game = new Blackjack(interaction, bet, isSession, rounds);
-		game.gameLogic();
+		game.gameLogic().catch(e => {
+			interaction.channel.send(
+				"Sorry, an error has occurred and the game has aborted."
+			);
+			console.error(e);
+		});
 	});
 
 export default blackjackCommand;

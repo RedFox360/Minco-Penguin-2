@@ -1,10 +1,10 @@
 import {
-	ChatInputCommandInteraction,
+	type ChatInputCommandInteraction,
 	EmbedBuilder,
-	Message,
-	MessageCollector,
+	type Message,
+	type MessageCollector,
 	RESTJSONErrorCodes,
-	Snowflake,
+	type Snowflake,
 } from "discord.js";
 import { colors, invalidNumber, replyThenDelete } from "../util.js";
 import { updateProfile } from "../../prisma/models.js";
@@ -13,7 +13,7 @@ class ColumnFullError extends Error {}
 
 const gameTime = 1_800_000;
 type Board = (0 | 1 | -1)[][];
-class Connect4 {
+export default class Connect4 {
 	// 6x7 board
 	// 1 = player, -1 = opponent
 	board: Board;
@@ -294,5 +294,3 @@ class Connect4 {
 		return;
 	}
 }
-
-export default Connect4;

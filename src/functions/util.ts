@@ -1,6 +1,8 @@
 import {
-	ApplicationCommandOptionChoiceData,
-	Message,
+	type ApplicationCommandOptionChoiceData,
+	type Message,
+	type MessagePayload,
+	type MessageReplyOptions,
 	RESTJSONErrorCodes,
 	TimestampStyles,
 	time,
@@ -70,18 +72,14 @@ export function shuffleArray(arr: any[]) {
  */
 export function replyThenDelete(
 	message: Message,
-	text: string,
+	text: string | MessagePayload | MessageReplyOptions,
 	timeoutMS = 20_000
 ) {
-	message
-		.reply({
-			content: text,
-		})
-		.then(msg => {
-			setTimeout(() => {
-				msg.delete();
-			}, timeoutMS);
-		});
+	message.reply(text).then(msg => {
+		setTimeout(() => {
+			msg.delete();
+		}, timeoutMS);
+	});
 }
 
 /**
@@ -97,11 +95,11 @@ export function spliceRandom<T>(arr: T[], count = 1): T[] {
 	return spliced;
 }
 
-export function randomElement<T>(arr: T[]): T {
+export function randomElement<T>(arr: readonly T[]): T {
 	return arr[Math.floor(Math.random() * arr.length)];
 }
 
-export function chunkArray<T>(array: T[], chunkSize: number): T[][] {
+export function chunkArray<T>(array: readonly T[], chunkSize: number): T[][] {
 	const tempArray: T[][] = [];
 
 	for (let i = 0; i < array.length; i += chunkSize) {
@@ -176,6 +174,35 @@ export function autocomplete(
 		autocompleteFilter(a.name, value)
 	);
 	return matching.slice(0, 25);
+}
+
+interface TableItem {
+	name: string;
+	pad: number;
+}
+interface TableReturnData {
+	top: string;
+	rows: string[];
+}
+
+export function asciiTable(
+	items: readonly TableItem[],
+	data: ReadonlyArray<ReadonlyArray<string>>
+): TableReturnData {
+	const top = items.map(item => item.name.padEnd(item.pad)).join("");
+	const rows = data.map(row => {
+		const rowFormatted = row
+			.map((cell, i) => {
+				const item = items[i];
+				return cell.padEnd(item.pad);
+			})
+			.join("");
+		return `\`${rowFormatted}\``;
+	});
+	return {
+		top,
+		rows,
+	};
 }
 
 export const sleep = promisify(setTimeout);

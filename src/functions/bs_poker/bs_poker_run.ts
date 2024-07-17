@@ -1,8 +1,8 @@
 import {
+	type ChatInputCommandInteraction,
 	ActionRowBuilder,
 	ButtonBuilder,
 	ButtonStyle,
-	ChatInputCommandInteraction,
 	ComponentType,
 	EmbedBuilder,
 	userMention,
@@ -249,11 +249,12 @@ Otherwise, the game will start ${startTime}`)
 
 		game.gameLogic().catch(e => {
 			interaction.channel.send(
-				"Sorry, but an unknown error occured while running the game and the game has aborted."
+				"Sorry, an error has occurred and the game has aborted."
 			);
 			console.error(e);
 
 			channelsWithActiveGames.delete(interaction.channelId);
+			bsPokerTeams.delete(interaction.channelId);
 		});
 	});
 }

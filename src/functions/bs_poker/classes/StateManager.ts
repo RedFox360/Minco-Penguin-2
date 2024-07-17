@@ -1,31 +1,41 @@
-import { Snowflake } from "discord.js";
+import { type Snowflake } from "discord.js";
 import {
+	Call,
 	ClownState,
-	PlayerCall,
-	ReadonlyPlayerCollection,
+	type PlayerCall,
+	type ReadonlyPlayerCollection,
 } from "../bs_poker_types.js";
-import Player from "./Player.js";
+import type Player from "./Player.js";
 import { formatCall } from "../bs_poker_functions.js";
 
 export default class StateManager {
 	public roundInProgress = false;
-	public lastThreeCallTracker: [boolean, boolean, boolean] = [true, true, true];
 	public callsOpen = true;
 	public bsCalled = false;
 	public aborted = false;
 	public bxOpen = false;
 	public clowned: ClownState;
-	public currentCall: PlayerCall | null = null;
+	private last3CallsTracker: [boolean, boolean, boolean] = [true, true, true];
+	private _currentCall: PlayerCall | null = null;
 	private _round = 0;
 	private _currPlayerIdx = 0;
 
 	constructor(private readonly players: ReadonlyPlayerCollection) {}
 
+	public get currentCall() {
+		return this._currentCall;
+	}
+
 	public get round() {
 		return this._round;
 	}
 
-	public get currentPlayerIndex(): number {
+	public setCurrentCall(call: Call) {
+		this._currentCall.call = call;
+		this._currentCall.player = this.currentPlayer;
+	}
+
+	private get currentPlayerIndex(): number {
 		if (this._currPlayerIdx < 0 || this._currPlayerIdx >= this.players.size) {
 			return 0;
 		} else {
@@ -60,10 +70,10 @@ export default class StateManager {
 	public reset() {
 		this.roundInProgress = true;
 		this.bsCalled = false;
-		this.currentCall = null;
+		this._currentCall = null;
 		this.callsOpen = true;
 		this.clowned = 0;
-		this.lastThreeCallTracker = [true, true, true];
+		this.last3CallsTracker = [true, true, true];
 	}
 
 	public nextRound() {
@@ -75,7 +85,11 @@ export default class StateManager {
 	}
 
 	public addToTracker(val: boolean) {
-		this.lastThreeCallTracker.shift();
-		this.lastThreeCallTracker.push(val);
+		this.last3CallsTracker.shift();
+		this.last3CallsTracker.push(val);
+	}
+
+	public last3CallsFalse() {
+		return this.last3CallsTracker.every(x => x === false);
 	}
 }

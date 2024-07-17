@@ -4,7 +4,7 @@ import { updateProfile } from "../../prisma/models.js";
 class ColumnFullError extends Error {
 }
 const gameTime = 1800000;
-class Connect4 {
+export default class Connect4 {
     static createBoard() {
         return Array.from({ length: 6 }, () => Array.from({ length: 7 }, () => 0));
     }
@@ -221,5 +221,4 @@ class Connect4 {
         return;
     }
 }
-export default Connect4;
 //# sourceMappingURL=connect4_class.js.map

@@ -1,7 +1,7 @@
-import { Snowflake } from "discord.js";
-import { Suit, Value } from "../cards/basic_card_types.js";
-import Player from "./classes/Player.js";
-import PlayerCollection from "./classes/PlayerCollection.js";
+import type { Snowflake } from "discord.js";
+import type { Suit, Value } from "../cards/basic_card_types.js";
+import type Player from "./classes/Player.js";
+import type PlayerCollection from "./classes/PlayerCollection.js";
 
 export type ExtSuit = Suit | "j" | "i" | "bj" | "rj" | null;
 // Hearts, Diamonds, Clubs, Spades, Joker, Insurance, Black Joker, Red Joker, [No Suit/Unprovided]
@@ -55,11 +55,18 @@ export const RNI = {
 
 export const RNIKeys = Object.keys(RNI).map(n => parseInt(n));
 
-export type Call = OneCall | TwoCall | ThreeCall | DoubleFlushCall;
+export type Call = Readonly<OneCall | TwoCall | ThreeCall | DoubleFlushCall>;
 
 interface OneCall {
 	high: ExtCard;
-	call: HandRank;
+	call: Exclude<
+		HandRank,
+		| HandRank.DoublePair
+		| HandRank.FullHouse
+		| HandRank.DoubleTriple
+		| HandRank.TriplePair
+		| HandRank.DoubleFlush
+	>;
 }
 interface TwoCall {
 	high: [ExtValue, ExtValue];

@@ -29,12 +29,12 @@ const pokerStats = new Subcommand()
 		const embed = new EmbedBuilder()
 			.setColor(colors.brightGreen)
 			.setAuthor({
-				iconURL: member.user.displayAvatarURL(),
 				name: `${member.displayName}'s BS Poker Stats`,
+				iconURL: member.displayAvatarURL(),
 			})
 			.setDescription(
-				`Wins: **${wins}**
-Games Played: **${gamesPlayed}**
+				`Wins: **${wins.toLocaleString()}**
+Games Played: **${gamesPlayed.toLocaleString()}**
 Win Rate: **${winPerc}%**
 Raw Rating: **${rawRating.toFixed(2)}**
 Skill: **${skill}%**`

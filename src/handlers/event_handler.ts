@@ -1,5 +1,5 @@
 import { readdirSync } from "fs";
-import { Client } from "discord.js";
+import { type Client } from "discord.js";
 import chalk from "chalk";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
@@ -23,7 +23,9 @@ export default async function eventHandler(client: Client<true>) {
 		console.log(chalk.yellow(eventName));
 	}
 	const events = await Promise.all(eventPromises);
-	events.forEach(exports => exports.default(client));
+	for (const exports of events) {
+		exports.default(client);
+	}
 	console.log(
 		`${chalk.green("events loaded")} || event count: ${eventNames.length}`
 	);

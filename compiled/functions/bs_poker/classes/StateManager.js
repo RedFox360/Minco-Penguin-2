@@ -3,17 +3,24 @@ export default class StateManager {
     constructor(players) {
         this.players = players;
         this.roundInProgress = false;
-        this.lastThreeCallTracker = [true, true, true];
         this.callsOpen = true;
         this.bsCalled = false;
         this.aborted = false;
         this.bxOpen = false;
-        this.currentCall = null;
+        this.last3CallsTracker = [true, true, true];
+        this._currentCall = null;
         this._round = 0;
         this._currPlayerIdx = 0;
     }
+    get currentCall() {
+        return this._currentCall;
+    }
     get round() {
         return this._round;
+    }
+    setCurrentCall(call) {
+        this._currentCall.call = call;
+        this._currentCall.player = this.currentPlayer;
     }
     get currentPlayerIndex() {
         if (this._currPlayerIdx < 0 || this._currPlayerIdx >= this.players.size) {
@@ -46,10 +53,10 @@ export default class StateManager {
     reset() {
         this.roundInProgress = true;
         this.bsCalled = false;
-        this.currentCall = null;
+        this._currentCall = null;
         this.callsOpen = true;
         this.clowned = 0;
-        this.lastThreeCallTracker = [true, true, true];
+        this.last3CallsTracker = [true, true, true];
     }
     nextRound() {
         this._round += 1;
@@ -58,8 +65,11 @@ export default class StateManager {
         return formatCall(this.currentCall?.call);
     }
     addToTracker(val) {
-        this.lastThreeCallTracker.shift();
-        this.lastThreeCallTracker.push(val);
+        this.last3CallsTracker.shift();
+        this.last3CallsTracker.push(val);
+    }
+    last3CallsFalse() {
+        return this.last3CallsTracker.every(x => x === false);
     }
 }
 //# sourceMappingURL=StateManager.js.map

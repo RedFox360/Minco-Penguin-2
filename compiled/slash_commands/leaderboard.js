@@ -1,16 +1,7 @@
-import { ButtonStyle, ComponentType, EmbedBuilder, } from "discord.js";
-import { ActionRowBuilder, ButtonBuilder, } from "discord.js";
 import SlashCommand from "../core/SlashCommand.js";
 import { prisma } from "../main.js";
-import { chunkArray, invalidNumber } from "../functions/util.js";
-const chunkSize = 15;
-const collectorTime = 180000;
-const customIds = {
-    first: "first_lb",
-    prev: "prev_lb",
-    next: "next_lb",
-    last: "last_lb",
-};
+import { asciiTable, invalidNumber } from "../functions/util.js";
+import LeaderboardPaginator from "../functions/classes/LeaderboardPaginator.js";
 const leaderboard = new SlashCommand()
     .setCommandData(builder => builder
     .setName("leaderboard")
@@ -22,15 +13,8 @@ const leaderboard = new SlashCommand()
     .setName("poker_stats")
     .setDescription("View the Poker Stats leaderboard of the server")))
     .setCooldown(60)
-    .setRun(run);
-async function run(interaction, givenUsingStats = false, ephemeral = false, givenProfiles, givenCurrentPage = 0) {
-    let usingStats = false;
-    if (!givenUsingStats && interaction.isCommand()) {
-        usingStats = interaction.options.getSubcommand() === "poker_stats";
-    }
-    let profiles = givenProfiles;
-    let currentPage = givenCurrentPage;
-    await interaction.deferReply({ ephemeral });
+    .setRun(async (interaction) => {
+    const isMD = interaction.options.getSubcommand() === "md";
     let members;
     try {
         members = await interaction.guild.members.fetch({
@@ -44,191 +28,93 @@ async function run(interaction, givenUsingStats = false, ephemeral = false, give
         });
         return;
     }
-    if (!profiles) {
-        const nonBots = members.filter(member => !member.user.bot);
-        profiles = (await prisma.profile.findMany({
-            where: {
-                userId: {
-                    in: nonBots.map(member => member.id),
-                },
+    await interaction.deferReply();
+    const nonBotIds = members
+        .filter(member => !member.user.bot)
+        .map(member => member.id);
+    const profiles = await prisma.profile.findMany({
+        where: {
+            userId: {
+                in: nonBotIds,
             },
+        },
+    });
+    if (isMD) {
+        const rawData = profiles
+            .map(profile => ({
+            id: profile.userId,
+            total: profile.mincoDollars + profile.bank,
         }))
-            .map(profile => {
-            if (!profile)
-                return null;
-            const member = members.get(profile.userId);
-            if (usingStats) {
-                if (profile.bsPokerGamesPlayed < 5) {
-                    return null;
-                }
-                const winRate = Math.floor((profile.bsPokerWins / profile.bsPokerGamesPlayed) * 100);
-                const skill = Math.floor((profile.bsPokerRating / profile.bsPokerGamesPlayed) * 100);
-                if (invalidNumber(skill))
-                    return null;
-                return {
-                    str: `${member.displayName}: WR: **${winRate}%**, Skill: **${skill}%**`,
-                    total: skill,
-                    wr: winRate,
-                    id: member.id,
-                };
-            }
-            else {
-                const total = profile.mincoDollars + profile.bank;
-                return {
-                    str: `${member.displayName}: **${total.toLocaleString(interaction.locale)} MD**`,
-                    total,
-                    id: member.id,
-                };
-            }
-        })
-            .filter(x => x != null);
+            .sort((a, b) => b.total - a.total);
+        const formatted = rawData.map(d => {
+            const member = members.get(d.id);
+            return `${member?.displayName ?? `<@${d.id}>`}: **${d.total.toLocaleString()}**`;
+        });
+        const inCirculation = profiles.reduce((acc, curr) => acc + curr.mincoDollars, 0);
+        const paginator = new LeaderboardPaginator({
+            title: "MD Leaderboard",
+            description: `MD in Circulation: **${inCirculation.toLocaleString()}**`,
+            id: interaction.id,
+            creatorId: interaction.user.id,
+            creatorRank: rawData.findIndex(d => d.id === interaction.user.id) + 1,
+            data: formatted,
+        });
+        const msg = await interaction.editReply(paginator.getMessage());
+        paginator.loadCollector(msg);
     }
-    const formatted = profiles
-        .sort((a, b) => {
-        if (usingStats) {
-            if (a.total === b.total) {
+    else {
+        const validProfiles = profiles.filter(profile => profile && profile.bsPokerGamesPlayed > 4);
+        const namePad = Math.max(...validProfiles.map(p => members.get(p.userId)?.displayName?.length ?? 0)) + 1;
+        const items = [
+            {
+                name: "Name",
+                pad: namePad,
+            },
+            {
+                name: "Win%",
+                pad: 5,
+            },
+            {
+                name: "Skill",
+                pad: 5,
+            },
+        ];
+        const rawData = validProfiles
+            .map(profile => {
+            let skill = profile.bsPokerRating / profile.bsPokerGamesPlayed;
+            if (invalidNumber(skill))
+                skill = 0;
+            let wr = profile.bsPokerWins / profile.bsPokerGamesPlayed;
+            if (invalidNumber(wr))
+                wr = 0;
+            return {
+                id: profile.userId,
+                skill,
+                wr,
+            };
+        })
+            .sort((a, b) => {
+            if (a.skill === b.skill)
                 return b.wr - a.wr;
-            }
-        }
-        return b.total - a.total;
-    })
-        .map((val, index) => [`**${index + 1}** ${val.str}`, val.total, val.id]);
-    const slices = chunkArray(formatted, chunkSize);
-    const authorIndex = profiles.findIndex(e => e.id === interaction.user.id);
-    const first = new ButtonBuilder()
-        .setCustomId(customIds.first)
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji("⏪")
-        .setDisabled(currentPage === 0);
-    const previous = new ButtonBuilder()
-        .setCustomId(customIds.prev)
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji("⬅️")
-        .setDisabled(currentPage === 0);
-    const next = new ButtonBuilder()
-        .setCustomId(customIds.next)
-        .setEmoji("➡️")
-        .setStyle(ButtonStyle.Primary)
-        .setDisabled(currentPage === slices.length - 1);
-    const last = new ButtonBuilder()
-        .setCustomId(customIds.last)
-        .setEmoji("⏩")
-        .setStyle(ButtonStyle.Primary)
-        .setDisabled(currentPage === slices.length - 1);
-    const length = slices.length;
-    const inCirculation = profiles.reduce((acc, profile) => acc + profile.total, 0);
-    const getDescription = () => {
-        if (usingStats) {
-            return `*Only people with 5 or more games played are displayed*\n\n${format(slices[currentPage])}`;
-        }
-        return `Minco Dollars in circulation: **${inCirculation.toLocaleString(interaction.locale)}**\n\n${format(slices[currentPage])}`;
-    };
-    const getFooter = () => `Page ${currentPage + 1}/${length} • Your leaderboard rank: ${authorIndex + 1}`;
-    const lbEmbed = new EmbedBuilder()
-        .setTitle("Leaderboard")
-        .setColor(0xe67e22) // orange
-        .setDescription(getDescription())
-        .setFooter({
-        text: getFooter(),
-    });
-    await interaction.editReply({
-        embeds: [lbEmbed],
-        components: [
-            new ActionRowBuilder().addComponents(first, previous, next, last),
-        ],
-    });
-    const msg = await interaction.fetchReply();
-    if (length === 1)
-        return;
-    const collector = msg.createMessageComponentCollector({
-        time: collectorTime,
-        componentType: ComponentType.Button,
-    });
-    collector.on("collect", async (buttonInteraction) => {
-        if (buttonInteraction.user.id !== interaction.user.id) {
-            await run(buttonInteraction, usingStats, true, profiles, currentPage);
-            return;
-        }
-        switch (buttonInteraction.customId) {
-            case customIds.first: {
-                currentPage = 0;
-                first.setDisabled();
-                previous.setDisabled();
-                next.setDisabled(false);
-                last.setDisabled(false);
-                lbEmbed.setDescription(getDescription()).setFooter({
-                    text: getFooter(),
-                });
-                buttonInteraction.update({
-                    embeds: [lbEmbed],
-                    components: [
-                        new ActionRowBuilder().addComponents(first, previous, next, last),
-                    ],
-                });
-                break;
-            }
-            case customIds.prev: {
-                currentPage -= 1;
-                next.setDisabled(false);
-                last.setDisabled(false);
-                if (currentPage === 0) {
-                    previous.setDisabled();
-                    first.setDisabled();
-                }
-                lbEmbed.setDescription(getDescription()).setFooter({
-                    text: getFooter(),
-                });
-                buttonInteraction.update({
-                    embeds: [lbEmbed],
-                    components: [
-                        new ActionRowBuilder().addComponents(first, previous, next, last),
-                    ],
-                });
-                break;
-            }
-            case customIds.next: {
-                currentPage += 1;
-                previous.setDisabled(false);
-                first.setDisabled(false);
-                if (currentPage + 1 === length) {
-                    next.setDisabled();
-                    last.setDisabled();
-                }
-                lbEmbed.setDescription(getDescription()).setFooter({
-                    text: getFooter(),
-                });
-                buttonInteraction.update({
-                    embeds: [lbEmbed],
-                    components: [
-                        new ActionRowBuilder().addComponents(first, previous, next, last),
-                    ],
-                });
-                break;
-            }
-            case customIds.last: {
-                currentPage = length - 1;
-                previous.setDisabled(false);
-                first.setDisabled(false);
-                next.setDisabled();
-                last.setDisabled();
-                lbEmbed.setDescription(getDescription()).setFooter({
-                    text: getFooter(),
-                });
-                buttonInteraction.update({
-                    embeds: [lbEmbed],
-                    components: [
-                        new ActionRowBuilder().addComponents(first, previous, next, last),
-                    ],
-                });
-                break;
-            }
-        }
-    });
-}
-function format(arr) {
-    if (!arr)
-        return "";
-    return arr.map(a => a[0]).join("\n");
-}
+            return b.skill - a.skill;
+        });
+        const tableData = asciiTable(items, rawData.map(d => {
+            const name = members.get(d.id)?.displayName ?? `<@${d.id}>`;
+            return [name, (d.wr * 100).toFixed(0), (d.skill * 100).toFixed(0)];
+        }));
+        const paginator = new LeaderboardPaginator({
+            title: "Poker Stats Leaderboard",
+            description: tableData.top,
+            id: interaction.id,
+            data: tableData.rows,
+            useSpaces: true,
+            useBackTick: true,
+            creatorId: interaction.user.id,
+            creatorRank: rawData.findIndex(d => d.id === interaction.user.id) + 1,
+        });
+        const msg = await interaction.editReply(paginator.getMessage());
+        paginator.loadCollector(msg);
+    }
+});
 export default leaderboard;
 //# sourceMappingURL=leaderboard.js.map

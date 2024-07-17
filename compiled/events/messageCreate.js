@@ -1,4 +1,4 @@
-import { EmbedBuilder, Events } from "discord.js";
+import { EmbedBuilder, Events, } from "discord.js";
 import { clean, colors, invalidNumber } from "../functions/util.js";
 import { updateProfile } from "../prisma/models.js";
 import { inDev } from "../main.js";
@@ -14,12 +14,12 @@ export default (client) => {
             return;
         if (message.content === `${prefix}beginTimeouts`) {
             const channel = client.channels.cache.get(process.env.TEST_CHANNEL_ID);
-            const message = characterSpawnMessage(randomCharacter());
+            const cmsg = characterSpawnMessage(randomCharacter());
             interval = setInterval(() => {
                 if (Math.random() < chance) {
                     channel.send({
-                        embeds: [message.embed],
-                        components: [message.row],
+                        embeds: [cmsg.embed],
+                        components: [cmsg.row],
                     });
                 }
             }, intervalTime);

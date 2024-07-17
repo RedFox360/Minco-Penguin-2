@@ -1,16 +1,16 @@
 import {
-	APIEmbedField,
+	type APIEmbedField,
+	type ButtonInteraction,
+	type ChatInputCommandInteraction,
+	type ColorResolvable,
+	type InteractionCollector,
 	ActionRowBuilder,
 	ButtonBuilder,
-	ButtonInteraction,
 	ButtonStyle,
-	ChatInputCommandInteraction,
-	ColorResolvable,
 	ComponentType,
 	EmbedBuilder,
-	InteractionCollector,
 } from "discord.js";
-import { Card } from "../cards/basic_card_types.js";
+import { type Card } from "../cards/basic_card_types.js";
 import { createBasicDeck, formatDeck } from "../cards/basic_card_functions.js";
 import { colors, invalidNumber, spliceRandom, sleep } from "../util.js";
 import { getProfile, updateProfile } from "../../prisma/models.js";
@@ -47,7 +47,7 @@ const howToPlayButton = new ButtonBuilder()
 	.setURL("https://bicyclecards.com/how-to-play/blackjack/");
 
 const customIdValues = Object.values(customIds);
-class Blackjack {
+export default class Blackjack {
 	playerHands: Card[][];
 	focusedHand = 0;
 	dealerHand: Card[];
@@ -271,10 +271,8 @@ class Blackjack {
 			}\`\nTotal Earnings: \`${this.totalEarnings} MD\``;
 		}
 
-		const fields: APIEmbedField[] = [];
-
-		fields.push(
-			...this.playerHands.map((hand, i) => {
+		const fields: APIEmbedField[] = this.playerHands.map(
+			(hand, i): APIEmbedField => {
 				const handVal = Blackjack.handValue(hand);
 				let fieldValue = "";
 				if (this.isSplit && this.focusedHand === i && this.withinPlayerTurn) {
@@ -294,7 +292,7 @@ class Blackjack {
 					name: this.isSplit ? `Your Hand ${i + 1}` : "Your Hand",
 					value: fieldValue,
 				};
-			})
+			}
 		);
 
 		fields.push({
@@ -640,7 +638,7 @@ Your bet must be between **5** and **250** MD.`,
 		});
 	}
 
-	static handValue(hand: Card[]): HandValue {
+	static handValue(hand: readonly Card[]): HandValue {
 		let soft = false;
 		let hasAce = false;
 		let total = hand.reduce((acc, card) => {
@@ -703,9 +701,7 @@ Your bet must be between **5** and **250** MD.`,
 		return `You lost **${-earnings} MD**!`;
 	}
 
-	static hasBlackjack(hand: Card[]): boolean {
+	static hasBlackjack(hand: readonly Card[]): boolean {
 		return hand.length === 2 && Blackjack.handValue(hand).total === 21;
 	}
 }
-
-export default Blackjack;

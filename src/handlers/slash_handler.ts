@@ -1,14 +1,14 @@
 import { inDev, rest, slashCommands } from "../main.js";
 import {
 	Routes,
-	Client,
-	RESTPostAPIChatInputApplicationCommandsJSONBody,
-	RESTPostAPIContextMenuApplicationCommandsJSONBody,
+	type Client,
+	type RESTPostAPIChatInputApplicationCommandsJSONBody,
+	type RESTPostAPIContextMenuApplicationCommandsJSONBody,
 } from "discord.js";
 import { readdirSync } from "fs";
 import chalk from "chalk";
-import SlashCommand from "../core/SlashCommand.js";
-import UserContextMenu from "../core/UserContextMenu.js";
+import type SlashCommand from "../core/SlashCommand.js";
+import type UserContextMenu from "../core/UserContextMenu.js";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -29,10 +29,11 @@ export default async function slashHandler(
 	);
 	const commandPromises: CommandPromises = [];
 	const data: CommandData = [];
-	slashFiles.forEach(fileName => {
+	for (const fileName of slashFiles) {
 		commandPromises.push(import(path.join(slashPath, fileName)));
-	});
-	(await Promise.all(commandPromises)).forEach(({ default: command }) => {
+	}
+	const commands = await Promise.all(commandPromises);
+	for (const { default: command } of commands) {
 		const commandData = command.builder.toJSON();
 		slashCommands.set(commandData.name, command);
 		let logMsg = `${chalk.blue(commandData.name)}`;
@@ -41,7 +42,7 @@ export default async function slashHandler(
 		}
 		console.log(logMsg);
 		data.push(commandData);
-	});
+	}
 	console.log(
 		`${chalk.green("commands set")} || command count: ${data.length}`
 	);

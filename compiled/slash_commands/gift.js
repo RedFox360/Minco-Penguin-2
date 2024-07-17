@@ -26,7 +26,7 @@ const gift = new SlashCommand()
     const profile = await getProfile(interaction.user.id);
     if (amount > profile.mincoDollars) {
         await interaction.reply({
-            content: `You don't have ${amount} Minco Dollars.`,
+            content: `You don't have ${amount.toLocaleString()} Minco Dollars.`,
             ephemeral: true,
         });
         return;
@@ -35,7 +35,7 @@ const gift = new SlashCommand()
         mincoDollars: { decrement: amount },
     }, false);
     await updateProfile(user.id, { mincoDollars: { increment: amount } });
-    await interaction.reply(`:gift: You gifted ${amount} MD to ${user}.`);
+    await interaction.reply(`:gift: You gifted ${amount.toLocaleString()} MD to ${user}.`);
 });
 export default gift;
 //# sourceMappingURL=gift.js.map

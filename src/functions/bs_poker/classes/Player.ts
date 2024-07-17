@@ -1,5 +1,5 @@
-import { Snowflake, userMention } from "discord.js";
-import { ExtCard } from "../bs_poker_types.js";
+import { type Snowflake, userMention } from "discord.js";
+import { type ExtCard } from "../bs_poker_types.js";
 import { spliceRandom } from "../../util.js";
 import { bsPokerTeams } from "../../../main.js";
 import { formatDeck } from "../../cards/basic_card_functions.js";

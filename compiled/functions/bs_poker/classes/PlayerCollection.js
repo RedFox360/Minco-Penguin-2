@@ -1,6 +1,7 @@
 import { Collection, userMention } from "discord.js";
 import Player from "./Player.js";
 import { bsPokerTeams, prisma } from "../../../main.js";
+import { formatDeck } from "../../cards/basic_card_functions.js";
 export default class PlayerCollection extends Collection {
     static fromIds(playerIds, channelId, options) {
         const players = playerIds.map(id => [
@@ -97,7 +98,7 @@ export default class PlayerCollection extends Collection {
         })
             .filter(t => t?.length));
     }
-    async addPlayerMidGame(playerId, cards) {
+    addPlayer(playerId, cards) {
         this.set(playerId, new Player(playerId, this.channelId, cards, true));
         this.removePlayerFromTeams(playerId);
         bsPokerTeams.get(this.channelId).push([playerId]);
@@ -114,6 +115,21 @@ export default class PlayerCollection extends Collection {
         for (const p of this.values()) {
             p.dealCards(deck);
         }
+    }
+    formatTeammateHand(userId) {
+        const channelTeams = bsPokerTeams.get(this.channelId);
+        if (channelTeams.length === 0)
+            return "";
+        const team = channelTeams.find(t => t.includes(userId));
+        if (!team)
+            return "";
+        const teamPlayerInGameId = team[0];
+        if (!this.has(teamPlayerInGameId))
+            return "";
+        const teammateHand = this.get(teamPlayerInGameId)?.hand;
+        if (!teammateHand)
+            return "";
+        return `\n*<@${teamPlayerInGameId}> is your teammate. Here are their cards.*\n${formatDeck(teammateHand)}`;
     }
 }
 //# sourceMappingURL=PlayerCollection.js.map

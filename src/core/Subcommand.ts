@@ -1,7 +1,7 @@
 import { SlashCommandSubcommandBuilder } from "discord.js";
 import { type RunFunc } from "./util_types.js";
 
-export default class Subcommand<T = RunFunc> {
+export default class Subcommand<T extends RunFunc> {
 	private _builder: SlashCommandSubcommandBuilder;
 	private _run: T;
 
@@ -21,7 +21,7 @@ export default class Subcommand<T = RunFunc> {
 		return this;
 	}
 
-	public get run() {
+	public get run(): T {
 		return this._run;
 	}
 	public setRun(runFunction: T): this {

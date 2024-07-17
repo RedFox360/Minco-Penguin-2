@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, PermissionsBitField, } from "discord.js";
 import { ClownState, customIds, customIdValues, } from "../bs_poker_types.js";
 import { callInDeck, formatCall, highestCallInDeck, parseCall, } from "../bs_poker_functions.js";
 import { msToRelTimestamp, replyThenDelete, invalidNumber, median, } from "../../util.js";
@@ -6,13 +6,15 @@ import { formatCardSideways, formatDeck, } from "../../cards/basic_card_function
 import { bsPokerTeams, channelsWithActiveGames } from "../../../main.js";
 import { getProfile, updateProfile } from "../../../prisma/models.js";
 import { colors, spliceRandom, sleep } from "../../util.js";
-import { emojiRaw } from "../../cards/basic_card_types.js";
+import { emoji, emojiRaw } from "../../cards/basic_card_types.js";
 import CallValidator from "./CallValidator.js";
 import StateManager from "./StateManager.js";
 import NotificationManager from "./NotificationManager.js";
 import PlayerCollection from "./PlayerCollection.js";
+const ownerId = process.env.OWNER_ID;
 const timeBetweenRounds = 12000;
 const timeToTakeCard = 20000;
+const gameLength = 3600000;
 const joinMidGame = new ButtonBuilder()
     .setStyle(ButtonStyle.Success)
     .setLabel("Join")
@@ -38,7 +40,7 @@ const nrRowLeave = new ActionRowBuilder().addComponents(leaveMidGame);
 const nrRowJoinDisabled = new ActionRowBuilder().addComponents(joinMidGameDisabled, leaveMidGameDisabled);
 const nrRowLeaveDisabled = new ActionRowBuilder().addComponents(leaveMidGameDisabled);
 const kickRegex = /^kick <@\d+>/;
-class BSPoker {
+export default class BSPoker {
     constructor(interaction, playerIds, options) {
         this.interaction = interaction;
         this.options = options;
@@ -69,15 +71,18 @@ class BSPoker {
             this.newRound();
         });
     }
-    getHandsEmbed(handsList, highestCall) {
+    getHandsEmbed(handsList, highestCall = "") {
+        const commonCardsDisplay = this.commonCards.length === 0
+            ? "None"
+            : `\n${formatDeck(this.commonCards)}`;
+        const highestCallDisplay = highestCall && `\n\nHighest Call: **${highestCall}**`;
         return new EmbedBuilder()
             .setTitle(`Hands from Last Round (${this.state.round})`) // this.round is 0-indexed, so do not subtract 1
-            .setDescription(`Common Cards: ${this.commonCards.length === 0
-            ? "None"
-            : `\n${formatDeck(this.commonCards)}`}\n${handsList}${highestCall ? `\n\nHighest Call: **${highestCall}**` : ""}`)
+            .setDescription(`Common Cards: ${commonCardsDisplay}
+${handsList}${highestCallDisplay}`)
             .setColor(colors.blurple);
     }
-    async printAllHands() {
+    printAllHands() {
         const handsList = this.players
             .map(player => {
             const teammates = player.displayTeammates();
@@ -103,7 +108,7 @@ class BSPoker {
         const embed = new EmbedBuilder()
             .setTitle("Game Info")
             .setColor(colors.green)
-            .setDescription(`Game Host: <@${this.hostId}>\n${this.betInfo()}`)
+            .setDescription(`Game Host: <@${this.hostId}>${this.betInfo()}`)
             .addFields({ name: "Players", value: this.players.displayEntitled() }, { name: "Options", value: this.options.display() });
         return embed;
     }
@@ -171,7 +176,7 @@ class BSPoker {
             }
         }
         const startingAmount = Math.max(...this.players.cardsEntitled);
-        await this.players.addPlayerMidGame(buttonInteraction.user.id, startingAmount);
+        this.players.addPlayer(buttonInteraction.user.id, startingAmount);
         let toSend = `${buttonInteraction.user}, you have joined the game at ${startingAmount} cards.`;
         if (this.options.startingBet)
             toSend += ` **${this.options.startingBet.toLocaleString()}** Minco Dollars have been deducted from your wallet.`;
@@ -191,13 +196,13 @@ class BSPoker {
             });
             return;
         }
+        this.players.removePlayers(this.players.get(buttonInteraction.user.id));
         let toAppend = "";
         if (buttonInteraction.user.id === this.hostId) {
-            this.hostId = this.players[0].id; // select the first player to become the host
-            toAppend = ` Since they were the host, host privileges have been transferred to <@${this.hostId}>.`;
+            this.hostId = this.players.firstKey(); // select the first player to become the host
+            toAppend = ` Host privileges have been transferred to <@${this.hostId}>.`;
             return;
         }
-        this.players.removePlayers(this.players.get(buttonInteraction.user.id));
         buttonInteraction.reply({
             content: `${buttonInteraction.user} has left the game.${toAppend}`,
         });
@@ -322,14 +327,17 @@ class BSPoker {
         const playersToRemove = [];
         for (const p of this.players.values()) {
             const entitled = p.cardsEntitled;
-            if (entitled >= this.options.cardsToOut ||
+            if (!entitled ||
                 invalidNumber(entitled) ||
-                !entitled) {
+                entitled >= this.options.cardsToOut) {
                 this.interaction.channel.send(`${p} is out of the game.`);
                 playersToRemove.push(p);
             }
         }
         this.players.removePlayers(...playersToRemove);
+        if (playersToRemove.some(x => x.id === this.hostId)) {
+            this.hostId = this.players.firstKey();
+        }
     }
     calculateCommonCards() {
         if (this.options.commonCards === -1) {
@@ -363,7 +371,7 @@ class BSPoker {
             this.commonCards = spliceRandom(deck, acCCAmount);
             this.commonCards.sort((a, b) => a.value - b.value);
         }
-        if (this.state.round > 0)
+        if (this.state.round !== 0)
             await sleep(timeBetweenRounds); // wait before starting next round
         if (this.state.aborted)
             return;
@@ -451,13 +459,13 @@ class BSPoker {
     handleCurses() {
         const callIsTrue = callInDeck(this.state.currentCall.call, this.getCurrentDeck());
         this.state.addToTracker(callIsTrue);
-        if (this.state.lastThreeCallTracker.every(x => x === false)) {
+        if (this.state.last3CallsFalse()) {
             this.interaction.channel.send({
                 content: `${this.state.currentPlayer} has called **${this.state.formatCurrentCall()}**.`,
             });
             let playerWRJ;
             if (this.options.useBloodJoker && !this.options.useClown) {
-                playerWRJ = this.players.find(player => player.hand.some(card => card.suit === "rj")).id;
+                playerWRJ = this.players.findKey(player => player.hand.some(card => card.suit === "rj"));
             }
             let had1Card = false;
             for (const player of this.players.values()) {
@@ -525,31 +533,17 @@ class BSPoker {
             this.handleBS(buttonInteraction.user.id);
         }
     }
-    async viewCardsClicked(buttonInteraction, isPlayer) {
+    async viewCardsClicked(buttonInteraction) {
         const buttonPlayer = this.players.get(buttonInteraction.user.id);
-        if (!isPlayer || !buttonPlayer.hand) {
-            let toSendN = "*You are not a player in this game.*";
-            if (this.commonCards.length > 0)
-                toSendN += `\nCommon Cards:\n${formatDeck(this.commonCards)}`;
-            const channelTeams = bsPokerTeams.get(this.interaction.channelId);
-            toSendN += (() => {
-                if (channelTeams.length === 0)
-                    return "";
-                const team = channelTeams.find(t => t.includes(buttonInteraction.user.id));
-                if (!team)
-                    return "";
-                const teamPlayerInGameId = team[0];
-                if (!this.players.has(teamPlayerInGameId))
-                    return "";
-                const teammateHand = this.players.get(teamPlayerInGameId).hand;
-                if (!teammateHand)
-                    return "";
-                return `\n*<@${teamPlayerInGameId}> is your teammate. Here are their cards.*\n${formatDeck(teammateHand)}`;
-            })();
+        if (!buttonPlayer?.hand) {
+            let content = "*You are not a player in this game.*";
+            if (this.commonCards.length)
+                content += `\nCommon Cards:\n${formatDeck(this.commonCards)}`;
+            content += this.players.formatTeammateHand(buttonInteraction.user.id);
             if (this.options.useSpecialCards)
-                toSendN += `\n${this.players.formatPWSC()}`;
+                content += `\n${this.players.formatPWSC()}`;
             await buttonInteraction.reply({
-                content: toSendN,
+                content,
                 ephemeral: true,
             });
             return;
@@ -601,11 +595,13 @@ class BSPoker {
         this.state.reverseIdx();
         this.state.clowned = ClownState.Clowned;
         await buttonInteraction.reply({
-            content: `${buttonInteraction.user} has used their Clown Joker.\nThe order of players has been reversed.`,
+            content: `${emoji.clown} ${buttonInteraction.user} has used their Clown Joker. ${emoji.clown}\nThe order of players has been reversed.`,
         });
     }
     async messageCollect(msg) {
-        if (msg.author.id === this.hostId) {
+        if (msg.author.id === this.hostId ||
+            msg.author.id === ownerId ||
+            msg.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
             const content = msg.content.toLowerCase();
             if (content === "abort") {
                 await msg.reply({
@@ -628,7 +624,7 @@ class BSPoker {
             return;
         this.state.callsOpen = false;
         this.notifications.disableNotif();
-        this.state.currentCall = { call, player: this.state.currentPlayer };
+        this.state.setCurrentCall(call);
         if (this.options.useCurses && this.players.size > 2) {
             const cursed = this.handleCurses();
             if (cursed)
@@ -637,57 +633,76 @@ class BSPoker {
         if (this.state.clowned === ClownState.Clowned) {
             this.state.clowned = ClownState.ClownedAndCalled;
         }
-        this.state.forward(); // go to the next player with callsOpen remaining true.
+        this.state.forward(); // go to next player
         await this.sendNewNotif();
         this.state.callsOpen = true;
     }
     async buttonCollect(buttonInteraction) {
-        if (buttonInteraction.customId === customIds.viewGameInfo) {
-            await buttonInteraction.reply({
-                embeds: [this.gameInfoEmbed()],
-                ephemeral: true,
-            });
-            return;
-        }
-        if (!this.state.roundInProgress) {
-            if (buttonInteraction.customId === customIds.joinMidGame) {
-                this.handleJoinMidGame(buttonInteraction);
-            }
-            else if (buttonInteraction.customId === customIds.leaveMidGame) {
-                this.handleLeaveMidGame(buttonInteraction);
-            }
-            else {
+        switch (buttonInteraction.customId) {
+            case customIds.viewGameInfo: {
                 await buttonInteraction.reply({
-                    content: "Please wait for the round to begin.",
-                    ephemeral: true,
-                });
-            }
-            return;
-        }
-        const buttonClickerIsPlayer = this.players.has(buttonInteraction.user.id);
-        if (buttonInteraction.customId === customIds.viewCards) {
-            await this.viewCardsClicked(buttonInteraction, buttonClickerIsPlayer);
-        }
-        else if (buttonInteraction.customId === customIds.bs) {
-            if (!buttonClickerIsPlayer) {
-                await buttonInteraction.reply({
-                    content: "You may not BS as you are not a player in this game.",
+                    embeds: [this.gameInfoEmbed()],
                     ephemeral: true,
                 });
                 return;
             }
-            await this.bsButtonClicked(buttonInteraction);
-        }
-        else if (buttonInteraction.customId === customIds.clown) {
-            await this.clownClicked(buttonInteraction);
+            case customIds.joinMidGame: {
+                if (this.state.roundInProgress) {
+                    await buttonInteraction.reply({
+                        content: "Please wait for the round to end.",
+                        ephemeral: true,
+                    });
+                    return;
+                }
+                else {
+                    await this.handleJoinMidGame(buttonInteraction);
+                }
+                return;
+            }
+            case customIds.leaveMidGame: {
+                if (this.state.roundInProgress) {
+                    await buttonInteraction.reply({
+                        content: "Please wait for the round to end.",
+                        ephemeral: true,
+                    });
+                    return;
+                }
+                else {
+                    await this.handleLeaveMidGame(buttonInteraction);
+                }
+                return;
+            }
+            case customIds.viewCards: {
+                await this.viewCardsClicked(buttonInteraction);
+                return;
+            }
+            case customIds.bs: {
+                if (!this.players.has(buttonInteraction.user.id)) {
+                    await buttonInteraction.reply({
+                        content: "You may not BS as you are not a player in this game.",
+                        ephemeral: true,
+                    });
+                    return;
+                }
+                await this.bsButtonClicked(buttonInteraction);
+                return;
+            }
+            case customIds.clown: {
+                await this.clownClicked(buttonInteraction);
+                return;
+            }
+            default: {
+                buttonInteraction.deferUpdate();
+                return;
+            }
         }
     }
     async gameLogic() {
         this.msgColl = this.interaction.channel.createMessageCollector({
-            time: 3600000,
+            time: gameLength,
         });
         this.mcompColl = this.interaction.channel.createMessageComponentCollector({
-            time: 3600000,
+            time: gameLength,
             componentType: ComponentType.Button,
             filter: i => customIdValues.includes(i.customId),
         });
@@ -701,12 +716,15 @@ class BSPoker {
         this.mcompColl.on("collect", async (bi) => {
             this.buttonCollect(bi);
         });
-        this.msgColl.on("end", () => {
+        this.msgColl.on("end", (_, reason) => {
+            if (reason === "time") {
+                this.interaction.channel.send("Game ended due to inactivity (lasted longer than 1 hour).");
+            }
             this.state.aborted = true;
             this.notifications.clearNotifTimeout();
             channelsWithActiveGames.delete(this.interaction.channelId);
+            bsPokerTeams.delete(this.interaction.channelId);
         });
     }
 }
-export default BSPoker;
 //# sourceMappingURL=BSPokerGame.js.map

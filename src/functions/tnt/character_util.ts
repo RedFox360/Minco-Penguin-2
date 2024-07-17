@@ -3,9 +3,8 @@ import {
 	ButtonBuilder,
 	ButtonStyle,
 	EmbedBuilder,
-	MessagePayloadOption,
 } from "discord.js";
-import { Character, characters } from "./characters.js";
+import { type Character, characters } from "./characters.js";
 import { colors, randomElement } from "../util.js";
 
 type CustomId = `claim_${string}`;

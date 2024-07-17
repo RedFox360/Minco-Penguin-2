@@ -1,10 +1,11 @@
 import {
+	type Snowflake,
 	Client,
 	GatewayIntentBits,
 	REST,
 	Events,
-	Snowflake,
 	RESTJSONErrorCodes,
+	Collection,
 } from "discord.js";
 import { config as loadenv } from "dotenv";
 import chalk from "chalk";
@@ -19,8 +20,6 @@ import ready from "./ready.js";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.tz.setDefault("America/Los_Angeles");
-
-console.log("@2024-07-13");
 
 const prisma = new PrismaClient();
 
@@ -38,9 +37,10 @@ const client = new Client({
 		GatewayIntentBits.GuildMembers,
 });
 
-const slashCommands = new Map<string, SlashCommand | UserContextMenu>();
 // Map: channelId -> [[player1, player2], [player1]]
 const bsPokerTeams = new Map<Snowflake, Snowflake[][]>();
+// Map: command name -> Command object
+const slashCommands = new Map<string, SlashCommand | UserContextMenu>();
 const channelsWithActiveGames = new Set<Snowflake>();
 
 client.once(Events.ClientReady, async readyClient => {
@@ -59,7 +59,7 @@ const errors = [
 
 process.on("unhandledRejection", (err: any) => {
 	if (errors.includes(err?.code)) {
-		console.error("Unknown message/interaction.");
+		console.log("Unknown message/interaction.");
 		return;
 	}
 	console.error(err);

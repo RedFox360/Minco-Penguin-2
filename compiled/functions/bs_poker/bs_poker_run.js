@@ -206,9 +206,10 @@ Otherwise, the game will start ${startTime}`))
         bsPokerTeams.set(interaction.channelId, players.map(x => [x]));
         const game = new BSPoker(interaction, players, options);
         game.gameLogic().catch(e => {
-            interaction.channel.send("Sorry, but an unknown error occured while running the game and the game has aborted.");
+            interaction.channel.send("Sorry, an error has occurred and the game has aborted.");
             console.error(e);
             channelsWithActiveGames.delete(interaction.channelId);
+            bsPokerTeams.delete(interaction.channelId);
         });
     });
 }

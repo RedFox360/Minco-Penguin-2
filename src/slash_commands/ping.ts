@@ -1,4 +1,4 @@
-import { ColorResolvable, EmbedBuilder } from "discord.js";
+import { type ColorResolvable, EmbedBuilder } from "discord.js";
 import prettyMs from "pretty-ms";
 import SlashCommand from "../core/SlashCommand.js";
 

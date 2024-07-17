@@ -9,7 +9,6 @@ import ready from "./ready.js";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.tz.setDefault("America/Los_Angeles");
-console.log("@2024-07-13");
 const prisma = new PrismaClient();
 console.log(chalk.yellow("Connected to the database!"));
 const inDev = !process.argv.includes("--prod");
@@ -22,9 +21,10 @@ const client = new Client({
         GatewayIntentBits.MessageContent |
         GatewayIntentBits.GuildMembers,
 });
-const slashCommands = new Map();
 // Map: channelId -> [[player1, player2], [player1]]
 const bsPokerTeams = new Map();
+// Map: command name -> Command object
+const slashCommands = new Map();
 const channelsWithActiveGames = new Set();
 client.once(Events.ClientReady, async (readyClient) => {
     ready(readyClient, updateCommands);
@@ -40,7 +40,7 @@ const errors = [
 ];
 process.on("unhandledRejection", (err) => {
     if (errors.includes(err?.code)) {
-        console.error("Unknown message/interaction.");
+        console.log("Unknown message/interaction.");
         return;
     }
     console.error(err);

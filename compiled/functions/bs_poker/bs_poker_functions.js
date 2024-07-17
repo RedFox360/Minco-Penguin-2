@@ -2,14 +2,15 @@ import { HandRank, names, RNI, RNIKeys, royalFlushes, symbolToValueObj, } from "
 import { emoji, suits } from "../cards/basic_card_types.js";
 import { suitToBasicEmoji, valueToSymbol, } from "../cards/basic_card_functions.js";
 import { countInArray, invalidNumber } from "../util.js";
-const toEmptyRgx = /[.,]/g;
+const toEmptyRgx = /[.,!]/g;
 const toSpacesRgx = /-/g;
 export function parseCall(givenCall) {
     try {
         const call = givenCall
             .toLowerCase()
             .replace(toEmptyRgx, "")
-            .replace(toSpacesRgx, " ");
+            .replace(toSpacesRgx, " ")
+            .trim();
         const royalIndex = royalFlushes.findIndex(x => x.includes(call));
         if (royalIndex !== -1) {
             const suit = suits[royalIndex];
@@ -248,9 +249,7 @@ export function isHigher(call1, call2) {
         return call1.high[1] > call2.high[1];
     }
     if (call1.call === HandRank.DoubleFlush) {
-        const arr1 = call1.high
-            .map(card => card.value)
-            .sort((a, b) => a - b);
+        const arr1 = call1.high.map(card => card.value).sort((a, b) => a - b);
         const arr2 = call2.high
             .map(card => card.value)
             .sort((a, b) => a - b);

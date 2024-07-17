@@ -1,16 +1,16 @@
-import { Message } from "discord.js";
+import { type Message } from "discord.js";
 import {
-	Call,
+	type Call,
 	ClownState,
-	ExtCard,
-	ExtValue,
+	type ExtCard,
+	type ExtValue,
 	HandRank,
 } from "../bs_poker_types.js";
 import { invalidNumber, replyThenDelete } from "../../util.js";
 import { formatCall, isHigher } from "../bs_poker_functions.js";
 import { emoji } from "../../cards/basic_card_types.js";
-import OptionManager from "./OptionManager.js";
-import StateManager from "./StateManager.js";
+import type OptionManager from "./OptionManager.js";
+import type StateManager from "./StateManager.js";
 
 export default class CallValidator {
 	public constructor(
@@ -53,7 +53,9 @@ export default class CallValidator {
 			if (!isHigher(call, this.state.currentCall.call)) {
 				replyThenDelete(
 					message,
-					`Your call is not higher than the current call (${formatCall(
+					`Your call (${formatCall(
+						call
+					)}) is not higher than the current call (${formatCall(
 						this.state.currentCall.call
 					)}). Please try again.`
 				);
@@ -132,7 +134,7 @@ export default class CallValidator {
 				return false;
 			}
 
-			if (highCards.some(x => x.value === 1)) {
+			if (highCards[0].value === 1 || highCards[1].value === 1) {
 				replyThenDelete(
 					message,
 					`Jokers may not be used as a high card in flush calls (Your call: ${formatCall(

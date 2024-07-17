@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionResolvable } from "discord.js";
+import { SlashCommandBuilder, type PermissionResolvable } from "discord.js";
 import {
 	cooldownMax,
 	cooldownMin,

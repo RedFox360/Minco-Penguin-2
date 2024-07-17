@@ -93,7 +93,7 @@ async function handleError(interaction, err) {
     else {
         interaction
             .reply({
-            content: "An error occured",
+            content: "An error occurred",
             ephemeral: true,
         })
             .catch(() => {

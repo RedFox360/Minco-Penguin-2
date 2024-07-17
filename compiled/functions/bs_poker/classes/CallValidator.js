@@ -31,7 +31,7 @@ export default class CallValidator {
         }
         if (this.state.currentCall) {
             if (!isHigher(call, this.state.currentCall.call)) {
-                replyThenDelete(message, `Your call is not higher than the current call (${formatCall(this.state.currentCall.call)}). Please try again.`);
+                replyThenDelete(message, `Your call (${formatCall(call)}) is not higher than the current call (${formatCall(this.state.currentCall.call)}). Please try again.`);
                 return false;
             }
         }
@@ -71,7 +71,7 @@ export default class CallValidator {
                 replyThenDelete(message, `There are not enough insurance cards in the deck for a double insurance call (Your call: ${formatCall(call)}). Please try again.`);
                 return false;
             }
-            if (highCards.some(x => x.value === 1)) {
+            if (highCards[0].value === 1 || highCards[1].value === 1) {
                 replyThenDelete(message, `Jokers may not be used as a high card in flush calls (Your call: ${formatCall(call)}). Please try again.`);
                 return false;
             }

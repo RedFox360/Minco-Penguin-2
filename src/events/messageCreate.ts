@@ -1,4 +1,9 @@
-import { Client, EmbedBuilder, Events, TextBasedChannel } from "discord.js";
+import {
+	type Client,
+	type TextBasedChannel,
+	EmbedBuilder,
+	Events,
+} from "discord.js";
 import { clean, colors, invalidNumber } from "../functions/util.js";
 import { updateProfile } from "../prisma/models.js";
 import { inDev } from "../main.js";
@@ -20,12 +25,12 @@ export default (client: Client<true>) => {
 			const channel = client.channels.cache.get(
 				process.env.TEST_CHANNEL_ID
 			) as TextBasedChannel;
-			const message = characterSpawnMessage(randomCharacter());
+			const cmsg = characterSpawnMessage(randomCharacter());
 			interval = setInterval(() => {
 				if (Math.random() < chance) {
 					channel.send({
-						embeds: [message.embed],
-						components: [message.row],
+						embeds: [cmsg.embed],
+						components: [cmsg.row],
 					});
 				}
 			}, intervalTime);

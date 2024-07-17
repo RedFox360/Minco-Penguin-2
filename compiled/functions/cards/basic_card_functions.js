@@ -1,4 +1,4 @@
-import { emoji, newEmoji, newEmojiSuits } from "./basic_card_types.js";
+import { emoji, newEmoji, newEmojiSuits, } from "./basic_card_types.js";
 export function suitToBasicEmoji(suit) {
     switch (suit) {
         case "H":

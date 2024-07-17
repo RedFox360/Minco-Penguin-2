@@ -18,7 +18,7 @@ import {
 } from "../cards/basic_card_functions.js";
 import { countInArray, invalidNumber } from "../util.js";
 
-const toEmptyRgx = /[.,]/g;
+const toEmptyRgx = /[.,!]/g;
 const toSpacesRgx = /-/g;
 
 export function parseCall(givenCall: string): Call | null {
@@ -26,7 +26,8 @@ export function parseCall(givenCall: string): Call | null {
 		const call = givenCall
 			.toLowerCase()
 			.replace(toEmptyRgx, "")
-			.replace(toSpacesRgx, " ");
+			.replace(toSpacesRgx, " ")
+			.trim();
 		const royalIndex = royalFlushes.findIndex(x => x.includes(call));
 		if (royalIndex !== -1) {
 			const suit = suits[royalIndex];
@@ -228,14 +229,14 @@ function callNumberToName(call: HandRank) {
 // "higher" means that the max of arr1 is greater than the max of arr2
 // if the maxes are equal, the second highest values are compared, and so on
 // if all values are equal, the function will return false
-function isHigherArray(arr1: ExtValue[], arr2: ExtValue[]) {
+function isHigherArray(arr1: readonly ExtValue[], arr2: readonly ExtValue[]) {
 	for (let i = 0; i < arr1.length; i++) {
 		if (arr1[i] > arr2[i]) return true;
 		if (arr1[i] < arr2[i]) return false;
 	}
 	return false;
 }
-function isLowerArray(arr1: ExtValue[], arr2: ExtValue[]) {
+function isLowerArray(arr1: readonly ExtValue[], arr2: readonly ExtValue[]) {
 	for (let i = 0; i < arr1.length; i++) {
 		if (arr1[i] < arr2[i]) return true;
 		if (arr1[i] > arr2[i]) return false;
@@ -254,8 +255,8 @@ export function isHigher(call1: Call, call2: Call) {
 		call1.call === HandRank.DoubleTriple ||
 		call1.call === HandRank.TriplePair
 	) {
-		const arr1 = (call1.high as ExtValue[]).sort((a, b) => a - b);
-		const arr2 = (call2.high as ExtValue[]).sort((a, b) => a - b);
+		const arr1 = call1.high.sort((a, b) => a - b);
+		const arr2 = (call2.high as typeof call1.high).sort((a, b) => a - b);
 		return isHigherArray(arr1, arr2);
 	}
 	if (call1.call === HandRank.FullHouse) {
@@ -264,10 +265,8 @@ export function isHigher(call1: Call, call2: Call) {
 		return call1.high[1] > call2.high[1];
 	}
 	if (call1.call === HandRank.DoubleFlush) {
-		const arr1 = (call1.high as [ExtCard, ExtCard])
-			.map(card => card.value)
-			.sort((a, b) => a - b);
-		const arr2 = (call2.high as [ExtCard, ExtCard])
+		const arr1 = call1.high.map(card => card.value).sort((a, b) => a - b);
+		const arr2 = (call2.high as typeof call1.high)
 			.map(card => card.value)
 			.sort((a, b) => a - b);
 		return isLowerArray(arr1, arr2);
@@ -337,17 +336,17 @@ export function formatCall(call: Call) {
 	)}`;
 }
 
-function insurancesInDeck(deck: ExtCard[]): number {
+function insurancesInDeck(deck: readonly ExtCard[]): number {
 	return countInArray(deck, card => card.value === 15);
 }
 
-function jokersInDeck(deck: ExtCard[]): number {
+function jokersInDeck(deck: readonly ExtCard[]): number {
 	return countInArray(deck, card => card.value === 1);
 }
 
 export function callInDeck(
 	call: Call,
-	deck: ExtCard[],
+	deck: readonly ExtCard[],
 	gInsurances?: number,
 	gJokers?: number
 ) {
@@ -485,7 +484,7 @@ const straightCardsTable: SH = {
 // Object.groupBy turns [1, 2, 2, 3, 3, 3, 4, 4] -> {1: [1], 2: [2, 2], 3: [3, 3, 3], 4: [4, 4]}
 
 export async function highestCallInDeck(
-	deck: ExtCard[],
+	deck: readonly ExtCard[],
 	nonStandard: boolean,
 	insuranceCount: number
 ): Promise<Call> {
@@ -577,7 +576,7 @@ export async function highestCallInDeck(
 									suit: suit2,
 								},
 							],
-							call: HandRank.DoubleFlush,
+							call: <const>HandRank.DoubleFlush,
 						};
 						if (callInDeck(dfCall, deck, insurances, jokers)) return dfCall;
 					}
@@ -590,7 +589,7 @@ export async function highestCallInDeck(
 		for (let i = 6; i <= 15; i++) {
 			for (const suit of suits) {
 				const call_flush = {
-					call: HandRank.Flush,
+					call: <const>HandRank.Flush,
 					high: { value: i as ExtValue, suit },
 				};
 				if (callInDeck(call_flush, deck, insurances, jokers)) {

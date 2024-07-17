@@ -10,10 +10,11 @@ export default async function slashHandler(client, updateCommands = false) {
     const slashFiles = readdirSync(slashPath).filter(file => file.endsWith(".ts") || file.endsWith(".js"));
     const commandPromises = [];
     const data = [];
-    slashFiles.forEach(fileName => {
+    for (const fileName of slashFiles) {
         commandPromises.push(import(path.join(slashPath, fileName)));
-    });
-    (await Promise.all(commandPromises)).forEach(({ default: command }) => {
+    }
+    const commands = await Promise.all(commandPromises);
+    for (const { default: command } of commands) {
         const commandData = command.builder.toJSON();
         slashCommands.set(commandData.name, command);
         let logMsg = `${chalk.blue(commandData.name)}`;
@@ -22,7 +23,7 @@ export default async function slashHandler(client, updateCommands = false) {
         }
         console.log(logMsg);
         data.push(commandData);
-    });
+    }
     console.log(`${chalk.green("commands set")} || command count: ${data.length}`);
     if (!updateCommands)
         return;

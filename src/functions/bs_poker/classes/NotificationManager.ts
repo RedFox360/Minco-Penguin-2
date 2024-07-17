@@ -2,10 +2,10 @@ import {
 	ActionRowBuilder,
 	ButtonBuilder,
 	ButtonStyle,
-	GuildTextBasedChannel,
-	Message,
+	type GuildTextBasedChannel,
+	type Message,
 } from "discord.js";
-import StateManager from "./StateManager.js";
+import type StateManager from "./StateManager.js";
 import { customIds } from "../bs_poker_types.js";
 import { msToRelTimestamp } from "../../util.js";
 
@@ -85,7 +85,7 @@ export default class NotificationManager {
 			content: this.notifText,
 			components: [this.getNotifRow(true)],
 		});
-		clearTimeout(this.notifTimeout);
+		this.clearNotifTimeout();
 	}
 
 	public clearNotifTimeout() {

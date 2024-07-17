@@ -15,7 +15,9 @@ export default async function eventHandler(client) {
         console.log(chalk.yellow(eventName));
     }
     const events = await Promise.all(eventPromises);
-    events.forEach(exports => exports.default(client));
+    for (const exports of events) {
+        exports.default(client);
+    }
     console.log(`${chalk.green("events loaded")} || event count: ${eventNames.length}`);
 }
 //# sourceMappingURL=event_handler.js.map

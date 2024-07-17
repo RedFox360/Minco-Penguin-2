@@ -1,4 +1,4 @@
-import { ActivityType, Client } from "discord.js";
+import { ActivityType, type Client } from "discord.js";
 import slashHandler from "./handlers/slash_handler.js";
 import eventHandler from "./handlers/event_handler.js";
 import chalk from "chalk";

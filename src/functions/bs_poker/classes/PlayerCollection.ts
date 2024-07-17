@@ -1,9 +1,9 @@
-import { Collection, Snowflake, userMention } from "discord.js";
+import { Collection, type Snowflake, userMention } from "discord.js";
 import Player from "./Player.js";
 import { bsPokerTeams, prisma } from "../../../main.js";
-import { updateProfile } from "../../../prisma/models.js";
-import OptionManager from "./OptionManager.js";
-import { ExtCard } from "../bs_poker_types.js";
+import type OptionManager from "./OptionManager.js";
+import { type ExtCard } from "../bs_poker_types.js";
+import { formatDeck } from "../../cards/basic_card_functions.js";
 
 type ArrayForm = Iterable<readonly [Snowflake, Player]>;
 
@@ -12,7 +12,7 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 	public originalPlayers: number;
 
 	public static fromIds(
-		playerIds: Snowflake[],
+		playerIds: readonly Snowflake[],
 		channelId: Snowflake,
 		options: OptionManager
 	) {
@@ -52,7 +52,7 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 		return this.map(p => p.displayEntitled()).join("\n");
 	}
 
-	private updatePlayerData(players: Player[]) {
+	private updatePlayerData(players: readonly Player[]) {
 		if (this.originalPlayers === 2) return;
 		const avgRankOut = this.out.length - (1 + players.length) / 2;
 		const rating = avgRankOut * (1 / (this.everPlayersLen - 1));
@@ -103,7 +103,7 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 		return Promise.all(promises);
 	}
 
-	public async removePlayers(...players: Player[]) {
+	public async removePlayers(...players: readonly Player[]) {
 		const playerIds = players.map(p => p.id);
 		for (const id of playerIds) this.delete(id);
 		this.out.push(...playerIds);
@@ -111,7 +111,7 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 		await this.updatePlayerData(players);
 	}
 
-	public removePlayerFromTeams(...playerIds: Snowflake[]) {
+	public removePlayerFromTeams(...playerIds: readonly Snowflake[]) {
 		bsPokerTeams.set(
 			this.channelId,
 			bsPokerTeams
@@ -124,7 +124,7 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 		);
 	}
 
-	public async addPlayerMidGame(playerId: Snowflake, cards: number) {
+	public addPlayer(playerId: Snowflake, cards: number) {
 		this.set(playerId, new Player(playerId, this.channelId, cards, true));
 		this.removePlayerFromTeams(playerId);
 		bsPokerTeams.get(this.channelId).push([playerId]);
@@ -146,5 +146,19 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 		for (const p of this.values()) {
 			p.dealCards(deck);
 		}
+	}
+
+	public formatTeammateHand(userId: Snowflake) {
+		const channelTeams = bsPokerTeams.get(this.channelId);
+		if (channelTeams.length === 0) return "";
+		const team = channelTeams.find(t => t.includes(userId));
+		if (!team) return "";
+		const teamPlayerInGameId = team[0];
+		if (!this.has(teamPlayerInGameId)) return "";
+		const teammateHand = this.get(teamPlayerInGameId)?.hand;
+		if (!teammateHand) return "";
+		return `\n*<@${teamPlayerInGameId}> is your teammate. Here are their cards.*\n${formatDeck(
+			teammateHand
+		)}`;
 	}
 }

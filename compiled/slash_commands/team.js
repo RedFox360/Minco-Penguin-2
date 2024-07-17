@@ -50,16 +50,15 @@ const team = new SlashCommand()
     .setCooldown(10)
     .setRun(async (interaction) => {
     const subcommand = interaction.options.getSubcommand();
-    if (!channelsWithActiveGames.has(interaction.channelId)) {
+    if (!channelsWithActiveGames.has(interaction.channelId) ||
+        !bsPokerTeams.has(interaction.channelId)) {
         await interaction.reply({
             content: "There is no active game in this channel",
             ephemeral: true,
         });
         return;
     }
-    if (!bsPokerTeams.has(interaction.channelId))
-        bsPokerTeams.set(interaction.channelId, []);
-    const thisChannelTeams = bsPokerTeams.get(interaction.channel.id);
+    const thisChannelTeams = bsPokerTeams.get(interaction.channelId);
     const teamWithAsker = thisChannelTeams.find(x => x.includes(interaction.user.id));
     if (subcommand === "join") {
         const player = interaction.options.getUser("player");
@@ -78,7 +77,7 @@ const team = new SlashCommand()
             return;
         }
         const teamWithPlayer = bsPokerTeams
-            .get(interaction.channel.id)
+            .get(interaction.channelId)
             .find(x => x.includes(player.id));
         if (!teamWithPlayer) {
             await interaction.reply({
@@ -111,7 +110,7 @@ const team = new SlashCommand()
         })
             .then(bi => {
             if (bsPokerTeams
-                .get(interaction.channel.id)
+                .get(interaction.channelId)
                 .some(t => t.includes(interaction.user.id))) {
                 bi.update({
                     content: `:red_circle: ${interaction.user.id} you have joined a team while this request was pending, so it has been canceled.`,
@@ -157,10 +156,7 @@ const team = new SlashCommand()
             });
             return;
         }
-        const teamWithPlayer = bsPokerTeams
-            .get(interaction.channel.id)
-            .find(x => x.includes(player.id));
-        if (teamWithPlayer) {
+        if (thisChannelTeams.some(x => x.includes(player.id))) {
             await interaction.reply({
                 content: "This player is already in a team.",
                 ephemeral: true,
@@ -183,7 +179,7 @@ const team = new SlashCommand()
         })
             .then(bi => {
             if (bsPokerTeams
-                .get(interaction.channel.id)
+                .get(interaction.channelId)
                 .some(t => t.includes(bi.user.id))) {
                 bi.update({
                     content: `:red_circle: ${bi.user.id} you have joined a team while this request was pending, so it has been canceled.`,

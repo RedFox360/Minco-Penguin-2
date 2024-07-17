@@ -1,7 +1,7 @@
-import { ChatInputCommandInteraction } from "discord.js";
+import { type ChatInputCommandInteraction } from "discord.js";
 import { formatBool } from "../../util.js";
 import { createBasicDeck } from "../../cards/basic_card_functions.js";
-import { ExtCard } from "./../bs_poker_types.js";
+import { type ExtCard } from "./../bs_poker_types.js";
 
 export class OptionCreationError extends Error {}
 

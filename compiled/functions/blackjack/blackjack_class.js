@@ -32,7 +32,7 @@ const howToPlayButton = new ButtonBuilder()
     .setStyle(ButtonStyle.Link)
     .setURL("https://bicyclecards.com/how-to-play/blackjack/");
 const customIdValues = Object.values(customIds);
-class Blackjack {
+export default class Blackjack {
     constructor(interaction, startingBet, isSession, rounds, deck, totalEarnings = 0, cardCount = 0) {
         this.interaction = interaction;
         this.startingBet = startingBet;
@@ -207,8 +207,7 @@ class Blackjack {
                 description += "\n*New Deck Created*";
             description += `\nRound \`${this.session + 1}\` | Card Count: \`${this.cardCount}\`\nTotal Earnings: \`${this.totalEarnings} MD\``;
         }
-        const fields = [];
-        fields.push(...this.playerHands.map((hand, i) => {
+        const fields = this.playerHands.map((hand, i) => {
             const handVal = Blackjack.handValue(hand);
             let fieldValue = "";
             if (this.isSplit && this.focusedHand === i && this.withinPlayerTurn) {
@@ -224,7 +223,7 @@ class Blackjack {
                 name: this.isSplit ? `Your Hand ${i + 1}` : "Your Hand",
                 value: fieldValue,
             };
-        }));
+        });
         fields.push({
             name: "Minco Penguin",
             value: `${formatDeck(this.visibleDealerHand)}\nTotal: **${Blackjack.displayValue(Blackjack.handValue(this.visibleDealerHand))}**`,
@@ -603,5 +602,4 @@ Your bet must be between **5** and **250** MD.`,
         return hand.length === 2 && Blackjack.handValue(hand).total === 21;
     }
 }
-export default Blackjack;
 //# sourceMappingURL=blackjack_class.js.map

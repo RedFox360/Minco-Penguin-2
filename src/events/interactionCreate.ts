@@ -1,13 +1,13 @@
 import {
-	ChatInputCommandInteraction,
-	Client,
+	type ChatInputCommandInteraction,
+	type Client,
+	type Interaction,
+	type Snowflake,
+	type UserContextMenuCommandInteraction,
 	Collection,
 	EmbedBuilder,
 	Events,
-	Interaction,
 	RESTJSONErrorCodes,
-	Snowflake,
-	UserContextMenuCommandInteraction,
 } from "discord.js";
 import SlashCommand from "../core/SlashCommand.js";
 import UserContextMenu from "../core/UserContextMenu.js";
@@ -132,7 +132,7 @@ async function handleError(
 	} else {
 		interaction
 			.reply({
-				content: "An error occured",
+				content: "An error occurred",
 				ephemeral: true,
 			})
 			.catch(() => {

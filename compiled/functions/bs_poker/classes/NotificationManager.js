@@ -59,7 +59,7 @@ export default class NotificationManager {
             content: this.notifText,
             components: [this.getNotifRow(true)],
         });
-        clearTimeout(this.notifTimeout);
+        this.clearNotifTimeout();
     }
     clearNotifTimeout() {
         clearTimeout(this.notifTimeout);

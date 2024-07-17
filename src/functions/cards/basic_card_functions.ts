@@ -1,5 +1,10 @@
-import { AnyCard, emoji, newEmoji, newEmojiSuits } from "./basic_card_types.js";
-import { ExtValue } from "../bs_poker/bs_poker_types.js";
+import {
+	type AnyCard,
+	emoji,
+	newEmoji,
+	newEmojiSuits,
+} from "./basic_card_types.js";
+import { type ExtValue } from "../bs_poker/bs_poker_types.js";
 
 export function suitToBasicEmoji(suit: string) {
 	switch (suit) {
@@ -62,7 +67,7 @@ export function cardToEmoji(card: AnyCard | null): [string, string] | null {
 	return null;
 }
 
-export function formatDeckLines(deck: AnyCard[]) {
+export function formatDeckLines(deck: readonly AnyCard[]) {
 	const line1: string[] = [];
 	const line2: string[] = [];
 	for (const card of deck) {
@@ -73,7 +78,7 @@ export function formatDeckLines(deck: AnyCard[]) {
 	return [line1, line2];
 }
 
-export function formatDeck(deck: AnyCard[]) {
+export function formatDeck(deck: readonly AnyCard[]) {
 	const formatted = formatDeckLines(deck);
 	return `${formatted[0].join(" ")}\n${formatted[1].join(" ")}`;
 }
@@ -85,11 +90,11 @@ export function formatCardSideways(card: AnyCard, short = false) {
 	return `${valueToSymbol(card.value, short)}${suitToBasicEmoji(card.suit)}`;
 }
 
-export function deckToStringArray(deck: AnyCard[], short = false) {
+export function deckToStringArray(deck: readonly AnyCard[], short = false) {
 	return deck.map(card => formatCardSideways(card, short));
 }
 
-export function formatDeckSideways(deck: AnyCard[], short = false) {
+export function formatDeckSideways(deck: readonly AnyCard[], short = false) {
 	return deckToStringArray(deck, short).join("  ");
 }
 

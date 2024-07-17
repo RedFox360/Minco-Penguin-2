@@ -56,11 +56,7 @@ export function shuffleArray(arr) {
  * @param timeoutMS time in milliseconds (default = 20,000)
  */
 export function replyThenDelete(message, text, timeoutMS = 20000) {
-    message
-        .reply({
-        content: text,
-    })
-        .then(msg => {
+    message.reply(text).then(msg => {
         setTimeout(() => {
             msg.delete();
         }, timeoutMS);
@@ -136,6 +132,22 @@ function autocompleteFilter(autocompleteName, autocompleteValue) {
 export function autocomplete(autocompleteData, value) {
     const matching = autocompleteData.filter(a => autocompleteFilter(a.name, value));
     return matching.slice(0, 25);
+}
+export function asciiTable(items, data) {
+    const top = items.map(item => item.name.padEnd(item.pad)).join("");
+    const rows = data.map(row => {
+        const rowFormatted = row
+            .map((cell, i) => {
+            const item = items[i];
+            return cell.padEnd(item.pad);
+        })
+            .join("");
+        return `\`${rowFormatted}\``;
+    });
+    return {
+        top,
+        rows,
+    };
 }
 export const sleep = promisify(setTimeout);
 //# sourceMappingURL=util.js.map

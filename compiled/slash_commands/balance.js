@@ -14,11 +14,10 @@ const balanceCommand = new SlashCommand()
     const member = interaction.options.getMember("user") ?? interaction.member;
     const profile = await getProfile(member.id);
     const total = profile.mincoDollars + profile.bank;
-    const avatar = member.displayAvatarURL();
     const balanceEmbed = new EmbedBuilder()
         .setAuthor({
         name: `${member.displayName}'s Balance`,
-        iconURL: avatar,
+        iconURL: member.displayAvatarURL(),
     })
         .setColor(colors.brightGreen)
         .setDescription(`🪙 Wallet: **${profile.mincoDollars.toLocaleString(interaction.locale)}** Minco Dollars
