@@ -34,8 +34,6 @@ export function valueToSymbol(value, short = false) {
     }
 }
 export function emojiFromValue(value) {
-    if (value < 2 || value > 14)
-        return null;
     return newEmoji[value - 2];
 }
 export function cardToEmoji(card) {
@@ -69,14 +67,18 @@ export function formatDeckLines(deck) {
     const line2 = [];
     for (const card of deck) {
         const cardEmojis = cardToEmoji(card);
-        line1.push(cardEmojis[0]);
-        line2.push(cardEmojis[1]);
+        if (cardEmojis) {
+            line1.push(cardEmojis[0]);
+            line2.push(cardEmojis[1]);
+        }
     }
     return [line1, line2];
 }
 export function formatDeck(deck) {
     const formatted = formatDeckLines(deck);
-    return `${formatted[0].join(" ")}\n${formatted[1].join(" ")}`;
+    const tops = formatted[0].join(" ");
+    const bottoms = formatted[1].join(" ");
+    return `${tops}\n${bottoms}`;
 }
 export function formatCardSideways(card, short = false) {
     if (card.value === 1 && card.suit === "bj")
@@ -85,11 +87,11 @@ export function formatCardSideways(card, short = false) {
         return short ? "RX" : "Red Joker";
     return `${valueToSymbol(card.value, short)}${suitToBasicEmoji(card.suit)}`;
 }
-export function deckToStringArray(deck, short = false) {
+function deckToSidewaysCards(deck, short = false) {
     return deck.map(card => formatCardSideways(card, short));
 }
 export function formatDeckSideways(deck, short = false) {
-    return deckToStringArray(deck, short).join("  ");
+    return deckToSidewaysCards(deck, short).join("  ");
 }
 const basicDeck = [
     { suit: "H", value: 2 },

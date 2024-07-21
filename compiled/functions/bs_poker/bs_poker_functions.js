@@ -203,7 +203,7 @@ function capitalize(text) {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(" ");
 }
-function callNumberToName(call) {
+function rankToName(call) {
     return capitalize(names[RNI[call]][0]);
 }
 // will return whether arr1 is higher than arr2
@@ -302,7 +302,7 @@ export function formatCall(call) {
         const high = call.high;
         return `${valueToSymbol(high[0].value)} Flush${suitToBasicEmoji(high[0].suit)} ${valueToSymbol(high[1].value)} Flush${suitToBasicEmoji(high[1].suit)}`;
     }
-    return `${valueToSymbol(call.high.value)} ${callNumberToName(call.call)}`;
+    return `${valueToSymbol(call.high.value)} ${rankToName(call.call)}`;
 }
 function insurancesInDeck(deck) {
     return countInArray(deck, card => card.value === 15);

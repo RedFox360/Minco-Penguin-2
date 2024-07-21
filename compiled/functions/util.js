@@ -1,4 +1,4 @@
-import { RESTJSONErrorCodes, TimestampStyles, time, } from "discord.js";
+import { PermissionsBitField, RESTJSONErrorCodes, TimestampStyles, inlineCode, time, } from "discord.js";
 import { promisify } from "util";
 export const colors = {
     blurple: 0x7289da,
@@ -85,16 +85,17 @@ export function chunkArray(array, chunkSize) {
     }
     return tempArray;
 }
+const zeroWidthSpace = "\u200b";
 export function clean(text) {
     if (typeof text === "string")
         return text
-            .replace(/`/g, "`" + String.fromCharCode(8203))
-            .replace(/@/g, "@" + String.fromCharCode(8203));
+            .replace(/`/g, "`" + zeroWidthSpace)
+            .replace(/@/g, "@" + zeroWidthSpace);
     else
         return text;
 }
 export function invalidNumber(x) {
-    return Number.isNaN(x) || x == null;
+    return isNaN(x) || x == null;
 }
 export function median(x) {
     // x is sorted in place, sorted is just a reference to x
@@ -115,8 +116,8 @@ export function handleMessageError(err) {
 }
 export function countInArray(arr, callback) {
     let count = 0;
-    for (const x of arr) {
-        if (callback(x))
+    for (const el of arr) {
+        if (callback(el))
             count += 1;
     }
     return count;
@@ -142,12 +143,22 @@ export function asciiTable(items, data) {
             return cell.padEnd(item.pad);
         })
             .join("");
-        return `\`${rowFormatted}\``;
+        return inlineCode(rowFormatted);
     });
     return {
         top,
         rows,
     };
 }
+const ownerId = process.env.OWNER_ID;
+export function hasAdminForGames(userId, userPermissions, checkId) {
+    return (userId === ownerId ||
+        userId === checkId ||
+        userPermissions.has(PermissionsBitField.Flags.ManageMessages));
+}
 export const sleep = promisify(setTimeout);
+const LN_DAILY = 0.07223050775;
+export function logDaily(mincoDollars) {
+    return Math.log(mincoDollars / 1000) / LN_DAILY;
+}
 //# sourceMappingURL=util.js.map

@@ -1,6 +1,6 @@
 import SlashCommand from "../core/SlashCommand.js";
 import { prisma } from "../main.js";
-import { asciiTable, invalidNumber } from "../functions/util.js";
+import { asciiTable, invalidNumber, logDaily } from "../functions/util.js";
 import LeaderboardPaginator from "../functions/classes/LeaderboardPaginator.js";
 const leaderboard = new SlashCommand()
     .setCommandData(builder => builder
@@ -8,7 +8,11 @@ const leaderboard = new SlashCommand()
     .setDescription("View leaderboards")
     .addSubcommand(subcommand => subcommand
     .setName("md")
-    .setDescription("View the Minco Dollar leaderboard of the server"))
+    .setDescription("View the Minco Dollar leaderboard of the server")
+    .addBooleanOption(option => option
+    .setName("log")
+    .setDescription("Use a log scale to approximate how many dailies people have used")
+    .setRequired(false)))
     .addSubcommand(subcommand => subcommand
     .setName("poker_stats")
     .setDescription("View the Poker Stats leaderboard of the server")))
@@ -40,15 +44,22 @@ const leaderboard = new SlashCommand()
         },
     });
     if (isMD) {
+        const useLog = interaction.options.getBoolean("log") ?? false;
         const rawData = profiles
-            .map(profile => ({
-            id: profile.userId,
-            total: profile.mincoDollars + profile.bank,
-        }))
+            .map(profile => {
+            const total = profile.mincoDollars + profile.bank;
+            return {
+                id: profile.userId,
+                total,
+            };
+        })
             .sort((a, b) => b.total - a.total);
         const formatted = rawData.map(d => {
             const member = members.get(d.id);
-            return `${member?.displayName ?? `<@${d.id}>`}: **${d.total.toLocaleString()}**`;
+            const mdDisplay = useLog
+                ? `**${logDaily(d.total).toFixed(1)}** (${d.total.toLocaleString()})`
+                : `**${d.total.toLocaleString()}**`;
+            return `${member?.displayName ?? `<@${d.id}>`}: ${mdDisplay}`;
         });
         const inCirculation = profiles.reduce((acc, curr) => acc + curr.mincoDollars, 0);
         const paginator = new LeaderboardPaginator({
@@ -63,8 +74,13 @@ const leaderboard = new SlashCommand()
         paginator.loadCollector(msg);
     }
     else {
-        const validProfiles = profiles.filter(profile => profile && profile.bsPokerGamesPlayed > 4);
-        const namePad = Math.max(...validProfiles.map(p => members.get(p.userId)?.displayName?.length ?? 0)) + 1;
+        const validProfiles = profiles
+            .filter(profile => profile && profile.bsPokerGamesPlayed > 4)
+            .map(profile => ({
+            profile,
+            memberName: members.get(profile.userId)?.displayName,
+        }));
+        const namePad = Math.max(...validProfiles.map(({ memberName }) => memberName?.length ?? 0)) + 1;
         const items = [
             {
                 name: "Name",
@@ -80,7 +96,7 @@ const leaderboard = new SlashCommand()
             },
         ];
         const rawData = validProfiles
-            .map(profile => {
+            .map(({ profile, memberName }) => {
             let skill = profile.bsPokerRating / profile.bsPokerGamesPlayed;
             if (invalidNumber(skill))
                 skill = 0;
@@ -89,6 +105,7 @@ const leaderboard = new SlashCommand()
                 wr = 0;
             return {
                 id: profile.userId,
+                memberName,
                 skill,
                 wr,
             };
@@ -99,7 +116,7 @@ const leaderboard = new SlashCommand()
             return b.skill - a.skill;
         });
         const tableData = asciiTable(items, rawData.map(d => {
-            const name = members.get(d.id)?.displayName ?? `<@${d.id}>`;
+            const name = d.memberName ?? `<@${d.id}>`;
             return [name, (d.wr * 100).toFixed(0), (d.skill * 100).toFixed(0)];
         }));
         const paginator = new LeaderboardPaginator({

@@ -1,6 +1,5 @@
 import { EmbedBuilder, RESTJSONErrorCodes, } from "discord.js";
-import { colors, invalidNumber, replyThenDelete } from "../util.js";
-import { updateProfile } from "../../prisma/models.js";
+import { colors, hasAdminForGames, invalidNumber, replyThenDelete, } from "../util.js";
 class ColumnFullError extends Error {
 }
 const gameTime = 1800000;
@@ -8,13 +7,11 @@ export default class Connect4 {
     static createBoard() {
         return Array.from({ length: 6 }, () => Array.from({ length: 7 }, () => 0));
     }
-    constructor(interaction, opponentId, bet) {
+    constructor(interaction, opponentId) {
         this.interaction = interaction;
         this.opponentId = opponentId;
-        this.bet = bet;
         this.round = 0;
         this.winner = 0;
-        this.betInfo = "";
         this.lastMove = null;
         this.board = Connect4.createBoard();
         /*
@@ -66,7 +63,7 @@ export default class Connect4 {
         const color = this.winner ? colors.green : colors.blurple;
         const embed = new EmbedBuilder()
             .setTitle("Connect 4")
-            .setDescription(`${this.displayTurnOrWin()}\n${this.betInfo}`)
+            .setDescription(`${this.displayTurnOrWin()}`)
             .addFields({ name: "Board", value: this.displayBoard() })
             .setColor(color);
         return embed;
@@ -141,22 +138,7 @@ export default class Connect4 {
         this.winner = this.checkWinner();
         if (this.winner === 0)
             return false;
-        const winnerId = this.numToPlayer(this.winner);
-        const loserId = this.winner === 1 ? this.opponentId : this.interaction.user.id;
         if (this.winner) {
-            if (this.bet) {
-                updateProfile(winnerId, {
-                    mincoDollars: {
-                        increment: this.bet,
-                    },
-                });
-                updateProfile(loserId, {
-                    mincoDollars: {
-                        decrement: this.bet,
-                    },
-                });
-                this.betInfo = `They have won **${this.bet} MD** from the loser.`;
-            }
             await this.sendGameMsg();
             this.msgCollector.stop();
             return true;
@@ -167,12 +149,10 @@ export default class Connect4 {
         await this.sendGameMsg();
         this.msgCollector = this.interaction.channel.createMessageCollector({
             time: gameTime,
-            filter: m => m.author.id === this.interaction.user.id ||
-                m.author.id === this.opponentId,
         });
         this.msgCollector.on("collect", async (msg) => {
             if (msg.content.toLowerCase() === "abort" &&
-                msg.author.id === this.interaction.user.id) {
+                hasAdminForGames(msg.author.id, msg.member.permissions, this.interaction.user.id)) {
                 this.msgCollector.stop();
                 msg.reply("Game aborted.");
                 return;

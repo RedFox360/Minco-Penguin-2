@@ -1,4 +1,4 @@
-import { Collection, userMention } from "discord.js";
+import { Collection, userMention, } from "discord.js";
 import Player from "./Player.js";
 import { bsPokerTeams, prisma } from "../../../main.js";
 import { formatDeck } from "../../cards/basic_card_functions.js";
@@ -19,9 +19,6 @@ export default class PlayerCollection extends Collection {
     }
     get everPlayersLen() {
         return this.size + this.out.length;
-    }
-    get ids() {
-        return Array.from(this.keys());
     }
     get cardsEntitled() {
         return this.map(p => p.cardsEntitled);
@@ -103,22 +100,34 @@ export default class PlayerCollection extends Collection {
         this.removePlayerFromTeams(playerId);
         bsPokerTeams.get(this.channelId).push([playerId]);
     }
-    formatPWSC() {
+    loadPWSC() {
         if (!this.options.useSpecialCards)
-            return "";
-        if (this.size === 0)
-            return "";
-        const pwsc = this.filter(player => player.hand.some(c => c.suit === "bj" || c.suit === "rj")).map((_, id) => userMention(id));
-        return `Players with special cards: ${pwsc.length === 0 ? "None" : pwsc.join(" ")}`;
+            return;
+        this.pwsc = [];
+        for (const player of this.values()) {
+            const hasBJ = player.hand.some(c => c.suit === "bj");
+            const hasRJ = player.hand.some(c => c.suit === "rj");
+            if (hasBJ)
+                this.pwsc.push(userMention(player.id));
+            if (hasRJ)
+                this.pwsc.push(userMention(player.id));
+        }
+    }
+    formatPWSC() {
+        if (this.size && this.pwsc) {
+            return `Players with special cards: ${this.pwsc.length === 0 ? "None" : this.pwsc.join(" ")}`;
+        }
+        return "";
     }
     deal(deck) {
         for (const p of this.values()) {
             p.dealCards(deck);
         }
+        this.loadPWSC();
     }
     formatTeammateHand(userId) {
         const channelTeams = bsPokerTeams.get(this.channelId);
-        if (channelTeams.length === 0)
+        if (!channelTeams?.length)
             return "";
         const team = channelTeams.find(t => t.includes(userId));
         if (!team)

@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder, } from "discord.js";
 import { cooldownMax, cooldownMin, } from "./util_types.js";
 export default class SlashCommand {
     constructor() {

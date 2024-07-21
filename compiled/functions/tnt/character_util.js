@@ -12,7 +12,7 @@ export const claimCharacterRow = new ActionRowBuilder().addComponents(claimChara
 export function randomCharacter() {
     return randomElement(characters);
 }
-function customIdToId(customId) {
+export function customIdToId(customId) {
     return customId.slice(6);
 }
 export function characterSpawnMessage(character) {

@@ -1,3 +1,4 @@
+import { ClownState, } from "../bs_poker_types.js";
 import { formatCall } from "../bs_poker_functions.js";
 export default class StateManager {
     constructor(players) {
@@ -7,6 +8,7 @@ export default class StateManager {
         this.bsCalled = false;
         this.aborted = false;
         this.bxOpen = false;
+        this.clowned = ClownState.NotClowned;
         this.last3CallsTracker = [true, true, true];
         this._currentCall = null;
         this._round = 0;
@@ -57,7 +59,7 @@ export default class StateManager {
         this.bsCalled = false;
         this._currentCall = null;
         this.callsOpen = true;
-        this.clowned = 0;
+        this.clowned = ClownState.NotClowned;
         this.last3CallsTracker = [true, true, true];
     }
     nextRound() {

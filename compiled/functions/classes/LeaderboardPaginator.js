@@ -122,9 +122,7 @@ export default class LeaderboardPaginator {
                 });
                 newPaginator.currentPage = this.currentPage;
                 bi.reply(newPaginator.getMessage()).then(res => {
-                    res.fetch().then(msg => {
-                        newPaginator.loadCollector(msg);
-                    });
+                    newPaginator.loadCollector(res);
                 });
             }
         });

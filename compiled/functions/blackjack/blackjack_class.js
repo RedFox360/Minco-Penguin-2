@@ -2,6 +2,12 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuild
 import { createBasicDeck, formatDeck } from "../cards/basic_card_functions.js";
 import { colors, invalidNumber, spliceRandom, sleep } from "../util.js";
 import { getProfile, updateProfile } from "../../prisma/models.js";
+var GameState;
+(function (GameState) {
+    GameState[GameState["Game"] = 0] = "Game";
+    GameState[GameState["Surrender"] = 1] = "Surrender";
+    GameState[GameState["Blackjack"] = 2] = "Blackjack";
+})(GameState || (GameState = {}));
 var Outcome;
 (function (Outcome) {
     Outcome[Outcome["DealerBlackjack"] = -4] = "DealerBlackjack";
@@ -38,17 +44,17 @@ export default class Blackjack {
         this.startingBet = startingBet;
         this.isSession = isSession;
         this.rounds = rounds;
+        this.totalEarnings = totalEarnings;
         this.cardCount = cardCount;
+        this.playerHands = [];
         this.focusedHand = 0;
-        this.currentCompState = "game";
+        this.dealerHand = [];
+        this.currentCompState = GameState.Game;
+        this.outcomes = [];
+        this.betOutcomes = [];
         this.session = 0;
         this.sessionAborted = false;
         this.newDeckCreated = true;
-        this.totalEarnings = 0;
-        this.playerHands = [];
-        this.dealerHand = [];
-        this.outcomes = [];
-        this.betOutcomes = [];
         this.bets = [startingBet];
         if (deck?.length > 20) {
             this.deck = deck;
@@ -58,7 +64,6 @@ export default class Blackjack {
             this.deck = createBasicDeck();
             this.cardCount = 0;
         }
-        this.totalEarnings = totalEarnings;
         this.hitButton = new ButtonBuilder()
             .setLabel("Hit")
             .setCustomId(customIds.hit)
@@ -101,11 +106,11 @@ export default class Blackjack {
         else {
             row2.addComponents(howToPlayButton);
         }
-        this.currentCompState = "game";
+        this.currentCompState = GameState.Game;
         return [row1, row2];
     }
     get surrenderComponents() {
-        this.currentCompState = "surrender";
+        this.currentCompState = GameState.Surrender;
         const rows = [
             new ActionRowBuilder().addComponents(this.surrenderButton, this.continueButton),
         ];
@@ -114,18 +119,18 @@ export default class Blackjack {
         return rows;
     }
     get blackjackComponents() {
-        this.currentCompState = "blackjack";
+        this.currentCompState = GameState.Blackjack;
         return [
             new ActionRowBuilder().addComponents(this.continueButton),
         ];
     }
     get currentComponents() {
         switch (this.currentCompState) {
-            case "game":
+            case GameState.Game:
                 return this.gameMsgComponents;
-            case "surrender":
+            case GameState.Surrender:
                 return this.surrenderComponents;
-            case "blackjack":
+            case GameState.Blackjack:
                 return this.blackjackComponents;
             default:
                 return null;
@@ -144,7 +149,7 @@ export default class Blackjack {
         };
     }
     fromBlackjackMsg(earned) {
-        this.currentCompState = "blackjack";
+        this.currentCompState = GameState.Blackjack;
         return {
             embeds: [this.getEmbed(earned)],
             components: this.blackjackComponents,
