@@ -25,7 +25,10 @@ export default [
 			"@typescript-eslint/no-empty-function": "warn",
 			"no-var": "error",
 			"spaced-comment": ["warn", "always", { exceptions: ["?"] }],
-			"max-lines": ["error", { max: 2000, skipBlankLines: true }],
+			"max-lines": [
+				"error",
+				{ max: 1000, skipBlankLines: true, skipComments: true },
+			],
 			"no-await-in-loop": "error",
 			"class-methods-use-this": "error",
 			"no-template-curly-in-string": "warn",

@@ -223,7 +223,7 @@ function capitalize(text: string) {
 		.map(word => word.charAt(0).toUpperCase() + word.slice(1))
 		.join(" ");
 }
-function callNumberToName(call: HandRank) {
+function rankToName(call: HandRank) {
 	return capitalize(names[RNI[call]][0]);
 }
 // will return whether arr1 is higher than arr2
@@ -332,7 +332,7 @@ export function formatCall(call: Call) {
 		)} ${valueToSymbol(high[1].value)} Flush${suitToBasicEmoji(high[1].suit)}`;
 	}
 
-	return `${valueToSymbol((call.high as ExtCard).value)} ${callNumberToName(
+	return `${valueToSymbol((call.high as ExtCard).value)} ${rankToName(
 		call.call
 	)}`;
 }
@@ -461,10 +461,7 @@ export function callInDeck(
 	}
 }
 
-type SH = {
-	[key in ExtValue]: [ExtValue, ExtValue, ExtValue, ExtValue, ExtValue];
-};
-const straightCardsTable: SH = {
+const straightCardsTable = {
 	15: [15, 14, 13, 12, 11],
 	14: [14, 13, 12, 11, 10],
 	13: [13, 12, 11, 10, 9],
@@ -480,7 +477,10 @@ const straightCardsTable: SH = {
 	3: [3, 2, 14, 13, 12],
 	2: [2, 14, 13, 12, 11],
 	1: [1, 14, 13, 12, 11],
-};
+} satisfies Record<
+	ExtValue,
+	readonly [ExtValue, ExtValue, ExtValue, ExtValue, ExtValue]
+>;
 
 // Object.groupBy turns [1, 2, 2, 3, 3, 3, 4, 4] -> {1: [1], 2: [2, 2], 3: [3, 3, 3], 4: [4, 4]}
 

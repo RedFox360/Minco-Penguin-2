@@ -3,8 +3,11 @@ import {
 	type Message,
 	type MessagePayload,
 	type MessageReplyOptions,
+	type Snowflake,
+	PermissionsBitField,
 	RESTJSONErrorCodes,
 	TimestampStyles,
+	inlineCode,
 	time,
 } from "discord.js";
 import { promisify } from "util";
@@ -42,7 +45,6 @@ export function absTimeToRelTimestamp(unixTimeMS: number) {
 export function removeByValue<T>(arr: T[], value: T): boolean {
 	const index = arr.indexOf(value);
 	if (index === -1) return false;
-
 	arr.splice(index, 1);
 	return true;
 }
@@ -110,16 +112,17 @@ export function chunkArray<T>(array: readonly T[], chunkSize: number): T[][] {
 	return tempArray;
 }
 
+const zeroWidthSpace = "\u200b";
 export function clean(text: any) {
 	if (typeof text === "string")
 		return text
-			.replace(/`/g, "`" + String.fromCharCode(8203))
-			.replace(/@/g, "@" + String.fromCharCode(8203));
+			.replace(/`/g, "`" + zeroWidthSpace)
+			.replace(/@/g, "@" + zeroWidthSpace);
 	else return text;
 }
 
 export function invalidNumber(x: any): boolean {
-	return Number.isNaN(x) || x == null;
+	return isNaN(x) || x == null;
 }
 
 export function median(x: number[]): number {
@@ -144,11 +147,11 @@ export function handleMessageError(err: any) {
 
 export function countInArray<T>(
 	arr: Iterable<T>,
-	callback: (x: T) => boolean
+	callback: (element: T) => boolean
 ): number {
 	let count = 0;
-	for (const x of arr) {
-		if (callback(x)) count += 1;
+	for (const el of arr) {
+		if (callback(el)) count += 1;
 	}
 	return count;
 }
@@ -197,7 +200,7 @@ export function asciiTable(
 				return cell.padEnd(item.pad);
 			})
 			.join("");
-		return `\`${rowFormatted}\``;
+		return inlineCode(rowFormatted);
 	});
 	return {
 		top,
@@ -205,4 +208,22 @@ export function asciiTable(
 	};
 }
 
+const ownerId = process.env.OWNER_ID;
+export function hasAdminForGames(
+	userId: Snowflake,
+	userPermissions: Readonly<PermissionsBitField>,
+	checkId: Snowflake
+) {
+	return (
+		userId === ownerId ||
+		userId === checkId ||
+		userPermissions.has(PermissionsBitField.Flags.ManageMessages)
+	);
+}
+
 export const sleep = promisify(setTimeout);
+
+const LN_DAILY = 0.07223050775;
+export function logDaily(mincoDollars: number): number {
+	return Math.log(mincoDollars / 1000) / LN_DAILY;
+}

@@ -42,7 +42,6 @@ export function valueToSymbol(value: number, short = false) {
 }
 
 export function emojiFromValue(value: ExtValue) {
-	if (value < 2 || value > 14) return null;
 	return newEmoji[value - 2];
 }
 
@@ -67,20 +66,27 @@ export function cardToEmoji(card: AnyCard | null): [string, string] | null {
 	return null;
 }
 
-export function formatDeckLines(deck: readonly AnyCard[]) {
+export function formatDeckLines(
+	deck: readonly AnyCard[]
+): [string[], string[]] {
 	const line1: string[] = [];
 	const line2: string[] = [];
+
 	for (const card of deck) {
 		const cardEmojis = cardToEmoji(card);
-		line1.push(cardEmojis[0]);
-		line2.push(cardEmojis[1]);
+		if (cardEmojis) {
+			line1.push(cardEmojis[0]);
+			line2.push(cardEmojis[1]);
+		}
 	}
 	return [line1, line2];
 }
 
 export function formatDeck(deck: readonly AnyCard[]) {
 	const formatted = formatDeckLines(deck);
-	return `${formatted[0].join(" ")}\n${formatted[1].join(" ")}`;
+	const tops = formatted[0].join(" ");
+	const bottoms = formatted[1].join(" ");
+	return `${tops}\n${bottoms}`;
 }
 
 export function formatCardSideways(card: AnyCard, short = false) {
@@ -90,12 +96,12 @@ export function formatCardSideways(card: AnyCard, short = false) {
 	return `${valueToSymbol(card.value, short)}${suitToBasicEmoji(card.suit)}`;
 }
 
-export function deckToStringArray(deck: readonly AnyCard[], short = false) {
+function deckToSidewaysCards(deck: readonly AnyCard[], short = false) {
 	return deck.map(card => formatCardSideways(card, short));
 }
 
 export function formatDeckSideways(deck: readonly AnyCard[], short = false) {
-	return deckToStringArray(deck, short).join("  ");
+	return deckToSidewaysCards(deck, short).join("  ");
 }
 
 const basicDeck = [

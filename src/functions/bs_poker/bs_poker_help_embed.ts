@@ -80,7 +80,7 @@ Joker: \`x\``,
 
 :red_square: **Red Joker** (\`Red X\`): If a player with this card calls a BS when it is *not their turn*, they will lose a card if their BS was correct. If incorrect, they will gain a card as usual.
 
-These cards are *publicly visible* to all players throughout the game. The players which have a Special Card are shown in the "New Round" message at the beginning of every round, and when a player clicks "View Cards". However, it is not written which Special Card they have.
+These cards are *publicly visible* to all players throughout the game. The players which have a Special Card are shown in the "New Round" message at the beginning of every round and when a player clicks "View Cards". However, it is not written which Special Card they have.
 
 In addition to their special abilities, these cards **also act as regular jokers** and may be used as wild cards for flushes.`,
 		footer: { text: "Bot made by @obvsam" },

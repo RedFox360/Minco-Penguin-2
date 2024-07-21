@@ -13,10 +13,10 @@ const poker = new SlashCommand()
 	.setRun(async interaction => {
 		switch (interaction.options.getSubcommand()) {
 			case "help":
-				pokerHelp.run(interaction);
+				await pokerHelp.run(interaction);
 				return;
 			case "stats":
-				pokerStats.run(interaction);
+				await pokerStats.run(interaction);
 				return;
 		}
 	});

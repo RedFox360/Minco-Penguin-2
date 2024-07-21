@@ -15,6 +15,11 @@ import { createBasicDeck, formatDeck } from "../cards/basic_card_functions.js";
 import { colors, invalidNumber, spliceRandom, sleep } from "../util.js";
 import { getProfile, updateProfile } from "../../prisma/models.js";
 
+enum GameState {
+	Game,
+	Surrender,
+	Blackjack,
+}
 enum Outcome {
 	DealerBlackjack = -4,
 	Loss = -3,
@@ -48,43 +53,38 @@ const howToPlayButton = new ButtonBuilder()
 
 const customIdValues = Object.values(customIds);
 export default class Blackjack {
-	playerHands: Card[][];
-	focusedHand = 0;
-	dealerHand: Card[];
-	bets: number[];
-	deck: Card[];
-	hitButton: ButtonBuilder;
-	standButton: ButtonBuilder;
-	doubleDownButton: ButtonBuilder;
-	splitButton: ButtonBuilder;
-	surrenderButton: ButtonBuilder;
-	continueButton: ButtonBuilder;
-	endSessionButton: ButtonBuilder;
-	editBetButton: ButtonBuilder;
-	currentCompState: "game" | "surrender" | "blackjack" = "game";
-	mcompColl: InteractionCollector<ButtonInteraction>;
-	outcomes: Outcome[];
-	betOutcomes: number[];
-	session = 0;
-	sessionAborted = false;
-	newDeckCreated = true;
-	totalEarnings = 0;
+	private playerHands: Card[][] = [];
+	private focusedHand = 0;
+	private dealerHand: Card[] = [];
+	private bets: number[];
+	private deck: Card[];
+	private hitButton: ButtonBuilder;
+	private standButton: ButtonBuilder;
+	private doubleDownButton: ButtonBuilder;
+	private splitButton: ButtonBuilder;
+	private surrenderButton: ButtonBuilder;
+	private continueButton: ButtonBuilder;
+	private endSessionButton: ButtonBuilder;
+	private editBetButton: ButtonBuilder;
+	private currentCompState: GameState = GameState.Game;
+	private mcompColl: InteractionCollector<ButtonInteraction>;
+	private outcomes: Outcome[] = [];
+	private betOutcomes: number[] = [];
+	private session = 0;
+	private sessionAborted = false;
+	private newDeckCreated = true;
 
-	constructor(
-		public interaction:
+	public constructor(
+		private interaction:
 			| ChatInputCommandInteraction<"cached">
 			| ButtonInteraction<"cached">,
-		public startingBet: number,
-		public isSession: boolean,
-		public rounds: number,
+		private startingBet: number,
+		private isSession: boolean,
+		private rounds: number,
 		deck?: Card[],
-		totalEarnings = 0,
-		public cardCount = 0
+		private totalEarnings = 0,
+		private cardCount = 0
 	) {
-		this.playerHands = [];
-		this.dealerHand = [];
-		this.outcomes = [];
-		this.betOutcomes = [];
 		this.bets = [startingBet];
 		if (deck?.length > 20) {
 			this.deck = deck;
@@ -93,7 +93,6 @@ export default class Blackjack {
 			this.deck = createBasicDeck();
 			this.cardCount = 0;
 		}
-		this.totalEarnings = totalEarnings;
 		this.hitButton = new ButtonBuilder()
 			.setLabel("Hit")
 			.setCustomId(customIds.hit)
@@ -128,7 +127,7 @@ export default class Blackjack {
 			.setStyle(ButtonStyle.Secondary);
 	}
 
-	get gameMsgComponents() {
+	private get gameMsgComponents() {
 		const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
 			this.hitButton,
 			this.standButton,
@@ -143,12 +142,12 @@ export default class Blackjack {
 		} else {
 			row2.addComponents(howToPlayButton);
 		}
-		this.currentCompState = "game";
+		this.currentCompState = GameState.Game;
 		return [row1, row2];
 	}
 
-	get surrenderComponents() {
-		this.currentCompState = "surrender";
+	private get surrenderComponents() {
+		this.currentCompState = GameState.Surrender;
 		const rows = [
 			new ActionRowBuilder<ButtonBuilder>().addComponents(
 				this.surrenderButton,
@@ -165,53 +164,53 @@ export default class Blackjack {
 		return rows;
 	}
 
-	get blackjackComponents() {
-		this.currentCompState = "blackjack";
+	private get blackjackComponents() {
+		this.currentCompState = GameState.Blackjack;
 		return [
 			new ActionRowBuilder<ButtonBuilder>().addComponents(this.continueButton),
 		];
 	}
 
-	get currentComponents() {
+	private get currentComponents() {
 		switch (this.currentCompState) {
-			case "game":
+			case GameState.Game:
 				return this.gameMsgComponents;
-			case "surrender":
+			case GameState.Surrender:
 				return this.surrenderComponents;
-			case "blackjack":
+			case GameState.Blackjack:
 				return this.blackjackComponents;
 			default:
 				return null;
 		}
 	}
 
-	gameMsg(earned?: number) {
+	private gameMsg(earned?: number) {
 		return {
 			embeds: [this.getEmbed(earned)],
 			components: earned == null ? this.gameMsgComponents : [],
 		};
 	}
 
-	surrenderMsg() {
+	private surrenderMsg() {
 		return {
 			embeds: [this.getEmbed()],
 			components: this.surrenderComponents,
 		};
 	}
 
-	fromBlackjackMsg(earned: number) {
-		this.currentCompState = "blackjack";
+	private fromBlackjackMsg(earned: number) {
+		this.currentCompState = GameState.Blackjack;
 		return {
 			embeds: [this.getEmbed(earned)],
 			components: this.blackjackComponents,
 		};
 	}
 
-	currentDeck() {
+	private currentDeck() {
 		return [this.playerHands, this.dealerHand].flat(2);
 	}
 
-	currentCardCount() {
+	private currentCardCount() {
 		const deck = this.currentDeck();
 		let count = 0;
 		for (const card of deck) {
@@ -224,32 +223,32 @@ export default class Blackjack {
 		return count;
 	}
 
-	updateCardCount() {
+	private updateCardCount() {
 		this.cardCount += this.currentCardCount();
 	}
 
-	get withinPlayerTurn() {
+	private get withinPlayerTurn() {
 		return this.outcomes?.length === 0 && this.betOutcomes?.length === 0;
 	}
 
-	get visibleDealerHand() {
+	private get visibleDealerHand() {
 		if (this.withinPlayerTurn) return [this.dealerHand[0], null];
 		return this.dealerHand;
 	}
 
-	get isSplit() {
+	private get isSplit() {
 		return this.playerHands.length > 1;
 	}
 
-	moneyEarned() {
+	private moneyEarned() {
 		return this.betOutcomes.reduce((acc, i) => acc + i);
 	}
 
-	get totalBet() {
+	private get totalBet() {
 		return this.bets.reduce((acc, i) => acc + i);
 	}
 
-	getEmbed(earned?: number) {
+	private getEmbed(earned?: number) {
 		let description = "*Game in Progress*";
 		let color: ColorResolvable = colors.blurple;
 		if (!this.withinPlayerTurn) {
@@ -316,24 +315,24 @@ export default class Blackjack {
 		return embed;
 	}
 
-	deal() {
+	private deal() {
 		this.playerHands.push(spliceRandom(this.deck, 2));
 		this.dealerHand.push(...spliceRandom(this.deck, 2));
 		this.activateSplitButton();
 	}
 
-	activateSplitButton() {
+	private activateSplitButton() {
 		const enableButton =
 			this.currentHand.length === 2 &&
 			this.currentHand[0].value === this.currentHand[1].value;
 		this.splitButton.setDisabled(!enableButton);
 	}
 
-	get currentHand() {
+	private get currentHand() {
 		return this.playerHands[this.focusedHand];
 	}
 
-	setOutcomes() {
+	private setOutcomes() {
 		const dealerHandTotal = Blackjack.handValue(this.dealerHand).total;
 		const dealerHasBlackjack = Blackjack.hasBlackjack(this.dealerHand);
 
@@ -356,7 +355,7 @@ export default class Blackjack {
 		}
 	}
 
-	async endPlayerTurn(
+	private async endPlayerTurn(
 		bi: ChatInputCommandInteraction<"cached"> | ButtonInteraction<"cached">,
 		surrendered = false,
 		fromBlackjack = false
@@ -456,7 +455,7 @@ export default class Blackjack {
 		else if (bi.isCommand()) bi.editReply(this.gameMsg(earned));
 	}
 
-	continueOrEnd(bi: ButtonInteraction<"cached">) {
+	private continueOrEnd(bi: ButtonInteraction<"cached">) {
 		if (this.focusedHand === this.playerHands.length - 1) {
 			this.endPlayerTurn(bi);
 			return;
@@ -467,11 +466,11 @@ export default class Blackjack {
 		bi.update(this.gameMsg());
 	}
 
-	deal1Card() {
+	private deal1Card() {
 		this.currentHand.push(spliceRandom(this.deck, 1)[0]);
 	}
 
-	hit(bi: ButtonInteraction<"cached">) {
+	private hit(bi: ButtonInteraction<"cached">) {
 		this.deal1Card();
 		this.doubleDownButton.setDisabled(true);
 		const total = Blackjack.handValue(this.currentHand).total;
@@ -483,7 +482,7 @@ export default class Blackjack {
 		return false;
 	}
 
-	async doubleDown(bi: ButtonInteraction<"cached">) {
+	private async doubleDown(bi: ButtonInteraction<"cached">) {
 		const profile = await getProfile(bi.user.id);
 		const betNeeded = this.bets[this.focusedHand] + this.totalBet;
 		if (profile.mincoDollars < betNeeded) {
@@ -499,7 +498,7 @@ export default class Blackjack {
 		this.continueOrEnd(bi);
 	}
 
-	async split(bi: ButtonInteraction<"cached">) {
+	private async split(bi: ButtonInteraction<"cached">) {
 		const profile = await getProfile(bi.user.id);
 		const ogBet = this.bets[this.focusedHand];
 		const betNeeded = ogBet + this.totalBet;
@@ -520,7 +519,7 @@ export default class Blackjack {
 		bi.update(this.gameMsg());
 	}
 
-	async editBet(bi: ButtonInteraction<"cached">) {
+	private async editBet(bi: ButtonInteraction<"cached">) {
 		if (this.session >= this.rounds - 1) {
 			await bi.reply({
 				content: `You may not edit your bet because this is the last round of the session.`,
@@ -559,7 +558,7 @@ Your bet must be between **5** and **250** MD.`,
 		}
 	}
 
-	async endSession(bi: ButtonInteraction<"cached">) {
+	private async endSession(bi: ButtonInteraction<"cached">) {
 		this.endSessionButton.setDisabled();
 		this.sessionAborted = true;
 		await this.interaction.editReply({
@@ -570,7 +569,7 @@ Your bet must be between **5** and **250** MD.`,
 		});
 	}
 
-	async gameLogic() {
+	public async gameLogic() {
 		if (this.isSession) {
 			const profile = await getProfile(this.interaction.user.id);
 			if (profile.mincoDollars < this.startingBet) {
@@ -638,7 +637,7 @@ Your bet must be between **5** and **250** MD.`,
 		});
 	}
 
-	static handValue(hand: readonly Card[]): HandValue {
+	private static handValue(hand: readonly Card[]): HandValue {
 		let soft = false;
 		let hasAce = false;
 		let total = hand.reduce((acc, card) => {
@@ -657,12 +656,12 @@ Your bet must be between **5** and **250** MD.`,
 		return { total, soft };
 	}
 
-	static displayValue(value: HandValue): string {
+	private static displayValue(value: HandValue): string {
 		if (value.soft) return `${value.total - 10}/${value.total}`;
 		return value.total.toString();
 	}
 
-	static displayOutcome(outcome: Outcome): string {
+	private static displayOutcome(outcome: Outcome): string {
 		switch (outcome) {
 			case Outcome.DealerBlackjack:
 				return "Minco Penguin got a blackjack (loss)";
@@ -685,7 +684,7 @@ Your bet must be between **5** and **250** MD.`,
 		}
 	}
 
-	setBetOutcomes(): void {
+	private setBetOutcomes(): void {
 		this.betOutcomes = this.outcomes.map((outcome, i) => {
 			if (outcome < 0) return -this.bets[i];
 			if (outcome === 0) return 0;
@@ -695,13 +694,13 @@ Your bet must be between **5** and **250** MD.`,
 		});
 	}
 
-	static displayBetOutcome(earnings?: number) {
+	private static displayBetOutcome(earnings?: number) {
 		if (earnings === 0) return "**Push!** (You did not earn or lose any MD)";
 		if (earnings > 0) return `You earned **${earnings} MD**!`;
 		return `You lost **${-earnings} MD**!`;
 	}
 
-	static hasBlackjack(hand: readonly Card[]): boolean {
+	private static hasBlackjack(hand: readonly Card[]): boolean {
 		return hand.length === 2 && Blackjack.handValue(hand).total === 21;
 	}
 }

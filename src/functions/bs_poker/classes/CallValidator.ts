@@ -1,11 +1,5 @@
 import { type Message } from "discord.js";
-import {
-	type Call,
-	ClownState,
-	type ExtCard,
-	type ExtValue,
-	HandRank,
-} from "../bs_poker_types.js";
+import { type Call, ClownState, HandRank } from "../bs_poker_types.js";
 import { invalidNumber, replyThenDelete } from "../../util.js";
 import { formatCall, isHigher } from "../bs_poker_functions.js";
 import { emoji } from "../../cards/basic_card_types.js";
@@ -32,7 +26,7 @@ export default class CallValidator {
 			);
 			if (hasClown) {
 				message.reply({
-					content: `${emoji.clown} You have clowned this round and now it is your turn. You must call BS. ${emoji.clown}`,
+					content: `${emoji.clown} You have used a Clown Joker this round and now it is your turn. You must call BS. ${emoji.clown}`,
 				});
 				return false;
 			}
@@ -70,8 +64,7 @@ export default class CallValidator {
 			call.call === HandRank.DoubleTriple ||
 			call.call === HandRank.FullHouse
 		) {
-			const highCards = call.high as [ExtValue, ExtValue];
-			if (highCards[0] === highCards[1]) {
+			if (call.high[0] === call.high[1]) {
 				replyThenDelete(
 					message,
 					`Double pairs, triples, and full houses must have 2 different values (Your call: ${formatCall(
@@ -82,11 +75,10 @@ export default class CallValidator {
 			}
 		}
 		if (call.call === HandRank.TriplePair) {
-			const highCards = call.high as [ExtValue, ExtValue, ExtValue];
 			if (
-				highCards[0] === highCards[1] ||
-				highCards[0] === highCards[2] ||
-				highCards[1] === highCards[2]
+				call.high[0] === call.high[1] ||
+				call.high[0] === call.high[2] ||
+				call.high[1] === call.high[2]
 			) {
 				replyThenDelete(
 					message,
@@ -112,8 +104,7 @@ export default class CallValidator {
 			return false;
 		}
 		if (call.call === HandRank.DoubleFlush) {
-			const highCards = call.high as [ExtCard, ExtCard];
-			if (highCards[0].suit === highCards[1].suit) {
+			if (call.high[0].suit === call.high[1].suit) {
 				replyThenDelete(
 					message,
 					`Double flushes must have different suits (Your call: ${formatCall(
@@ -125,8 +116,8 @@ export default class CallValidator {
 
 			if (
 				this.options.insuranceCount < 2 &&
-				highCards[0].value === highCards[1].value &&
-				highCards[0].value === 15
+				call.high[0].value === call.high[1].value &&
+				call.high[0].value === 15
 			) {
 				replyThenDelete(
 					message,
@@ -137,7 +128,7 @@ export default class CallValidator {
 				return false;
 			}
 
-			if (highCards[0].value === 1 || highCards[1].value === 1) {
+			if (call.high[0].value === 1 || call.high[1].value === 1) {
 				replyThenDelete(
 					message,
 					`Jokers may not be used as a high card in flush calls (Your call: ${formatCall(

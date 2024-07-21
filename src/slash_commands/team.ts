@@ -214,10 +214,10 @@ const team = new SlashCommand()
 			msg
 				.awaitMessageComponent({
 					componentType: ComponentType.Button,
-					filter: i =>
-						i.user.id === player.id &&
-						(i.customId === customIds.accept ||
-							i.customId === customIds.decline),
+					filter: bi =>
+						bi.user.id === player.id &&
+						(bi.customId === customIds.accept ||
+							bi.customId === customIds.decline),
 					idle: 0,
 					time: timeToJoinTeam,
 				})

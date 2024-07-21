@@ -1,4 +1,8 @@
-import { SlashCommandBuilder, type PermissionResolvable } from "discord.js";
+import {
+	SharedSlashCommand,
+	SlashCommandBuilder,
+	type PermissionResolvable,
+} from "discord.js";
 import {
 	cooldownMax,
 	cooldownMin,
@@ -22,7 +26,9 @@ export default class SlashCommand {
 	public get builder(): SlashCommandBuilder {
 		return this._builder;
 	}
-	public setCommandData(builder: (o: SlashCommandBuilder) => any): this {
+	public setCommandData<T extends SharedSlashCommand>(
+		builder: (o: SlashCommandBuilder) => T
+	): this {
 		const slashBuilder = builder(this._builder);
 		if (!(slashBuilder instanceof SlashCommandBuilder)) {
 			throw new Error(

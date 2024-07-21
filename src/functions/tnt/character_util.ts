@@ -23,7 +23,7 @@ export function randomCharacter() {
 	return randomElement(characters);
 }
 
-function customIdToId(customId: CustomId): string {
+export function customIdToId(customId: CustomId): string {
 	return customId.slice(6);
 }
 

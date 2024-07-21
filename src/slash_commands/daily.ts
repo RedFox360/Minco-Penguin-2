@@ -21,8 +21,6 @@ const daily = new SlashCommand()
 			return;
 		}
 
-		let description = "";
-
 		const totalMD = profile.mincoDollars + profile.bank;
 		const dailyLowerLimit = Math.floor(totalMD * 0.05);
 		const dailyUpperLimit = Math.floor(totalMD * 0.1);
@@ -33,7 +31,7 @@ const daily = new SlashCommand()
 			},
 			lastDailyClaim: new Date(),
 		});
-		description += `You earned ${randomAmount} Minco Dollars!`;
+		const description = `You earned ${randomAmount} Minco Dollars!`;
 
 		const dailyEmbed = new EmbedBuilder()
 			.setColor(colors.orange)

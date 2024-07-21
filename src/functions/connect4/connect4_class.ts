@@ -6,32 +6,34 @@ import {
 	RESTJSONErrorCodes,
 	type Snowflake,
 } from "discord.js";
-import { colors, invalidNumber, replyThenDelete } from "../util.js";
-import { updateProfile } from "../../prisma/models.js";
+import {
+	colors,
+	hasAdminForGames,
+	invalidNumber,
+	replyThenDelete,
+} from "../util.js";
 
 class ColumnFullError extends Error {}
-
 const gameTime = 1_800_000;
-type Board = (0 | 1 | -1)[][];
+type GameSquare = 0 | 1 | -1;
+type Board = GameSquare[][];
 export default class Connect4 {
 	// 6x7 board
 	// 1 = player, -1 = opponent
-	board: Board;
-	round: number = 0;
-	winner: number = 0;
-	gameMsg: Message;
-	msgCollector: MessageCollector;
-	betInfo: string = "";
-	lastMove: number | null = null;
+	private board: Board;
+	private round: number = 0;
+	private winner: GameSquare = 0;
+	private gameMsg: Message;
+	private msgCollector: MessageCollector;
+	private lastMove: number | null = null;
 
-	static createBoard(): Board {
+	private static createBoard(): Board {
 		return Array.from({ length: 6 }, () => Array.from({ length: 7 }, () => 0));
 	}
 
-	constructor(
+	public constructor(
 		public interaction: ChatInputCommandInteraction<"cached">,
-		public opponentId: Snowflake,
-		public bet: number
+		public opponentId: Snowflake
 	) {
 		this.board = Connect4.createBoard();
 		/*
@@ -46,19 +48,19 @@ export default class Connect4 {
 		*/
 	}
 
-	get turn() {
+	private get turn(): 1 | -1 {
 		return this.round % 2 === 0 ? 1 : -1;
 	}
 
-	numToPlayer(num: number): Snowflake {
+	private numToPlayer(num: number): Snowflake {
 		return num === 1 ? this.interaction.user.id : this.opponentId;
 	}
 
-	get currentPlayer(): Snowflake {
+	private get currentPlayer(): Snowflake {
 		return this.numToPlayer(this.turn);
 	}
 
-	displayBoard(): string {
+	private displayBoard(): string {
 		// display board here
 		return (
 			":one: :two: :three: :four: :five: :six: :seven:\n" +
@@ -76,7 +78,7 @@ export default class Connect4 {
 		);
 	}
 
-	displayTurnOrWin(): string {
+	private displayTurnOrWin(): string {
 		if (this.winner) {
 			const [winnerId, loserId] =
 				this.winner === 1
@@ -94,22 +96,22 @@ export default class Connect4 {
 		}Round: \`${this.round + 1}\``;
 	}
 
-	gameEmbed() {
+	private gameEmbed() {
 		const color = this.winner ? colors.green : colors.blurple;
 		const embed = new EmbedBuilder()
 			.setTitle("Connect 4")
-			.setDescription(`${this.displayTurnOrWin()}\n${this.betInfo}`)
+			.setDescription(`${this.displayTurnOrWin()}`)
 			.addFields({ name: "Board", value: this.displayBoard() })
 			.setColor(color);
 		return embed;
 	}
-	async sendGameMsg() {
+	private async sendGameMsg() {
 		if (this.gameMsg) this.gameMsg.delete();
 		this.gameMsg = await this.interaction.channel.send({
 			embeds: [this.gameEmbed()],
 		});
 	}
-	async updateGameMsg() {
+	private async updateGameMsg() {
 		try {
 			this.gameMsg = await this.gameMsg.edit({
 				embeds: [this.gameEmbed()],
@@ -126,7 +128,7 @@ export default class Connect4 {
 	// place a piece in a column
 	// if the column is full, throw an error
 	// if the column is not full, set the cell to the current turn number
-	placePiece(column: number) {
+	private placePiece(column: number) {
 		if (this.board[0][column] !== 0) {
 			throw new ColumnFullError();
 		}
@@ -143,12 +145,12 @@ export default class Connect4 {
 		return rowPlaced;
 	}
 
-	static checkLine(a: number, b: number, c: number, d: number) {
+	private static checkLine(a: number, b: number, c: number, d: number) {
 		// Check first cell non-zero and all cells match
 		return a !== 0 && a === b && a === c && a === d;
 	}
 
-	checkWinner() {
+	private checkWinner(): GameSquare {
 		// Check down
 		for (let r = 0; r < 3; r++)
 			for (let c = 0; c < 7; c++)
@@ -204,47 +206,32 @@ export default class Connect4 {
 		return 0;
 	}
 
-	async handleWinners() {
+	private async handleWinners() {
 		this.winner = this.checkWinner();
 		if (this.winner === 0) return false;
-		const winnerId = this.numToPlayer(this.winner);
-		const loserId =
-			this.winner === 1 ? this.opponentId : this.interaction.user.id;
 		if (this.winner) {
-			if (this.bet) {
-				updateProfile(winnerId, {
-					mincoDollars: {
-						increment: this.bet,
-					},
-				});
-				updateProfile(loserId, {
-					mincoDollars: {
-						decrement: this.bet,
-					},
-				});
-				this.betInfo = `They have won **${this.bet} MD** from the loser.`;
-			}
 			await this.sendGameMsg();
 			this.msgCollector.stop();
 			return true;
 		}
 	}
 
-	async gameLogic() {
+	public async gameLogic() {
 		// game logic here
 		await this.sendGameMsg();
 
 		this.msgCollector = this.interaction.channel.createMessageCollector({
 			time: gameTime,
-			filter: m =>
-				m.author.id === this.interaction.user.id ||
-				m.author.id === this.opponentId,
 		});
 
 		this.msgCollector.on("collect", async msg => {
 			if (
 				msg.content.toLowerCase() === "abort" &&
-				msg.author.id === this.interaction.user.id
+				hasAdminForGames(
+					msg.author.id,
+					msg.member.permissions,
+					this.interaction.user.id
+				)
 			) {
 				this.msgCollector.stop();
 				msg.reply("Game aborted.");

@@ -14,7 +14,7 @@ export default class StateManager {
 	public bsCalled = false;
 	public aborted = false;
 	public bxOpen = false;
-	public clowned: ClownState;
+	public clowned: ClownState = ClownState.NotClowned;
 	private last3CallsTracker: [boolean, boolean, boolean] = [true, true, true];
 	private _currentCall: PlayerCall | null = null;
 	private _round = 0;
@@ -74,7 +74,7 @@ export default class StateManager {
 		this.bsCalled = false;
 		this._currentCall = null;
 		this.callsOpen = true;
-		this.clowned = 0;
+		this.clowned = ClownState.NotClowned;
 		this.last3CallsTracker = [true, true, true];
 	}
 

@@ -4,6 +4,7 @@ import {
 	ButtonStyle,
 	ComponentType,
 	EmbedBuilder,
+	InteractionResponse,
 	Message,
 } from "discord.js";
 import { chunkArray, colors } from "../util.js";
@@ -127,7 +128,7 @@ export default class LeaderboardPaginator {
 		};
 	}
 
-	public loadCollector(message: Message) {
+	public loadCollector(message: Message | InteractionResponse) {
 		const collector = message.createMessageComponentCollector({
 			time: 120_000,
 			componentType: ComponentType.Button,
@@ -172,9 +173,7 @@ export default class LeaderboardPaginator {
 				});
 				newPaginator.currentPage = this.currentPage;
 				bi.reply(newPaginator.getMessage()).then(res => {
-					res.fetch().then(msg => {
-						newPaginator.loadCollector(msg);
-					});
+					newPaginator.loadCollector(res);
 				});
 			}
 		});

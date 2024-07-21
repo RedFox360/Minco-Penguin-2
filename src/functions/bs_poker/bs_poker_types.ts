@@ -1,5 +1,5 @@
-import type { Snowflake } from "discord.js";
-import type { Suit, Value } from "../cards/basic_card_types.js";
+import { type Snowflake } from "discord.js";
+import { type Suit, type Value } from "../cards/basic_card_types.js";
 import type Player from "./classes/Player.js";
 import type PlayerCollection from "./classes/PlayerCollection.js";
 

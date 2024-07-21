@@ -11,7 +11,6 @@ import {
 	ButtonStyle,
 	ComponentType,
 	EmbedBuilder,
-	PermissionsBitField,
 } from "discord.js";
 import {
 	type Call,
@@ -31,6 +30,7 @@ import {
 	replyThenDelete,
 	invalidNumber,
 	median,
+	hasAdminForGames,
 } from "../../util.js";
 import {
 	formatCardSideways,
@@ -47,9 +47,8 @@ import OptionManager from "./OptionManager.js";
 import NotificationManager from "./NotificationManager.js";
 import PlayerCollection from "./PlayerCollection.js";
 
-const ownerId = process.env.OWNER_ID;
 const timeBetweenRounds = 12_000;
-const timeToTakeCard = 20_000;
+const timeToTakeCard = 30_000;
 const gameLength = 3_600_000;
 const joinMidGame = new ButtonBuilder()
 	.setStyle(ButtonStyle.Success)
@@ -213,11 +212,9 @@ ${handsList}${highestCallDisplay}`
 	}
 
 	private newRoundEmbed(waiting: boolean): APIEmbed {
-		let commonCardsToDisplay = "";
+		let commonCardsToDisplay: string;
 		if (waiting) {
-			if (this.state.round > 0) {
-				commonCardsToDisplay = `The round will begin ${this.roundBeginTimestamp}`;
-			}
+			commonCardsToDisplay = `The round will begin ${this.roundBeginTimestamp}`;
 		} else if (this.commonCards.length > 0) {
 			commonCardsToDisplay = `Common Cards:\n${formatDeck(this.commonCards)}`;
 		} else {
@@ -226,9 +223,9 @@ ${handsList}${highestCallDisplay}`
 		const pwsc = waiting ? "" : this.players.formatPWSC();
 		return {
 			title: `New Round (${this.state.round + 1})`,
-			description: `${this.betInfo()}${commonCardsToDisplay}\n${pwsc}\n${
-				this.state.currentPlayer
-			} will start the round.`,
+			description: `${this.betInfo()}${commonCardsToDisplay}
+${pwsc}
+${this.state.currentPlayer} will start the round.`,
 			fields: [
 				{
 					name: "Players",
@@ -241,35 +238,36 @@ ${handsList}${highestCallDisplay}`
 
 	private async handleJoinMidGame(buttonInteraction: ButtonInteraction) {
 		if (this.players.has(buttonInteraction.user.id)) {
-			await buttonInteraction.reply({
+			buttonInteraction.reply({
 				content: "You are already in the game.",
 				ephemeral: true,
 			});
 			return;
 		}
 		if (this.players.out.includes(buttonInteraction.user.id)) {
-			await buttonInteraction.reply({
+			buttonInteraction.reply({
 				content: "You are out of this game, so you may not rejoin.",
 				ephemeral: true,
 			});
 			return;
 		}
 		if (this.players.size >= this.options.playerLimit) {
-			await buttonInteraction.reply({
+			buttonInteraction.reply({
 				content: `Sorry, the player limit of ${this.options.playerLimit} has already been reached.`,
 				ephemeral: true,
 			});
 			return;
 		}
-		if (this.options.startingBet) {
-			const joinerProfile = await getProfile(buttonInteraction.user.id);
-			if (joinerProfile.mincoDollars < this.options.startingBet) {
-				await buttonInteraction.reply({
-					content: `You do not have enough Minco Dollars to join this game (the bet is ${this.options.startingBet.toLocaleString()}).`,
-					ephemeral: true,
-				});
-				return;
-			}
+		const joinerProfile = await getProfile(buttonInteraction.user.id);
+		if (
+			this.options.startingBet &&
+			joinerProfile.mincoDollars < this.options.startingBet
+		) {
+			buttonInteraction.reply({
+				content: `You do not have enough Minco Dollars to join this game. (The bet is **${this.options.startingBet.toLocaleString()} MD**.)`,
+				ephemeral: true,
+			});
+			return;
 		}
 
 		const startingAmount = Math.max(...this.players.cardsEntitled);
@@ -277,20 +275,19 @@ ${handsList}${highestCallDisplay}`
 
 		let toSend = `${buttonInteraction.user}, you have joined the game at ${startingAmount} cards.`;
 		if (this.options.startingBet)
-			toSend += ` **${this.options.startingBet.toLocaleString()}** Minco Dollars have been deducted from your wallet.`;
+			toSend += ` The game bet is **${this.options.startingBet.toLocaleString()} MD**.`;
 		buttonInteraction.reply({
 			content: toSend,
 		});
 		buttonInteraction.message.edit({
 			embeds: [this.newRoundEmbed(true)],
 		});
-
 		return;
 	}
 
-	private async handleLeaveMidGame(buttonInteraction: ButtonInteraction) {
+	private handleLeaveMidGame(buttonInteraction: ButtonInteraction) {
 		if (!this.players.has(buttonInteraction.user.id)) {
-			await buttonInteraction.reply({
+			buttonInteraction.reply({
 				content: "You are not in the game.",
 				ephemeral: true,
 			});
@@ -314,11 +311,12 @@ ${handsList}${highestCallDisplay}`
 
 	private async endGameSuccess() {
 		if (this.players.size === 0) {
-			let description = "Everyone lost the game due to a curse!";
+			let description =
+				"There were no players left at the end of this game due to a curse or players leaving.";
 			if (this.options.startingBet)
 				description += "\nThe pot will not be given to any player.";
 			const noWinnerEmbed = new EmbedBuilder()
-				.setTitle("Game Over: Cursed!")
+				.setTitle("Game Over!")
 				.setDescription(description)
 				.setColor(colors.red);
 			await this.interaction.channel.send({
@@ -352,14 +350,13 @@ ${handsList}${highestCallDisplay}`
 				},
 			});
 		}
+		const betWinningInfo = this.options.startingBet
+			? ` and the pot of **${this.pot.toLocaleString()} MD**`
+			: "";
 		const embed = new EmbedBuilder()
 			.setTitle("Game Over!")
 			.setDescription(
-				`${winner} has won the game${
-					this.options.startingBet
-						? ` and the pot of **${this.pot.toLocaleString()} MD**`
-						: ""
-				}! Congratulations!`
+				`${winner} has won the game${betWinningInfo}! Congratulations!`
 			)
 			.setColor(colors.green);
 
@@ -387,11 +384,11 @@ ${handsList}${highestCallDisplay}`
 		const commonCardsFormattedWithNumbers = this.commonCards
 			.map((card, i) => `\`${i + 1}\` **${formatCardSideways(card)}**`)
 			.join("\n");
-		const bxContent = `${playerWBJ}, you had a black joker! You get to remove 1 common card from the deck.\n${commonCardsFormattedWithNumbers}`;
+		const bxContent = `${playerWBJ}, you had a Black Joker! You get to remove 1 common card from the deck.\n${commonCardsFormattedWithNumbers}`;
 		const bxMsg = await this.interaction.channel.send({
 			content:
 				bxContent +
-				`\n*Please type the number of the card you want to remove* ${timeUpToTakeCard}.\nIf you do not want to take any card, type \`0\`.`,
+				`\n*Please type the number of the card you want to remove* ${timeUpToTakeCard}.\nIf you do not want to take a card, type \`0\`.`,
 		});
 
 		this.interaction.channel
@@ -478,39 +475,40 @@ ${handsList}${highestCallDisplay}`
 			return;
 		}
 
-		this.roundBeginTimestamp = msToRelTimestamp(timeBetweenRounds);
-
 		const acCCAmount = this.calculateCommonCards();
-		const newRoundMsg = await this.interaction.channel.send({
-			embeds: [this.newRoundEmbed(true)],
-			components: this.newRoundComponents,
-		});
-
 		// SET THE COMMON CARDS
 		if (this.options.commonCards !== 0) {
 			this.commonCards = spliceRandom(deck, acCCAmount);
 			this.commonCards.sort((a, b) => a.value - b.value);
 		}
 
-		if (this.state.round !== 0) await sleep(timeBetweenRounds); // wait before starting next round
-		if (this.state.aborted) return;
-		// check for 1 player again in case people left
-		if (this.players.size <= 1) {
-			await this.endGameSuccess();
-			return;
-		}
-
-		this.players.deal(deck);
-
-		newRoundMsg.edit({
-			embeds: [this.newRoundEmbed(false)],
-			components:
-				this.state.round === 0
-					? []
-					: this.options.allowJoinMidGame
+		if (this.state.round === 0) {
+			this.players.deal(deck);
+			await this.interaction.channel.send({
+				embeds: [this.newRoundEmbed(false)],
+				components: [],
+			});
+		} else {
+			this.roundBeginTimestamp = msToRelTimestamp(timeBetweenRounds);
+			const newRoundMsg = await this.interaction.channel.send({
+				embeds: [this.newRoundEmbed(true)],
+				components: this.newRoundComponents,
+			});
+			await sleep(timeBetweenRounds); // wait before starting next round
+			if (this.state.aborted) return;
+			// check for 1 player again in case people left
+			if (this.players.size <= 1) {
+				await this.endGameSuccess();
+				return;
+			}
+			this.players.deal(deck);
+			newRoundMsg.edit({
+				embeds: [this.newRoundEmbed(false)],
+				components: this.options.allowJoinMidGame
 					? [nrRowJoinDisabled]
 					: [nrRowLeaveDisabled],
-		});
+			});
+		}
 
 		this.state.reset();
 		this.state.nextRound();
@@ -536,27 +534,25 @@ ${handsList}${highestCallDisplay}`
 			this.interaction.channel.send({
 				content: `:green_circle: ${this.state.currentCall.player} was telling the truth! ${cardGainer} gains 1 card.`,
 			});
-			cardGainer.cardsEntitled += 1;
 		} else {
 			this.interaction.channel.send({
 				content: `:red_circle: ${this.state.currentCall.player} was lying! They gain 1 card.`,
 			});
 			cardGainer = this.state.currentCall.player;
-			cardGainer.cardsEntitled += 1;
 			if (bserHasRJ && bserId !== this.state.currentPlayer.id) {
 				if (bser.hand.length === 1) {
 					this.interaction.channel.send({
-						content: `<@${bserId}> had a red joker and cross-BSed! However, they only had 1 card, so they do not lose any cards.`,
+						content: `<@${bserId}> had a Red Joker and cross-BSed! However, they only had 1 card, so they do not lose any cards.`,
 					});
 				} else {
 					this.interaction.channel.send({
-						content: `<@${bserId}> had a red joker! Since they cross-BSed, they lose 1 card.`,
+						content: `<@${bserId}> had a Red Joker! Since they cross-BSed, they lose 1 card.`,
 					});
-					bser.cardsEntitled += 1;
+					bser.cardsEntitled -= 1;
 				}
 			}
 		}
-
+		cardGainer.cardsEntitled += 1;
 		this.state.setIdxToIdxOf(cardGainer.id);
 		this.newRound();
 	}
@@ -632,6 +628,13 @@ ${handsList}${highestCallDisplay}`
 	}
 
 	private async bsButtonClicked(buttonInteraction: ButtonInteraction) {
+		if (!this.players.has(buttonInteraction.user.id)) {
+			await buttonInteraction.reply({
+				content: "You may not BS as you are not a player in this game.",
+				ephemeral: true,
+			});
+			return;
+		}
 		if (!this.state.callsOpen) {
 			await buttonInteraction.reply({
 				content: "The buttons have not finished loading. Please try again.",
@@ -684,10 +687,8 @@ ${handsList}${highestCallDisplay}`
 			let content = "*You are not a player in this game.*";
 			if (this.commonCards.length)
 				content += `\nCommon Cards:\n${formatDeck(this.commonCards)}`;
-			content += this.players.formatTeammateHand(buttonInteraction.user.id);
-
-			if (this.options.useSpecialCards)
-				content += `\n${this.players.formatPWSC()}`;
+			content += `${this.players.formatTeammateHand(buttonInteraction.user.id)}
+${this.players.formatPWSC()}`;
 			await buttonInteraction.reply({
 				content,
 				ephemeral: true,
@@ -696,15 +697,19 @@ ${handsList}${highestCallDisplay}`
 		}
 		const hasClown =
 			this.options.useClown &&
+			this.players.size > 2 &&
 			this.state.clowned === ClownState.NotClowned &&
 			buttonPlayer.hand.some(card => card.suit === "rj");
 		const components = hasClown ? [clownRow] : undefined;
+		const commonCardsDisplay =
+			this.commonCards.length === 0
+				? "None"
+				: `\n${formatDeck(this.commonCards)}`;
 		await buttonInteraction.reply({
-			content: `**Your Hand:**\n${buttonPlayer.formatHand()}\n**Common Cards:** ${
-				this.commonCards.length === 0
-					? "None"
-					: `\n${formatDeck(this.commonCards)}`
-			}${this.options.useSpecialCards ? `\n${this.players.formatPWSC()}` : ""}`,
+			content: `**Your Hand:**
+${buttonPlayer.formatHand()}
+**Common Cards:** ${commonCardsDisplay}
+${this.players.formatPWSC()}`,
 			ephemeral: true,
 			components,
 		});
@@ -712,9 +717,9 @@ ${handsList}${highestCallDisplay}`
 
 	private async clownClicked(buttonInteraction: ButtonInteraction) {
 		const buttonPlayer = this.players.get(buttonInteraction.user.id);
-		if (!buttonPlayer || !buttonPlayer.hand) {
+		if (!buttonPlayer?.hand) {
 			await buttonInteraction.reply({
-				content: "You are not in the game.",
+				content: "You are not a player in this game.",
 				ephemeral: true,
 			});
 			return;
@@ -722,15 +727,14 @@ ${handsList}${highestCallDisplay}`
 		const hasClownCard = buttonPlayer.hand.some(card => card.suit === "rj");
 		if (!hasClownCard) {
 			await buttonInteraction.reply({
-				content: "You do not have a Clown Joker in your hand.",
+				content: "You do not have a Clown Joker.",
 				ephemeral: true,
 			});
 			return;
 		}
 		if (this.players.size === 2) {
 			await buttonInteraction.reply({
-				content:
-					"You may not use your Clown Joker when there are only 2 players.",
+				content: "You may not use a Clown Joker when there are only 2 players.",
 				ephemeral: true,
 			});
 			return;
@@ -750,12 +754,8 @@ ${handsList}${highestCallDisplay}`
 		});
 	}
 
-	private async messageCollect(msg: Message) {
-		if (
-			msg.author.id === this.hostId ||
-			msg.author.id === ownerId ||
-			msg.member.permissions.has(PermissionsBitField.Flags.ManageMessages)
-		) {
+	private async messageCollect(msg: Message<true>) {
+		if (hasAdminForGames(msg.author.id, msg.member.permissions, this.hostId)) {
 			const content = msg.content.toLowerCase();
 			if (content === "abort") {
 				await msg.reply({
@@ -773,7 +773,8 @@ ${handsList}${highestCallDisplay}`
 		if (!this.state.roundInProgress || !this.state.callsOpen) return;
 		if (msg.author.id !== this.state.currentPlayer.id) return;
 		const call: Call = parseCall(msg.content);
-		if (!this.callValidator.validateAndRespond(call, msg)) return;
+		const validated = this.callValidator.validateAndRespond(call, msg);
+		if (!validated) return;
 
 		this.state.callsOpen = false;
 		this.notifications.disableNotif();
@@ -807,7 +808,6 @@ ${handsList}${highestCallDisplay}`
 						content: "Please wait for the round to end.",
 						ephemeral: true,
 					});
-					return;
 				} else {
 					await this.handleJoinMidGame(buttonInteraction);
 				}
@@ -821,7 +821,7 @@ ${handsList}${highestCallDisplay}`
 					});
 					return;
 				} else {
-					await this.handleLeaveMidGame(buttonInteraction);
+					this.handleLeaveMidGame(buttonInteraction);
 				}
 				return;
 			}
@@ -830,13 +830,6 @@ ${handsList}${highestCallDisplay}`
 				return;
 			}
 			case customIds.bs: {
-				if (!this.players.has(buttonInteraction.user.id)) {
-					await buttonInteraction.reply({
-						content: "You may not BS as you are not a player in this game.",
-						ephemeral: true,
-					});
-					return;
-				}
 				await this.bsButtonClicked(buttonInteraction);
 				return;
 			}
@@ -865,11 +858,11 @@ ${handsList}${highestCallDisplay}`
 		}
 		await this.newRound(); // start the game with the 1st round
 
-		this.msgColl.on("collect", async m => {
+		this.msgColl.on("collect", (m: Message<true>) => {
 			this.messageCollect(m);
 		});
 
-		this.mcompColl.on("collect", async bi => {
+		this.mcompColl.on("collect", bi => {
 			this.buttonCollect(bi);
 		});
 

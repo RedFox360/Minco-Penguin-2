@@ -38,16 +38,6 @@ const connect4 = new SlashCommand()
 					.setDescription("The user you want to play against")
 					.setRequired(true)
 			)
-			.addIntegerOption(option =>
-				option
-					.setName("bet")
-					.setDescription(
-						"The winner will take the loser's bet (Default: no bet)"
-					)
-					.setMinValue(25)
-					.setMaxValue(1000)
-					.setRequired(false)
-			)
 	)
 	.setRun(async interaction => {
 		const opponent = interaction.options.getUser("opponent");
@@ -70,22 +60,26 @@ const connect4 = new SlashCommand()
 					(i.customId === customIds.accept || i.customId === customIds.decline),
 				time: timeToJoin,
 			})
-			.then(async i => {
+			.then(i => {
 				if (i.customId === customIds.decline) {
 					i.update({
-						content: `${opponent} has declined the challenge.`,
+						content: `${opponent} has declined the Connect 4 challenge.`,
 						components: [],
 					});
 					return;
 				}
 
 				i.update({
-					content: `${opponent} has accepted the challenge!`,
+					content: `${opponent} has accepted the Connect 4 challenge!`,
 					components: [],
 				});
 
-				const game = new Connect4(interaction, opponent.id, bet);
-				await game.gameLogic();
+				const game = new Connect4(interaction, opponent.id);
+				game.gameLogic().catch(() => {
+					i.channel.send(
+						"Sorry, an error occurred during the game and it has aborted."
+					);
+				});
 			})
 			.catch(() => {
 				msg.edit({

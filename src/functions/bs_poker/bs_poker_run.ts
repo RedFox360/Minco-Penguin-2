@@ -143,86 +143,94 @@ Otherwise, the game will start ${startTime}`)
 		time: collectorTime,
 		componentType: ComponentType.Button,
 	});
-	let shouldBeginGame = true;
 	collector.on("collect", async buttonInteraction => {
-		if (buttonInteraction.customId === customIds.join) {
-			if (players.length >= options.playerLimit) {
-				await buttonInteraction.reply({
-					content: "Sorry, the player limit has been reached.",
-					ephemeral: true,
-				});
+		switch (buttonInteraction.customId) {
+			case customIds.join: {
+				if (players.length >= options.playerLimit) {
+					await buttonInteraction.reply({
+						content: "Sorry, the player limit has been reached.",
+						ephemeral: true,
+					});
+					return;
+				}
+				const joinerProfile = await getProfile(buttonInteraction.user.id);
+				if (
+					options.startingBet &&
+					joinerProfile.mincoDollars < options.startingBet
+				) {
+					await buttonInteraction.reply({
+						content: `You do not have enough Minco Dollars to join this game (the bet is **${options.startingBet} MD**).`,
+						ephemeral: true,
+					});
+					return;
+				}
+				if (players.includes(buttonInteraction.user.id)) {
+					buttonInteraction.deferUpdate();
+				} else {
+					players.push(buttonInteraction.user.id);
+					startButton.setDisabled(false);
+					buttonInteraction.update({
+						embeds: [gameStartEmbed()],
+						components: [row1, row2],
+					});
+				}
 				return;
 			}
-			const joinerProfile = await getProfile(buttonInteraction.user.id);
-			if (
-				options.startingBet &&
-				joinerProfile.mincoDollars < options.startingBet
-			) {
-				await buttonInteraction.reply({
-					content: `You do not have enough Minco Dollars to join this game (the bet is **${options.startingBet} MD**).`,
-					ephemeral: true,
-				});
+			case customIds.leave: {
+				if (buttonInteraction.user.id === interaction.user.id) {
+					await buttonInteraction.reply({
+						content: "You may not leave as you are the host of the game.",
+						ephemeral: true,
+					});
+					return;
+				}
+				const existed = removeByValue(players, buttonInteraction.user.id);
+				if (existed) {
+					if (players.length <= 1) startButton.setDisabled(true);
+					buttonInteraction.update({
+						embeds: [gameStartEmbed()],
+						components: [row1, row2],
+					});
+				} else {
+					buttonInteraction.deferUpdate();
+				}
 				return;
 			}
-			if (!players.includes(buttonInteraction.user.id)) {
-				players.push(buttonInteraction.user.id);
-				startButton.setDisabled(false);
-			}
-			buttonInteraction.update({
-				embeds: [gameStartEmbed()],
-				components: [row1, row2],
-			});
-		}
-		if (buttonInteraction.customId === customIds.leave) {
-			if (buttonInteraction.user.id === interaction.user.id) {
-				await buttonInteraction.reply({
-					content: "You may not leave as you are the host of the game.",
-					ephemeral: true,
+			case customIds.abort: {
+				if (buttonInteraction.user.id !== interaction.user.id) {
+					await buttonInteraction.reply({
+						content: "Only the host can abort the game.",
+						ephemeral: true,
+					});
+					return;
+				}
+				buttonInteraction.update({
+					content: "Game aborted by host.",
+					embeds: [],
+					components: [],
 				});
+				collector.stop("game_abort");
 				return;
 			}
-			removeByValue(players, buttonInteraction.user.id);
-			if (players.length <= 1) {
-				startButton.setDisabled(true);
-			}
-			buttonInteraction.update({
-				embeds: [gameStartEmbed()],
-				components: [row1, row2],
-			});
-		}
-		if (buttonInteraction.customId === customIds.abort) {
-			if (buttonInteraction.user.id !== interaction.user.id) {
-				await buttonInteraction.reply({
-					content: "Only the host can abort the game.",
-					ephemeral: true,
+			case customIds.start: {
+				if (buttonInteraction.user.id !== interaction.user.id) {
+					await buttonInteraction.reply({
+						content: "Only the host can start the game.",
+						ephemeral: true,
+					});
+					return;
+				}
+				buttonInteraction.update({
+					embeds: [gameStartEmbed(true)],
+					components: [],
 				});
+				collector.stop();
 				return;
 			}
-			buttonInteraction.update({
-				content: "Game aborted by host.",
-				embeds: [],
-				components: [],
-			});
-			shouldBeginGame = false;
-			collector.stop();
-		}
-		if (buttonInteraction.customId === customIds.start) {
-			if (buttonInteraction.user.id !== interaction.user.id) {
-				await buttonInteraction.reply({
-					content: "Only the host can start the game.",
-					ephemeral: true,
-				});
-				return;
-			}
-			buttonInteraction.update({
-				embeds: [gameStartEmbed(true)],
-				components: [],
-			});
-			collector.stop();
 		}
 	});
-	collector.on("end", async () => {
-		if (!shouldBeginGame) {
+	collector.on("end", async (_, reason) => {
+		if (reason === "game_abort") {
 			channelsWithActiveGames.delete(interaction.channelId);
 			return;
 		}
@@ -239,11 +247,11 @@ Otherwise, the game will start ${startTime}`)
 			embeds: [gameStartEmbed(true)],
 			components: [],
 		});
-		shuffleArray(players);
 		bsPokerTeams.set(
 			interaction.channelId,
 			players.map(x => [x])
 		);
+		shuffleArray(players);
 
 		const game = new BSPoker(interaction, players, options);
 
