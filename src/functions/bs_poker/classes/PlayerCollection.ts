@@ -143,7 +143,7 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 		}
 	}
 
-	public formatPWSC() {
+	public formatPWSC(): `Players with special cards: ${string}` | "" {
 		if (this.size && this.pwsc) {
 			return `Players with special cards: ${
 				this.pwsc.length === 0 ? "None" : this.pwsc.join(" ")

@@ -129,9 +129,12 @@ export default class BSPoker {
 	}
 
 	private get newRoundComponents(): ActionRowBuilder<ButtonBuilder>[] {
-		if (this.state.round === 0) return [];
-		if (this.options.allowJoinMidGame) return [nrRowJoin];
-		return [nrRowLeave];
+		return this.options.allowJoinMidGame ? [nrRowJoin] : [nrRowLeave];
+	}
+	private get newRoundDisabledComponents(): ActionRowBuilder<ButtonBuilder>[] {
+		return this.options.allowJoinMidGame
+			? [nrRowJoinDisabled]
+			: [nrRowLeaveDisabled];
 	}
 
 	private get pot(): number {
@@ -150,33 +153,32 @@ export default class BSPoker {
 		});
 	}
 
-	private getHandsEmbed(handsList: string, highestCall = "") {
+	private getHandsEmbed() {
 		const commonCardsDisplay =
 			this.commonCards.length === 0
 				? "None"
 				: `\n${formatDeck(this.commonCards)}`;
-		const highestCallDisplay =
-			highestCall && `\n\nHighest Call: **${highestCall}**`;
-		return new EmbedBuilder()
-			.setTitle(`Hands from Last Round (${this.state.round})`) // this.round is 0-indexed, so do not subtract 1
-			.setDescription(
-				`Common Cards: ${commonCardsDisplay}
-${handsList}${highestCallDisplay}`
-			)
-			.setColor(colors.blurple);
-	}
-
-	private printAllHands() {
 		const handsList = this.players
 			.map(player => {
 				const teammates = player.displayTeammates();
 				return `${player}${teammates}\n${player.formatHand()}`;
 			})
 			.join("\n");
+		return new EmbedBuilder()
+			.setTitle(`Hands from Last Round (${this.state.round})`) // this.round is 0-indexed, so do not subtract 1
+			.setDescription(
+				`Common Cards: ${commonCardsDisplay}
+${handsList}`
+			)
+			.setColor(colors.blurple);
+	}
+
+	private printAllHands() {
 		const deck = this.getCurrentDeck();
+		const embed = this.getHandsEmbed().toJSON();
 		this.interaction.channel
 			.send({
-				embeds: [this.getHandsEmbed(handsList)],
+				embeds: [embed],
 			})
 			.then(handsMsg => {
 				highestCallInDeck(
@@ -185,8 +187,10 @@ ${handsList}${highestCallDisplay}`
 					this.options.insuranceCount
 				)
 					.then(call => {
+						if (!call) return;
+						embed.description += `\n\nHighest Call: **${formatCall(call)}**`;
 						handsMsg.edit({
-							embeds: [this.getHandsEmbed(handsList, formatCall(call))],
+							embeds: [embed],
 						});
 					})
 					.catch(console.error);
@@ -211,7 +215,7 @@ ${handsList}${highestCallDisplay}`
 			: "";
 	}
 
-	private newRoundEmbed(waiting: boolean): APIEmbed {
+	private newRoundEmbed(waiting = false): APIEmbed {
 		let commonCardsToDisplay: string;
 		if (waiting) {
 			commonCardsToDisplay = `The round will begin ${this.roundBeginTimestamp}`;
@@ -319,7 +323,7 @@ ${this.state.currentPlayer} will start the round.`,
 				.setTitle("Game Over!")
 				.setDescription(description)
 				.setColor(colors.red);
-			await this.interaction.channel.send({
+			this.interaction.channel.send({
 				embeds: [noWinnerEmbed],
 			});
 			return;
@@ -328,14 +332,14 @@ ${this.state.currentPlayer} will start the round.`,
 		const winner = this.players.first();
 		if (winner.joinedMidGame || this.players.originalPlayers === 2) {
 			if (this.options.startingBet) {
-				await updateProfile(winner.id, {
+				updateProfile(winner.id, {
 					mincoDollars: {
 						increment: this.pot,
 					},
 				});
 			}
 		} else {
-			await updateProfile(winner.id, {
+			updateProfile(winner.id, {
 				mincoDollars: {
 					increment: this.pot,
 				},
@@ -367,7 +371,7 @@ ${this.state.currentPlayer} will start the round.`,
 				iconURL: winnerMember.displayAvatarURL(),
 			});
 		}
-		await this.interaction.channel.send({
+		this.interaction.channel.send({
 			embeds: [embed],
 		});
 		this.endCollectors();
@@ -486,7 +490,6 @@ ${this.state.currentPlayer} will start the round.`,
 			this.players.deal(deck);
 			await this.interaction.channel.send({
 				embeds: [this.newRoundEmbed(false)],
-				components: [],
 			});
 		} else {
 			this.roundBeginTimestamp = msToRelTimestamp(timeBetweenRounds);
@@ -504,9 +507,7 @@ ${this.state.currentPlayer} will start the round.`,
 			this.players.deal(deck);
 			newRoundMsg.edit({
 				embeds: [this.newRoundEmbed(false)],
-				components: this.options.allowJoinMidGame
-					? [nrRowJoinDisabled]
-					: [nrRowLeaveDisabled],
+				components: this.newRoundDisabledComponents,
 			});
 		}
 
