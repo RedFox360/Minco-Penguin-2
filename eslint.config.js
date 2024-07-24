@@ -46,6 +46,7 @@ export default [
 			"prefer-rest-params": "error",
 			"no-unused-vars": "off",
 			"@typescript-eslint/no-unused-vars": "warn",
+			"@typescript-eslint/no-array-constructor": "error",
 		},
 	},
 ];

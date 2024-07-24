@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import prettyMs from "pretty-ms";
+import prettyMS from "pretty-ms";
 import SlashCommand from "../core/SlashCommand.js";
 const ping = new SlashCommand()
     .setCommandData(builder => builder.setName("ping").setDescription("Ping the bot"))
@@ -36,10 +36,10 @@ const ping = new SlashCommand()
         .setTitle(":robot: Pong!")
         .addFields({ name: "Status", value: status }, {
         name: "Execution Time",
-        value: prettyMs(execTime),
-    }, { name: "Client Latency", value: prettyMs(latency) }, {
+        value: prettyMS(execTime, { secondsDecimalDigits: 2 }),
+    }, { name: "Client Latency", value: prettyMS(latency) }, {
         name: "Client Uptime",
-        value: prettyMs(interaction.client.uptime),
+        value: prettyMS(interaction.client.uptime),
     })
         .setFooter({
         text: "Bot made by @obvsam",

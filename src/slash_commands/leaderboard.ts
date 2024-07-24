@@ -36,7 +36,7 @@ const leaderboard = new SlashCommand()
 			members = await interaction.guild.members.fetch({
 				limit: 500,
 			});
-		} catch (err) {
+		} catch {
 			await interaction.reply({
 				content:
 					"Sorry, Minco Penguin could not fetch the members of this server in time. Please try using the command again",
@@ -142,7 +142,6 @@ const leaderboard = new SlashCommand()
 				id: interaction.id,
 				data: tableData.rows,
 				useSpaces: true,
-				useBackTick: true,
 				creatorId: interaction.user.id,
 				creatorRank: rawData.findIndex(d => d.id === interaction.user.id) + 1,
 			});

@@ -4,6 +4,7 @@ import {
 	ButtonStyle,
 	ComponentType,
 	EmbedBuilder,
+	inlineCode,
 	InteractionResponse,
 	Message,
 } from "discord.js";
@@ -19,7 +20,6 @@ interface PaginatorConstructorOptions {
 	useSpaces?: boolean;
 	chunkSize?: number;
 	ephemeral?: boolean;
-	useBackTick?: boolean;
 }
 
 export default class LeaderboardPaginator {
@@ -35,14 +35,11 @@ export default class LeaderboardPaginator {
 		next: string;
 		last: string;
 	};
-	private options: PaginatorConstructorOptions;
 
-	public constructor(options: PaginatorConstructorOptions) {
-		this.options = options;
+	public constructor(private options: PaginatorConstructorOptions) {
 		this.options.chunkSize ??= 15;
 		this.options.useSpaces ??= false;
 		this.options.ephemeral ??= false;
-		this.options.useBackTick ??= false;
 		this.slices = chunkArray(options.data, this.options.chunkSize);
 		this.customIds = {
 			first: `${options.id}-first`,
@@ -76,7 +73,6 @@ export default class LeaderboardPaginator {
 		const maxIndexAtCurrentPage =
 			(this.currentPage + 1) * this.options.chunkSize -
 			(this.options.chunkSize - this.currentPageData.length);
-		console.log(maxIndexAtCurrentPage);
 		return " ".repeat(maxIndexAtCurrentPage.toString().length + 1);
 	}
 
@@ -97,26 +93,32 @@ export default class LeaderboardPaginator {
 		const chunkOffset = this.currentPage * this.options.chunkSize;
 		return this.currentPageData
 			.map((data, idx) => {
-				const index = chunkOffset + idx + 1;
-				return `${index}. ${data}`;
+				const absIndex = chunkOffset + idx + 1;
+				return `${absIndex}. ${data}`;
 			})
 			.join("\n");
 	}
 
 	private getEmbed() {
-		const spaces = this.options.useSpaces ? this.calculateSpaces() : "";
-		let beginningDescription = `${spaces}${this.options.description}`;
-		if (this.options.useBackTick) {
-			beginningDescription = `\`${beginningDescription}\``;
+		let description: string;
+		if (this.options.useSpaces) {
+			description = inlineCode(
+				this.calculateSpaces() + this.options.description
+			);
+		} else {
+			description = this.options.description;
+		}
+		let footerText = `Page ${this.currentPage + 1}/${this.slices.length}`;
+		if (this.options.creatorRank) {
+			// assert creatorRank exists and it is not 0
+			footerText += ` • Your rank: ${this.options.creatorRank}`;
 		}
 		return new EmbedBuilder()
 			.setTitle(this.options.title)
 			.setColor(colors.orange)
-			.setDescription(`${beginningDescription}\n${this.pageData()}`)
+			.setDescription(`${description}\n${this.pageData()}`)
 			.setFooter({
-				text: `Page ${this.currentPage + 1}/${
-					this.slices.length
-				} • Your rank: ${this.options.creatorRank}`,
+				text: footerText,
 			});
 	}
 

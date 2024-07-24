@@ -3,10 +3,10 @@ import Player from "./Player.js";
 import { bsPokerTeams, prisma } from "../../../main.js";
 import { formatDeck } from "../../cards/basic_card_functions.js";
 export default class PlayerCollection extends Collection {
-    static fromIds(playerIds, channelId, options) {
+    static fromIds(playerIds, channelId, options, beginCards = 0) {
         const players = playerIds.map(id => [
             id,
-            new Player(id, channelId),
+            new Player(id, channelId, beginCards),
         ]);
         return new PlayerCollection(players, channelId, options);
     }
@@ -115,7 +115,8 @@ export default class PlayerCollection extends Collection {
     }
     formatPWSC() {
         if (this.size && this.pwsc) {
-            return `Players with special cards: ${this.pwsc.length === 0 ? "None" : this.pwsc.join(" ")}`;
+            const pwscDisplay = this.pwsc.length === 0 ? "None" : this.pwsc.join(" ");
+            return `Players with special cards: ${pwscDisplay}`;
         }
         return "";
     }

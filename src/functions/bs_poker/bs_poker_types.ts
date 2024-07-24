@@ -82,10 +82,10 @@ export interface DoubleFlushCall {
 }
 
 export const names = [
-	["high", "h", "haut", "set"],
-	["pair", "double", "p", "d", "paire", "light"],
-	["triple", "t", "brelan", "boom"],
-	["high straight", "straight", "s", "suite", "countdown"],
+	["high", "h", "haut"],
+	["pair", "double", "p", "d", "paire"],
+	["triple", "t", "brelan"],
+	["high straight", "straight", "s", "suite"],
 	[
 		"flush hearts",
 		"hearts flush",
@@ -94,7 +94,6 @@ export const names = [
 		"fh",
 		"hf",
 		"couleur cœur",
-		"lightning fuse",
 	],
 	[
 		"flush diamonds",
@@ -104,7 +103,6 @@ export const names = [
 		"fd",
 		"df",
 		"couleur carreau",
-		"fire fuse",
 	],
 	[
 		"flush clubs",
@@ -114,7 +112,6 @@ export const names = [
 		"fc",
 		"cf",
 		"couleur trèfle",
-		"plasma fuse",
 	],
 	[
 		"flush spades",
@@ -124,9 +121,8 @@ export const names = [
 		"fs",
 		"sf",
 		"couleur pique",
-		"magma fuse",
 	],
-	["quad", "q", "carré", "nuke"],
+	["quad", "q", "quadruple", "carré"],
 	[
 		"straight flush hearts",
 		"hearts straight flush",
@@ -135,7 +131,6 @@ export const names = [
 		"sfh",
 		"hsf",
 		"quinte flush cœur",
-		"lightning bombshell",
 	],
 	[
 		"straight flush diamonds",
@@ -145,7 +140,6 @@ export const names = [
 		"sfd",
 		"dsf",
 		"quinte flush carreau",
-		"fire bombshell",
 	],
 	[
 		"straight flush clubs",
@@ -155,7 +149,6 @@ export const names = [
 		"sfc",
 		"csf",
 		"quinte flush trèfle",
-		"plasma bombshell",
 	],
 	[
 		"straight flush spades",
@@ -165,14 +158,13 @@ export const names = [
 		"sfs",
 		"ssf",
 		"quinte flush pique",
-		"magma bombshell",
 	],
 ];
 
-export type PlayerCall = {
+export interface PlayerCall {
 	call: Call;
 	player: Player;
-};
+}
 
 export const royalFlushes = [
 	[
@@ -183,7 +175,6 @@ export const royalFlushes = [
 		"rhf",
 		"hrf",
 		"quinte flush royale de cœur",
-		"atomic lightning bombshell",
 	],
 	[
 		"diamonds royal flush",
@@ -193,7 +184,6 @@ export const royalFlushes = [
 		"rdf",
 		"drf",
 		"quinte flush royale de carreau",
-		"atomic fire bombshell",
 	],
 	[
 		"clubs royal flush",
@@ -203,7 +193,6 @@ export const royalFlushes = [
 		"rcf",
 		"crf",
 		"quinte flush royale de trèfle",
-		"atomic plasma bombshell",
 	],
 	[
 		"spades royal flush",
@@ -213,7 +202,6 @@ export const royalFlushes = [
 		"rsf",
 		"srf",
 		"quinte flush royale de pique",
-		"atomic magma bombshell",
 	],
 ];
 
@@ -224,42 +212,56 @@ export const symbolToValueObj = {
 
 	two: 2,
 	deuce: 2,
+	deux: 2,
 
 	three: 3,
+	trois: 3,
+
 	four: 4,
+	quatre: 4,
+
 	five: 5,
+	cinq: 5,
+
 	six: 6,
+
 	seven: 7,
+	sept: 7,
+
 	eight: 8,
+	huit: 8,
+
 	nine: 9,
+	neuf: 9,
 
 	ten: 10,
 	t: 10,
-
-	insurance: 15,
-	i: 15,
-	assurance: 15,
-	flashbang: 15,
-
-	ace: 14,
-	a: 14,
-	as: 14,
-
-	king: 13,
-	k: 13,
-	roi: 13,
-	dynamite: 13,
-
-	queen: 12,
-	q: 12,
-	dame: 12,
-	tnt: 12,
+	dix: 10,
 
 	jack: 11,
 	j: 11,
 	knave: 11,
 	valet: 11,
 	grenade: 11,
+
+	queen: 12,
+	q: 12,
+	dame: 12,
+	tnt: 12,
+
+	king: 13,
+	k: 13,
+	roi: 13,
+	dynamite: 13,
+
+	ace: 14,
+	a: 14,
+	as: 14,
+
+	insurance: 15,
+	i: 15,
+	assurance: 15,
+	flashbang: 15,
 } as const;
 
 export type ReadonlyPlayerCollection = Omit<

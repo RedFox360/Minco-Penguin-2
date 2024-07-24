@@ -3,9 +3,8 @@ import { spliceRandom } from "../../util.js";
 import { bsPokerTeams } from "../../../main.js";
 import { formatDeck } from "../../cards/basic_card_functions.js";
 class Player {
-    constructor(id, channelId) {
+    constructor(id) {
         this.id = id;
-        this.channelId = channelId;
     }
     dealCards(deck) {
         const newHand = spliceRandom(deck, this.cardsEntitled);
@@ -26,7 +25,8 @@ class Player {
 }
 export default class BSPokerPlayer extends Player {
     constructor(id, channelId, cardsEntitled = 0, joinedMidGame = false) {
-        super(id, channelId);
+        super(id);
+        this.channelId = channelId;
         this.cardsEntitled = cardsEntitled;
         this.joinedMidGame = joinedMidGame;
         this.hand = [];

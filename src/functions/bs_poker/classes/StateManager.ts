@@ -10,7 +10,7 @@ import { formatCall } from "../bs_poker_functions.js";
 
 export default class StateManager {
 	public roundInProgress = false;
-	public callsOpen = true;
+	public handlingCall = true;
 	public bsCalled = false;
 	public aborted = false;
 	public bxOpen = false;
@@ -73,7 +73,7 @@ export default class StateManager {
 		this.roundInProgress = true;
 		this.bsCalled = false;
 		this._currentCall = null;
-		this.callsOpen = true;
+		this.handlingCall = true;
 		this.clowned = ClownState.NotClowned;
 		this.last3CallsTracker = [true, true, true];
 	}

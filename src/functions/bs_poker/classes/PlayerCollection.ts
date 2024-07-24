@@ -20,11 +20,12 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 	public static fromIds(
 		playerIds: readonly Snowflake[],
 		channelId: Snowflake,
-		options: OptionManager
+		options: OptionManager,
+		beginCards = 0
 	) {
 		const players: ArrayForm = playerIds.map(id => [
 			id,
-			new Player(id, channelId),
+			new Player(id, channelId, beginCards),
 		]);
 		return new PlayerCollection(players, channelId, options);
 	}
@@ -145,9 +146,8 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 
 	public formatPWSC(): `Players with special cards: ${string}` | "" {
 		if (this.size && this.pwsc) {
-			return `Players with special cards: ${
-				this.pwsc.length === 0 ? "None" : this.pwsc.join(" ")
-			}`;
+			const pwscDisplay = this.pwsc.length === 0 ? "None" : this.pwsc.join(" ");
+			return `Players with special cards: ${pwscDisplay}`;
 		}
 		return "";
 	}

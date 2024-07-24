@@ -13,10 +13,10 @@ const pokerStats = new Subcommand()
     .setRun(async (interaction) => {
     const member = interaction.options.getMember("user") ?? interaction.member;
     const { bsPokerWins: wins, bsPokerGamesPlayed: gamesPlayed, bsPokerRating: rawRating, } = await getProfile(member.id);
-    let winPerc = Math.floor((wins / gamesPlayed) * 100);
+    let winPerc = Math.round((wins / gamesPlayed) * 100);
     if (invalidNumber(winPerc))
         winPerc = 0;
-    let skill = Math.floor((rawRating / gamesPlayed) * 100);
+    let skill = Math.round((rawRating / gamesPlayed) * 100);
     if (invalidNumber(skill))
         skill = 0;
     const embed = new EmbedBuilder()

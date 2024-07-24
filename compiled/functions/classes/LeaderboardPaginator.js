@@ -1,14 +1,13 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, inlineCode, } from "discord.js";
 import { chunkArray, colors } from "../util.js";
 export default class LeaderboardPaginator {
     constructor(options) {
-        var _a, _b, _c, _d;
-        this.currentPage = 0;
+        var _a, _b, _c;
         this.options = options;
+        this.currentPage = 0;
         (_a = this.options).chunkSize ?? (_a.chunkSize = 15);
         (_b = this.options).useSpaces ?? (_b.useSpaces = false);
         (_c = this.options).ephemeral ?? (_c.ephemeral = false);
-        (_d = this.options).useBackTick ?? (_d.useBackTick = false);
         this.slices = chunkArray(options.data, this.options.chunkSize);
         this.customIds = {
             first: `${options.id}-first`,
@@ -40,7 +39,6 @@ export default class LeaderboardPaginator {
     calculateSpaces() {
         const maxIndexAtCurrentPage = (this.currentPage + 1) * this.options.chunkSize -
             (this.options.chunkSize - this.currentPageData.length);
-        console.log(maxIndexAtCurrentPage);
         return " ".repeat(maxIndexAtCurrentPage.toString().length + 1);
     }
     get currentPageData() {
@@ -53,23 +51,30 @@ export default class LeaderboardPaginator {
         const chunkOffset = this.currentPage * this.options.chunkSize;
         return this.currentPageData
             .map((data, idx) => {
-            const index = chunkOffset + idx + 1;
-            return `${index}. ${data}`;
+            const absIndex = chunkOffset + idx + 1;
+            return `${absIndex}. ${data}`;
         })
             .join("\n");
     }
     getEmbed() {
-        const spaces = this.options.useSpaces ? this.calculateSpaces() : "";
-        let beginningDescription = `${spaces}${this.options.description}`;
-        if (this.options.useBackTick) {
-            beginningDescription = `\`${beginningDescription}\``;
+        let description;
+        if (this.options.useSpaces) {
+            description = inlineCode(this.calculateSpaces() + this.options.description);
+        }
+        else {
+            description = this.options.description;
+        }
+        let footerText = `Page ${this.currentPage + 1}/${this.slices.length}`;
+        if (this.options.creatorRank) {
+            // assert creatorRank exists and it is not 0
+            footerText += ` • Your rank: ${this.options.creatorRank}`;
         }
         return new EmbedBuilder()
             .setTitle(this.options.title)
             .setColor(colors.orange)
-            .setDescription(`${beginningDescription}\n${this.pageData()}`)
+            .setDescription(`${description}\n${this.pageData()}`)
             .setFooter({
-            text: `Page ${this.currentPage + 1}/${this.slices.length} • Your rank: ${this.options.creatorRank}`,
+            text: footerText,
         });
     }
     getMessage(hasComponents = true) {

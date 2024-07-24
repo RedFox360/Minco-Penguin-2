@@ -211,6 +211,8 @@ function rankToName(call) {
 // if the maxes are equal, the second highest values are compared, and so on
 // if all values are equal, the function will return false
 function isHigherArray(arr1, arr2) {
+    arr1.sort((a, b) => b - a);
+    arr2.sort((a, b) => b - a);
     for (let i = 0; i < arr1.length; i++) {
         if (arr1[i] > arr2[i])
             return true;
@@ -220,6 +222,8 @@ function isHigherArray(arr1, arr2) {
     return false;
 }
 function isLowerArray(arr1, arr2) {
+    arr1.sort((a, b) => a - b);
+    arr2.sort((a, b) => a - b);
     for (let i = 0; i < arr1.length; i++) {
         if (arr1[i] < arr2[i])
             return true;
@@ -239,8 +243,8 @@ export function isHigher(call1, call2) {
     if (call1.call === HandRank.DoublePair ||
         call1.call === HandRank.DoubleTriple ||
         call1.call === HandRank.TriplePair) {
-        const arr1 = call1.high.sort((a, b) => a - b);
-        const arr2 = call2.high.sort((a, b) => a - b);
+        const arr1 = call1.high;
+        const arr2 = call2.high;
         return isHigherArray(arr1, arr2);
     }
     if (call1.call === HandRank.FullHouse) {
@@ -251,10 +255,8 @@ export function isHigher(call1, call2) {
         return call1.high[1] > call2.high[1];
     }
     if (call1.call === HandRank.DoubleFlush) {
-        const arr1 = call1.high.map(card => card.value).sort((a, b) => a - b);
-        const arr2 = call2.high
-            .map(card => card.value)
-            .sort((a, b) => a - b);
+        const arr1 = call1.high.map(card => card.value);
+        const arr2 = call2.high.map(card => card.value);
         return isLowerArray(arr1, arr2);
     }
     const call1_high = call1.high.value;

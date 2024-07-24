@@ -1,5 +1,5 @@
 import { type ColorResolvable, EmbedBuilder } from "discord.js";
-import prettyMs from "pretty-ms";
+import prettyMS from "pretty-ms";
 import SlashCommand from "../core/SlashCommand.js";
 
 const ping = new SlashCommand()
@@ -40,12 +40,12 @@ const ping = new SlashCommand()
 				{ name: "Status", value: status },
 				{
 					name: "Execution Time",
-					value: prettyMs(execTime),
+					value: prettyMS(execTime, { secondsDecimalDigits: 2 }),
 				},
-				{ name: "Client Latency", value: prettyMs(latency) },
+				{ name: "Client Latency", value: prettyMS(latency) },
 				{
 					name: "Client Uptime",
-					value: prettyMs(interaction.client.uptime),
+					value: prettyMS(interaction.client.uptime),
 				}
 			)
 			.setFooter({

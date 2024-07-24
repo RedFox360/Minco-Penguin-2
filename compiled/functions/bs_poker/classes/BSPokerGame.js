@@ -40,15 +40,15 @@ const nrRowJoinDisabled = new ActionRowBuilder().addComponents(joinMidGameDisabl
 const nrRowLeaveDisabled = new ActionRowBuilder().addComponents(leaveMidGameDisabled);
 const kickRegex = /^kick <@\d+>/;
 export default class BSPoker {
-    constructor(interaction, playerIds, options) {
-        this.interaction = interaction;
+    constructor(channel, hostId, playerIds, options) {
+        this.channel = channel;
+        this.hostId = hostId;
         this.options = options;
         this.commonCards = [];
-        this.players = PlayerCollection.fromIds(playerIds, this.interaction.channelId, options);
-        this.hostId = interaction.user.id;
+        this.players = PlayerCollection.fromIds(playerIds, channel.id, options, this.options.beginCards);
         this.state = new StateManager(this.players);
         this.callValidator = new CallValidator(options, this.state);
-        this.notifications = new NotificationManager(interaction.channel, this.state);
+        this.notifications = new NotificationManager(channel, this.state);
     }
     get newRoundComponents() {
         return this.options.allowJoinMidGame ? [nrRowJoin] : [nrRowLeave];
@@ -61,6 +61,11 @@ export default class BSPoker {
     get pot() {
         return this.players.everPlayersLen * this.options.startingBet;
     }
+    formatCommonCards() {
+        return this.commonCards?.length
+            ? `\n${formatDeck(this.commonCards)}`
+            : "None";
+    }
     getCurrentDeck() {
         const deck = this.players.hands.flat(1);
         deck.push(...this.commonCards);
@@ -72,25 +77,23 @@ export default class BSPoker {
         });
     }
     getHandsEmbed() {
-        const commonCardsDisplay = this.commonCards.length === 0
-            ? "None"
-            : `\n${formatDeck(this.commonCards)}`;
         const handsList = this.players
             .map(player => {
             const teammates = player.displayTeammates();
             return `${player}${teammates}\n${player.formatHand()}`;
         })
             .join("\n");
-        return new EmbedBuilder()
-            .setTitle(`Hands from Last Round (${this.state.round})`) // this.round is 0-indexed, so do not subtract 1
-            .setDescription(`Common Cards: ${commonCardsDisplay}
-${handsList}`)
-            .setColor(colors.blurple);
+        return {
+            title: `Hands from Last Round (${this.state.round})`, // this.round is 0-indexed, so do not subtract 1
+            description: `Common Cards: ${this.formatCommonCards()}
+${handsList}`,
+            color: colors.blurple,
+        };
     }
     printAllHands() {
         const deck = this.getCurrentDeck();
-        const embed = this.getHandsEmbed().toJSON();
-        this.interaction.channel
+        const embed = this.getHandsEmbed();
+        this.channel
             .send({
             embeds: [embed],
         })
@@ -108,16 +111,17 @@ ${handsList}`)
         });
     }
     gameInfoEmbed() {
-        const embed = new EmbedBuilder()
+        return new EmbedBuilder()
             .setTitle("Game Info")
             .setColor(colors.green)
-            .setDescription(`Game Host: <@${this.hostId}>${this.betInfo()}`)
+            .setDescription(`Game Host: <@${this.hostId}>
+Player Limit: ${this.options.playerLimit}
+${this.betInfo()}`)
             .addFields({ name: "Players", value: this.players.displayEntitled() }, { name: "Options", value: this.options.display() });
-        return embed;
     }
     betInfo() {
         return this.options.startingBet
-            ? `Bet to Join: **${this.options.startingBet.toLocaleString()} MD** | Pot: **${this.pot.toLocaleString()} MD**\n`
+            ? `Bet to Join: **${this.options.startingBet.toLocaleString()} MD** | Pot: **${this.pot.toLocaleString()} MD**`
             : "";
     }
     newRoundEmbed(waiting = false) {
@@ -126,15 +130,13 @@ ${handsList}`)
             commonCardsToDisplay = `The round will begin ${this.roundBeginTimestamp}`;
         }
         else if (this.commonCards.length > 0) {
-            commonCardsToDisplay = `Common Cards:\n${formatDeck(this.commonCards)}`;
-        }
-        else {
-            commonCardsToDisplay = "Common Cards: None";
+            commonCardsToDisplay = `Common Cards: ${this.formatCommonCards()}`;
         }
         const pwsc = waiting ? "" : this.players.formatPWSC();
         return {
             title: `New Round (${this.state.round + 1})`,
-            description: `${this.betInfo()}${commonCardsToDisplay}
+            description: `${this.betInfo()}
+${commonCardsToDisplay}
 ${pwsc}
 ${this.state.currentPlayer} will start the round.`,
             fields: [
@@ -222,7 +224,7 @@ ${this.state.currentPlayer} will start the round.`,
                 .setTitle("Game Over!")
                 .setDescription(description)
                 .setColor(colors.red);
-            this.interaction.channel.send({
+            this.channel.send({
                 embeds: [noWinnerEmbed],
             });
             return;
@@ -260,14 +262,14 @@ ${this.state.currentPlayer} will start the round.`,
             .setTitle("Game Over!")
             .setDescription(`${winner} has won the game${betWinningInfo}! Congratulations!`)
             .setColor(colors.green);
-        const winnerMember = this.interaction.guild.members.cache.get(winner.id);
+        const winnerMember = this.channel.guild.members.cache.get(winner.id);
         if (winnerMember) {
             embed.setAuthor({
                 name: winnerMember.displayName,
                 iconURL: winnerMember.displayAvatarURL(),
             });
         }
-        this.interaction.channel.send({
+        this.channel.send({
             embeds: [embed],
         });
         this.endCollectors();
@@ -283,11 +285,11 @@ ${this.state.currentPlayer} will start the round.`,
             .map((card, i) => `\`${i + 1}\` **${formatCardSideways(card)}**`)
             .join("\n");
         const bxContent = `${playerWBJ}, you had a Black Joker! You get to remove 1 common card from the deck.\n${commonCardsFormattedWithNumbers}`;
-        const bxMsg = await this.interaction.channel.send({
+        const bxMsg = await this.channel.send({
             content: bxContent +
                 `\n*Please type the number of the card you want to remove* ${timeUpToTakeCard}.\nIf you do not want to take a card, type \`0\`.`,
         });
-        this.interaction.channel
+        this.channel
             .awaitMessages({
             max: 1,
             idle: 0,
@@ -317,7 +319,7 @@ ${this.state.currentPlayer} will start the round.`,
             }
         })
             .catch(() => {
-            this.interaction.channel.send({
+            this.channel.send({
                 content: `${playerWBJ} failed to take a card in time. They will not take any card.`,
             });
         })
@@ -333,7 +335,7 @@ ${this.state.currentPlayer} will start the round.`,
             if (!entitled ||
                 invalidNumber(entitled) ||
                 entitled >= this.options.cardsToOut) {
-                this.interaction.channel.send(`${p} is out of the game.`);
+                this.channel.send(`${p} is out of the game.`);
                 playersToRemove.push(p);
             }
         }
@@ -350,6 +352,14 @@ ${this.state.currentPlayer} will start the round.`,
             return this.options.commonCards;
         }
     }
+    dealCommonCards(deck) {
+        const acCCAmount = this.calculateCommonCards();
+        // SET THE COMMON CARDS
+        if (this.options.commonCards !== 0) {
+            this.commonCards = spliceRandom(deck, acCCAmount);
+            this.commonCards.sort((a, b) => a.value - b.value);
+        }
+    }
     async newRound() {
         this.notifications.clearNotifTimeout();
         this.state.roundInProgress = false;
@@ -363,21 +373,16 @@ ${this.state.currentPlayer} will start the round.`,
             await this.endGameSuccess();
             return;
         }
-        const acCCAmount = this.calculateCommonCards();
-        // SET THE COMMON CARDS
-        if (this.options.commonCards !== 0) {
-            this.commonCards = spliceRandom(deck, acCCAmount);
-            this.commonCards.sort((a, b) => a.value - b.value);
-        }
+        this.dealCommonCards(deck);
         if (this.state.round === 0) {
             this.players.deal(deck);
-            await this.interaction.channel.send({
+            await this.channel.send({
                 embeds: [this.newRoundEmbed(false)],
             });
         }
         else {
             this.roundBeginTimestamp = msToRelTimestamp(timeBetweenRounds);
-            const newRoundMsg = await this.interaction.channel.send({
+            const newRoundMsg = await this.channel.send({
                 embeds: [this.newRoundEmbed(true)],
                 components: this.newRoundComponents,
             });
@@ -408,23 +413,23 @@ ${this.state.currentPlayer} will start the round.`,
         let cardGainer = this.state.currentPlayer;
         if (callIsTrue) {
             cardGainer = bser;
-            this.interaction.channel.send({
+            this.channel.send({
                 content: `:green_circle: ${this.state.currentCall.player} was telling the truth! ${cardGainer} gains 1 card.`,
             });
         }
         else {
-            this.interaction.channel.send({
+            this.channel.send({
                 content: `:red_circle: ${this.state.currentCall.player} was lying! They gain 1 card.`,
             });
             cardGainer = this.state.currentCall.player;
             if (bserHasRJ && bserId !== this.state.currentPlayer.id) {
                 if (bser.hand.length === 1) {
-                    this.interaction.channel.send({
+                    this.channel.send({
                         content: `<@${bserId}> had a Red Joker and cross-BSed! However, they only had 1 card, so they do not lose any cards.`,
                     });
                 }
                 else {
-                    this.interaction.channel.send({
+                    this.channel.send({
                         content: `<@${bserId}> had a Red Joker! Since they cross-BSed, they lose 1 card.`,
                     });
                     bser.cardsEntitled -= 1;
@@ -447,7 +452,7 @@ ${this.state.currentPlayer} will start the round.`,
             replyThenDelete(msg, "You may not kick yourself from the game.");
             return;
         }
-        this.state.callsOpen = false;
+        this.state.handlingCall = false;
         const currentPlayerBeforeKick = this.state.currentPlayer.id;
         this.players.removePlayers(this.players.get(kickId));
         msg.reply(`<@${kickId}> has been kicked from the game.`);
@@ -459,13 +464,13 @@ ${this.state.currentPlayer} will start the round.`,
             this.notifications.disableNotif();
             await this.sendNewNotif();
         }
-        this.state.callsOpen = true;
+        this.state.handlingCall = true;
     }
     handleCurses() {
         const callIsTrue = callInDeck(this.state.currentCall.call, this.getCurrentDeck());
         this.state.addToTracker(callIsTrue);
         if (this.state.last3CallsFalse()) {
-            this.interaction.channel.send({
+            this.channel.send({
                 content: `${this.state.currentPlayer} has called **${this.state.formatCurrentCall()}**.`,
             });
             let playerWRJ;
@@ -491,7 +496,7 @@ ${this.state.currentPlayer} will start the round.`,
                     ? `\n<@${playerWRJ}> had a Blood Joker, but they only had 1 card, so they do not lose any cards.`
                     : `\n<@${playerWRJ}> had a Blood Joker, so they lose a card.`
                 : "";
-            this.interaction.channel.send({
+            this.channel.send({
                 embeds: [createCurseEmbed(extraDescription)],
             });
             this.newRound();
@@ -507,7 +512,7 @@ ${this.state.currentPlayer} will start the round.`,
             });
             return;
         }
-        if (!this.state.callsOpen) {
+        if (!this.state.handlingCall) {
             await buttonInteraction.reply({
                 content: "The buttons have not finished loading. Please try again.",
                 ephemeral: true,
@@ -564,28 +569,25 @@ ${this.players.formatPWSC()}`;
             this.state.clowned === ClownState.NotClowned &&
             buttonPlayer.hand.some(card => card.suit === "rj");
         const components = hasClown ? [clownRow] : undefined;
-        const commonCardsDisplay = this.commonCards.length === 0
-            ? "None"
-            : `\n${formatDeck(this.commonCards)}`;
         await buttonInteraction.reply({
             content: `**Your Hand:**
 ${buttonPlayer.formatHand()}
-**Common Cards:** ${commonCardsDisplay}
+**Common Cards:** ${this.formatCommonCards()}
 ${this.players.formatPWSC()}`,
             ephemeral: true,
             components,
         });
     }
     async clownClicked(buttonInteraction) {
-        const buttonPlayer = this.players.get(buttonInteraction.user.id);
-        if (!buttonPlayer?.hand) {
+        const buttonPlayerHand = this.players.get(buttonInteraction.user.id)?.hand;
+        if (!buttonPlayerHand) {
             await buttonInteraction.reply({
                 content: "You are not a player in this game.",
                 ephemeral: true,
             });
             return;
         }
-        const hasClownCard = buttonPlayer.hand.some(card => card.suit === "rj");
+        const hasClownCard = buttonPlayerHand.some(card => card.suit === "rj");
         if (!hasClownCard) {
             await buttonInteraction.reply({
                 content: "You do not have a Clown Joker.",
@@ -629,7 +631,7 @@ ${this.players.formatPWSC()}`,
                 return;
             }
         }
-        if (!this.state.roundInProgress || !this.state.callsOpen)
+        if (!this.state.roundInProgress || !this.state.handlingCall)
             return;
         if (msg.author.id !== this.state.currentPlayer.id)
             return;
@@ -637,7 +639,7 @@ ${this.players.formatPWSC()}`,
         const validated = this.callValidator.validateAndRespond(call, msg);
         if (!validated)
             return;
-        this.state.callsOpen = false;
+        this.state.handlingCall = false;
         this.notifications.disableNotif();
         this.state.setCurrentCall(call);
         if (this.options.useCurses && this.players.size > 2) {
@@ -650,7 +652,17 @@ ${this.players.formatPWSC()}`,
         }
         this.state.forward(); // go to next player
         await this.sendNewNotif();
-        this.state.callsOpen = true;
+        this.state.handlingCall = true;
+    }
+    assertRoundNotInProgress(interaction) {
+        if (this.state.roundInProgress) {
+            interaction.reply({
+                content: "Please wait for the round to end.",
+                ephemeral: true,
+            });
+            return false;
+        }
+        return true;
     }
     async buttonCollect(buttonInteraction) {
         switch (buttonInteraction.customId) {
@@ -662,26 +674,13 @@ ${this.players.formatPWSC()}`,
                 return;
             }
             case customIds.joinMidGame: {
-                if (this.state.roundInProgress) {
-                    await buttonInteraction.reply({
-                        content: "Please wait for the round to end.",
-                        ephemeral: true,
-                    });
-                }
-                else {
+                if (this.assertRoundNotInProgress(buttonInteraction)) {
                     await this.handleJoinMidGame(buttonInteraction);
                 }
                 return;
             }
             case customIds.leaveMidGame: {
-                if (this.state.roundInProgress) {
-                    await buttonInteraction.reply({
-                        content: "Please wait for the round to end.",
-                        ephemeral: true,
-                    });
-                    return;
-                }
-                else {
+                if (this.assertRoundNotInProgress(buttonInteraction)) {
                     this.handleLeaveMidGame(buttonInteraction);
                 }
                 return;
@@ -705,17 +704,14 @@ ${this.players.formatPWSC()}`,
         }
     }
     async gameLogic() {
-        this.msgColl = this.interaction.channel.createMessageCollector({
+        this.msgColl = this.channel.createMessageCollector({
             time: gameLength,
         });
-        this.mcompColl = this.interaction.channel.createMessageComponentCollector({
+        this.mcompColl = this.channel.createMessageComponentCollector({
             time: gameLength,
             componentType: ComponentType.Button,
             filter: i => customIdValues.includes(i.customId),
         });
-        for (const p of this.players.values()) {
-            p.cardsEntitled = this.options.beginCards;
-        }
         await this.newRound(); // start the game with the 1st round
         this.msgColl.on("collect", (m) => {
             this.messageCollect(m);
@@ -725,12 +721,12 @@ ${this.players.formatPWSC()}`,
         });
         this.msgColl.on("end", (_, reason) => {
             if (reason === "time") {
-                this.interaction.channel.send("Game ended due to inactivity (lasted longer than 1 hour).");
+                this.channel.send("Game ended due to inactivity (lasted longer than 1 hour).");
             }
             this.state.aborted = true;
             this.notifications.clearNotifTimeout();
-            channelsWithActiveGames.delete(this.interaction.channelId);
-            bsPokerTeams.delete(this.interaction.channelId);
+            channelsWithActiveGames.delete(this.channel.id);
+            bsPokerTeams.delete(this.channel.id);
         });
     }
 }

@@ -60,8 +60,8 @@ Triple: \`t\`
 Straight: \`s\`
 Hearts Flush: \`hf\`, etc.
 Quad: \`q\`
-Hearts Straight Flush: \`hsf\`
-Hearts Royal Flush: \`hrf\`
+Hearts Straight Flush: \`hsf\`, etc.
+Hearts Royal Flush: \`hrf\`, etc.
 **Abbreviations of Cards:**
 Insurance: \`i\`
 Ace: \`a\`
@@ -73,12 +73,18 @@ Joker: \`x\``,
 	},
 	{
 		color: colors.blurple,
-		title: "Special Cards",
+		title: "Special Cards and Curses",
 		description: `If you start a game with the "use_special_cards" option set to True, these 2 cards will be added to the deck:
 
-:black_large_square: **Black Joker** (\`Black X\`): A player with this card can remove any card from the Common Cards after any player (including themselves) calls a BS.
+:black_large_square: **Black Joker**: A player with this card can remove any card from the Common Cards after any player (including themselves) calls a BS.
 
-:red_square: **Red Joker** (\`Red X\`): If a player with this card calls a BS when it is *not their turn*, they will lose a card if their BS was correct. If incorrect, they will gain a card as usual.
+:red_square: **Red Joker**: If a player with this card calls a BS when it is *not their turn*, they will lose a card if their BS was correct (unless they have 1 card). If incorrect, they will gain a card as usual.
+
+:smiling_imp: **Curses**: If Curses are enabled at the beginning of a game, if 3 calls in a row are false, the round will immediately stop and all players will gain a card. This can cause multiple players to go out in one round.
+
+:red_square: **Blood Joker**: If the "Blood Joker" option is enabled, the Red Joker will gain an additional ability — if a curse happens, the player with the Blood Joker will *lose* a card (unless they have 1 card). The Red Joker can still be used to cross-BS players.
+
+:clown: **Clown Joker**: If the "Clown" option is enabled, the Red Joker will turn into a Clown Joker. When a player with a Clown Joker clicks "View Cards," a "Clown" button will appear. When clicked, the order of players will reverse. If a player uses a Clown Joker and it becomes their turn again, they will be forced to B.S. (Clown Jokers cannot be combined with Blood Jokers, and they do not have the Red Joker's abilities.)
 
 These cards are *publicly visible* to all players throughout the game. The players which have a Special Card are shown in the "New Round" message at the beginning of every round and when a player clicks "View Cards". However, it is not written which Special Card they have.
 

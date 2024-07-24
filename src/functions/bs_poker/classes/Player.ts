@@ -8,10 +8,7 @@ abstract class Player {
 	public abstract hand: ExtCard[];
 	public abstract cardsEntitled: number;
 
-	public constructor(
-		public readonly id: Snowflake,
-		protected readonly channelId: Snowflake
-	) {}
+	public constructor(public readonly id: Snowflake) {}
 
 	public dealCards(deck: ExtCard[]) {
 		const newHand = spliceRandom(deck, this.cardsEntitled);
@@ -38,11 +35,11 @@ export default class BSPokerPlayer extends Player {
 
 	public constructor(
 		id: Snowflake,
-		channelId: Snowflake,
+		private readonly channelId: Snowflake,
 		public cardsEntitled = 0,
 		public readonly joinedMidGame = false
 	) {
-		super(id, channelId);
+		super(id);
 	}
 
 	public getTeammates() {

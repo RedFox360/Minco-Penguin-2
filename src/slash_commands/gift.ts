@@ -1,5 +1,6 @@
 import { getProfile, updateProfile } from "../prisma/models.js";
 import SlashCommand from "../core/SlashCommand.js";
+import { prisma } from "../main.js";
 
 const gift = new SlashCommand()
 	.setCommandData(builder =>
@@ -23,7 +24,7 @@ const gift = new SlashCommand()
 	.setRun(async interaction => {
 		const user = interaction.options.getUser("user");
 		if (user.id === interaction.user.id) {
-			await interaction.reply({
+			interaction.reply({
 				content: "You can't gift money to yourself.",
 				ephemeral: true,
 			});
@@ -33,20 +34,22 @@ const gift = new SlashCommand()
 		const amount = interaction.options.getInteger("md_amount");
 		const profile = await getProfile(interaction.user.id);
 		if (amount > profile.mincoDollars) {
-			await interaction.reply({
+			interaction.reply({
 				content: `You don't have ${amount.toLocaleString()} Minco Dollars.`,
 				ephemeral: true,
 			});
 			return;
 		}
-		await updateProfile(
-			interaction.user.id,
-			{
-				mincoDollars: { decrement: amount },
-			},
-			false
-		);
-		await updateProfile(user.id, { mincoDollars: { increment: amount } });
+		await Promise.all([
+			updateProfile(
+				interaction.user.id,
+				{
+					mincoDollars: { decrement: amount },
+				},
+				false
+			),
+			updateProfile(user.id, { mincoDollars: { increment: amount } }),
+		]);
 
 		await interaction.reply(
 			`:gift: You gifted ${amount.toLocaleString()} MD to ${user}.`

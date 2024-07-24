@@ -8,7 +8,12 @@ import {
 	userMention,
 } from "discord.js";
 import BSPoker from "./classes/BSPokerGame.js";
-import { removeByValue, msToRelTimestamp, shuffleArray } from "../util.js";
+import {
+	removeByValue,
+	msToRelTimestamp,
+	shuffleArray,
+	hasAdminForGames,
+} from "../util.js";
 import { getProfile } from "../../prisma/models.js";
 import { colors } from "../util.js";
 import { bsPokerTeams, channelsWithActiveGames } from "../../main.js";
@@ -103,24 +108,27 @@ export default async function bsPokerRun(
 
 	const optionsFieldValue = options.display();
 
-	const gameStartEmbed = (gameStarted = false) =>
-		new EmbedBuilder()
+	const gameStartEmbed = (gameStarted = false) => {
+		let text: string;
+		if (gameStarted) {
+			text = betDisplay;
+		} else {
+			const numPlayersCanJoin = options.playerLimit - players.length;
+			let playerLimitInfo = "";
+			if (players.length < 2)
+				playerLimitInfo = " Minimum 2 players required to start the game.";
+			text = `${numPlayersCanJoin} more players can join.${playerLimitInfo}
+${betDisplay}
+${interaction.user} is the host of the game and can abort or start it immediately.
+Otherwise, the game will start ${startTime}`;
+		}
+		const currentPlayers = players.map(userMention).join(", ");
+		return new EmbedBuilder()
 			.setTitle(gameStarted ? "BS Poker Game Started" : "BS Poker")
 			.setDescription(
 				`Welcome to a game of BS Poker!
-Current players: ${players.map(userMention).join(", ")}\n` +
-					(gameStarted
-						? betDisplay
-						: `${options.playerLimit - players.length} more players can join.${
-								players.length >= 2
-									? ""
-									: " Minimum 2 players required to start the game."
-						  }
-${betDisplay}
-<@${
-								interaction.user.id
-						  }> is the host of the game and can abort or start it immediately.
-Otherwise, the game will start ${startTime}`)
+Current players: ${currentPlayers}
+${text}`
 			)
 			.addFields({
 				name: "Options",
@@ -132,6 +140,7 @@ Otherwise, the game will start ${startTime}`)
 				text: interaction.guild.name,
 				iconURL: interaction.member.displayAvatarURL(),
 			});
+	};
 
 	const msg = await interaction.reply({
 		embeds: [gameStartEmbed()],
@@ -197,7 +206,13 @@ Otherwise, the game will start ${startTime}`)
 				return;
 			}
 			case customIds.abort: {
-				if (buttonInteraction.user.id !== interaction.user.id) {
+				if (
+					!hasAdminForGames(
+						buttonInteraction.user.id,
+						buttonInteraction.member.permissions,
+						interaction.user.id
+					)
+				) {
 					await buttonInteraction.reply({
 						content: "Only the host can abort the game.",
 						ephemeral: true,
@@ -213,7 +228,13 @@ Otherwise, the game will start ${startTime}`)
 				return;
 			}
 			case customIds.start: {
-				if (buttonInteraction.user.id !== interaction.user.id) {
+				if (
+					!hasAdminForGames(
+						buttonInteraction.user.id,
+						buttonInteraction.member.permissions,
+						interaction.user.id
+					)
+				) {
 					await buttonInteraction.reply({
 						content: "Only the host can start the game.",
 						ephemeral: true,
@@ -253,7 +274,12 @@ Otherwise, the game will start ${startTime}`)
 		);
 		shuffleArray(players);
 
-		const game = new BSPoker(interaction, players, options);
+		const game = new BSPoker(
+			interaction.channel,
+			interaction.user.id,
+			players,
+			options
+		);
 
 		game.gameLogic().catch(e => {
 			interaction.channel.send(

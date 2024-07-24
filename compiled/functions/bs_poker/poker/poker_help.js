@@ -2,6 +2,38 @@ import { ActionRowBuilder, ComponentType, StringSelectMenuBuilder, } from "disco
 import Subcommand from "../../../core/Subcommand.js";
 import helpEmbeds from "../bs_poker_help_embed.js";
 import { emojiRaw } from "../../cards/basic_card_types.js";
+const selectMenuOptions = [
+    {
+        label: "Bot Help",
+        description: "How to start a game of BS Poker using the bot",
+        value: "0",
+        emoji: emojiRaw.hearts,
+    },
+    {
+        label: "BS Poker Rules",
+        description: "The rules of BS Poker",
+        value: "1",
+        emoji: emojiRaw.clubs,
+    },
+    {
+        label: "Poker Calls",
+        description: "The different types of calls in BS Poker",
+        value: "2",
+        emoji: emojiRaw.diamonds,
+    },
+    {
+        label: "How to Make A Call",
+        description: "How to make a call in BS Poker",
+        value: "3",
+        emoji: emojiRaw.spades,
+    },
+    {
+        label: "Special Cards and Curses",
+        description: "Special cards and curses in BS Poker",
+        value: "4",
+        emoji: emojiRaw.joker,
+    },
+];
 const pokerHelp = new Subcommand()
     .setCommandData(subcommand => subcommand
     .setName("help")
@@ -28,7 +60,7 @@ const pokerHelp = new Subcommand()
         value: "3",
     },
     {
-        name: "Special Cards",
+        name: "Special Cards and Curses",
         value: "4",
     },
 ])))
@@ -45,38 +77,7 @@ const pokerHelp = new Subcommand()
     const selectMenu = new StringSelectMenuBuilder()
         .setCustomId("help_poker_rules")
         .setPlaceholder("Please make a selection")
-        .addOptions([
-        {
-            label: "Bot Help",
-            description: "How to start a game of BS Poker using the bot",
-            value: "0",
-            emoji: emojiRaw.hearts,
-        },
-        {
-            label: "BS Poker Rules",
-            description: "The rules of BS Poker",
-            value: "1",
-            emoji: emojiRaw.clubs,
-        },
-        {
-            label: "Poker Calls",
-            description: "The different types of calls in BS Poker",
-            value: "2",
-            emoji: emojiRaw.diamonds,
-        },
-        {
-            label: "How to Make A Call",
-            description: "How to make a call in BS Poker",
-            value: "3",
-            emoji: emojiRaw.spades,
-        },
-        {
-            label: "Special Cards",
-            description: "Special cards in BS Poker",
-            value: "4",
-            emoji: emojiRaw.joker,
-        },
-    ])
+        .addOptions(selectMenuOptions)
         .setMinValues(1)
         .setMaxValues(1);
     const row = new ActionRowBuilder().addComponents(selectMenu);

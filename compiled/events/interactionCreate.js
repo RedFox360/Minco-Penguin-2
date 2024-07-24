@@ -1,7 +1,7 @@
 import { Collection, EmbedBuilder, Events, RESTJSONErrorCodes, } from "discord.js";
 import SlashCommand from "../core/SlashCommand.js";
 import UserContextMenu from "../core/UserContextMenu.js";
-import prettyMs from "pretty-ms";
+import prettyMS from "pretty-ms";
 import { clean, colors } from "../functions/util.js";
 import { slashCommands } from "../main.js";
 // Map: {commandName -> [Map: userId -> timestamp]}
@@ -65,7 +65,7 @@ function handleCooldowns(interaction, command) {
         if (currentTime < expTime) {
             const timeLeft = expTime - currentTime;
             return {
-                content: `:clock: Please wait ${prettyMs(timeLeft)} before using command /${commandName}`,
+                content: `:clock: Please wait ${prettyMS(timeLeft)} before using command /${commandName}`,
                 cooldown: true,
             };
         }
