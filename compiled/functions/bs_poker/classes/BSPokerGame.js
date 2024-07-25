@@ -227,6 +227,7 @@ ${this.state.currentPlayer} will start the round.`,
             this.channel.send({
                 embeds: [noWinnerEmbed],
             });
+            this.endCollectors();
             return;
         }
         const winner = this.players.first();

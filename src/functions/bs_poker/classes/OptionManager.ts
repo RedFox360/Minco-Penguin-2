@@ -35,27 +35,23 @@ export default class OptionManager {
 		return maxPlayerLimit;
 	}
 
-	public constructor(interaction: ChatInputCommandInteraction<"cached">) {
+	public constructor({ options }: ChatInputCommandInteraction<"cached">) {
 		// Retrieving Options
-		this.cardsToOut = interaction.options.getInteger("cards_to_out");
-		this.commonCards = interaction.options.getInteger("common_cards") ?? -1;
-		this.startingBet = interaction.options.getInteger("bet") ?? 0;
-		this.jokerCount = interaction.options.getInteger("joker_count") ?? 2;
-		this.insuranceCount =
-			interaction.options.getInteger("insurance_count") ?? 1;
-		this.useSpecialCards =
-			interaction.options.getBoolean("use_special_cards") ?? false;
-		this.beginCards = interaction.options.getInteger("begin_cards") ?? 1;
-		this.allowJoinMidGame =
-			interaction.options.getBoolean("allow_join_mid_game") ?? true;
-		this.useCurses = interaction.options.getBoolean("use_curses") ?? false;
-		this.nonStandard = interaction.options.getBoolean("nonstandard") ?? true;
-		this.useBloodJoker = interaction.options.getBoolean("blood_joker") ?? false;
-		this.useClown = interaction.options.getBoolean("clown") ?? false;
+		this.cardsToOut = options.getInteger("cards_to_out");
+		this.commonCards = options.getInteger("common_cards") ?? -1;
+		this.startingBet = options.getInteger("bet") ?? 0;
+		this.jokerCount = options.getInteger("joker_count") ?? 2;
+		this.insuranceCount = options.getInteger("insurance_count") ?? 1;
+		this.useSpecialCards = options.getBoolean("use_special_cards") ?? false;
+		this.beginCards = options.getInteger("begin_cards") ?? 1;
+		this.allowJoinMidGame = options.getBoolean("allow_join_mid_game") ?? true;
+		this.useCurses = options.getBoolean("use_curses") ?? false;
+		this.nonStandard = options.getBoolean("nonstandard") ?? true;
+		this.useBloodJoker = options.getBoolean("blood_joker") ?? false;
+		this.useClown = options.getBoolean("clown") ?? false;
 
 		const maxPlayerLimit = this.maxPlayerLimit();
-		this.playerLimit =
-			interaction.options.getInteger("player_limit") ?? maxPlayerLimit;
+		this.playerLimit = options.getInteger("player_limit") ?? maxPlayerLimit;
 
 		if (this.beginCards >= this.cardsToOut) {
 			throw new OptionCreationError(

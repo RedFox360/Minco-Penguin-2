@@ -156,7 +156,7 @@ export function countInArray<T>(
 	return count;
 }
 
-export function formatBool(bool: boolean): string {
+export function formatBool(bool: boolean): "**True**" | "**False**" {
 	return bool ? "**True**" : "**False**";
 }
 

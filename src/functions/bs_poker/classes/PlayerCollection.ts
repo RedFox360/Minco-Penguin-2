@@ -57,8 +57,6 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 
 	private updatePlayerData(players: readonly Player[]) {
 		if (this.originalPlayers === 2) return;
-		const avgRankOut = this.out.length - (1 + players.length) / 2;
-		const rating = avgRankOut * (1 / (this.everPlayersLen - 1));
 		const joinedMidGame = players.filter(p => p.joinedMidGame).map(p => p.id);
 		const didNotJoinMidgame = players
 			.filter(p => !p.joinedMidGame)
@@ -82,6 +80,9 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 				);
 			}
 		} else if (didNotJoinMidgame.length) {
+			const avgRankOut = this.out.length - (1 + players.length) / 2;
+			const rating = avgRankOut * (1 / (this.everPlayersLen - 1));
+
 			promises.push(
 				prisma.profile.updateMany({
 					where: {
