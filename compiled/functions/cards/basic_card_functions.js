@@ -62,6 +62,12 @@ export function cardToEmoji(card) {
         return [cardEmojis[0], newEmojiSuits.spades];
     return null;
 }
+export function formatCard(card) {
+    const cardEmojis = cardToEmoji(card);
+    if (!cardEmojis)
+        return null;
+    return `${cardEmojis[0]}\n${cardEmojis[1]}`;
+}
 export function formatDeckLines(deck) {
     const line1 = [];
     const line2 = [];

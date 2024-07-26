@@ -32,8 +32,10 @@ import {
 	invalidNumber,
 	median,
 	hasAdminForGames,
+	randomElement,
 } from "../../util.js";
 import {
+	formatCard,
 	formatCardSideways,
 	formatDeck,
 } from "../../cards/basic_card_functions.js";
@@ -67,12 +69,12 @@ const clownButton = new ButtonBuilder()
 const clownRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
 	clownButton
 );
-const createCurseEmbed = (x = "") =>
+const createCurseEmbed = (extraDescription = "") =>
 	new EmbedBuilder()
 		.setColor(colors.red)
 		.setTitle("Curse activated!")
 		.setDescription(
-			`The previous 3 calls were all false.\nEveryone will gain a card and a new round will start now.${x}`
+			`The previous 3 calls were all false.\nEveryone will gain a card and a new round will start now.${extraDescription}`
 		);
 
 const joinMidGameDisabled = new ButtonBuilder(joinMidGame.toJSON()).setDisabled(
@@ -415,14 +417,14 @@ ${this.state.currentPlayer} will start the round.`,
 			.then(messages => {
 				const msg = messages.first();
 				const cardNumber = parseInt(msg.content);
-				if (cardNumber === 0) {
-					msg.reply({
-						content: "You have chosen not to take any card.",
-					});
-				} else {
+				if (cardNumber > 0 && cardNumber <= this.commonCards.length) {
 					const card = this.commonCards.splice(cardNumber - 1, 1)[0];
 					msg.reply({
 						content: `You have taken the card **${formatCardSideways(card)}**.`,
+					});
+				} else {
+					msg.reply({
+						content: "You have chosen not to take any card.",
 					});
 				}
 			})
@@ -552,7 +554,7 @@ ${this.state.currentPlayer} will start the round.`,
 					});
 				} else {
 					this.channel.send({
-						content: `<@${bserId}> had a Red Joker! Since they cross-BSed, they lose 1 card.`,
+						content: `<@${bserId}> had a Red Joker! Since they successfully cross-BSed, they lose 1 card.`,
 					});
 					bser.cardsEntitled -= 1;
 				}
@@ -574,9 +576,11 @@ ${this.state.currentPlayer} will start the round.`,
 			replyThenDelete(msg, "You may not kick yourself from the game.");
 			return;
 		}
-		this.state.handlingCall = false;
+		this.state.callsOpen = false;
 		const currentPlayerBeforeKick = this.state.currentPlayer.id;
-		this.players.removePlayers(this.players.get(kickId));
+		this.players.removePlayers(this.players.get(kickId)).then(() => {
+			this.players.loadPWSC();
+		});
 		msg.reply(`<@${kickId}> has been kicked from the game.`);
 		if (this.players.size === 1) {
 			this.newRound();
@@ -586,7 +590,7 @@ ${this.state.currentPlayer} will start the round.`,
 			this.notifications.disableNotif();
 			await this.sendNewNotif();
 		}
-		this.state.handlingCall = true;
+		this.state.callsOpen = true;
 	}
 
 	private handleCurses(): boolean {
@@ -607,30 +611,41 @@ ${this.state.currentPlayer} will start the round.`,
 					player.hand.some(card => card.suit === "rj")
 				);
 			}
-			let had1Card = false;
+			let bloodJokerDescription = "";
 			for (const player of this.players.values()) {
 				if (playerWRJ && player.id === playerWRJ) {
 					if (player.cardsEntitled === 1) {
-						had1Card = true;
+						bloodJokerDescription = `\n<@${playerWRJ}> had a Blood Joker, but they only had 1 card, so they do not lose any cards.`;
 					} else {
 						player.cardsEntitled -= 1;
+						bloodJokerDescription = `\n<@${playerWRJ}> had a Blood Joker, so they lose a card.`;
 					}
 				} else {
 					player.cardsEntitled += 1;
 				}
 			}
-			const extraDescription = playerWRJ
-				? had1Card
-					? `\n<@${playerWRJ}> had a Blood Joker, but they only had 1 card, so they do not lose any cards.`
-					: `\n<@${playerWRJ}> had a Blood Joker, so they lose a card.`
-				: "";
 			this.channel.send({
-				embeds: [createCurseEmbed(extraDescription)],
+				embeds: [createCurseEmbed(bloodJokerDescription)],
 			});
 			this.newRound();
 			return true;
 		}
 		return false;
+	}
+
+	private getBleedText(playerId: Snowflake) {
+		if (!this.options.bleed) return "";
+		const ids = [...this.players.keys()];
+		const indexOfViewCards = ids.indexOf(playerId);
+		if (indexOfViewCards === -1) return "";
+		const nextPlayer = this.players.at(
+			(indexOfViewCards + 1) % this.players.size
+		);
+		if (nextPlayer?.hand?.length) {
+			const nextPlayerCard = randomElement(nextPlayer.hand);
+			return `\n**${nextPlayer}'s Card:**\n**${formatCard(nextPlayerCard)}**`;
+		}
+		return "";
 	}
 
 	private async bsButtonClicked(buttonInteraction: ButtonInteraction) {
@@ -641,7 +656,7 @@ ${this.state.currentPlayer} will start the round.`,
 			});
 			return;
 		}
-		if (!this.state.handlingCall) {
+		if (!this.state.callsOpen) {
 			await buttonInteraction.reply({
 				content: "The buttons have not finished loading. Please try again.",
 				ephemeral: true,
@@ -708,10 +723,11 @@ ${this.players.formatPWSC()}`;
 			this.state.clowned === ClownState.NotClowned &&
 			buttonPlayer.hand.some(card => card.suit === "rj");
 		const components = hasClown ? [clownRow] : undefined;
+		const bleedText = this.getBleedText(buttonInteraction.user.id);
 		await buttonInteraction.reply({
 			content: `**Your Hand:**
 ${buttonPlayer.formatHand()}
-**Common Cards:** ${this.formatCommonCards()}
+**Common Cards:** ${this.formatCommonCards()}${bleedText}
 ${this.players.formatPWSC()}`,
 			ephemeral: true,
 			components,
@@ -773,13 +789,13 @@ ${this.players.formatPWSC()}`,
 			}
 		}
 
-		if (!this.state.roundInProgress || !this.state.handlingCall) return;
+		if (!this.state.roundInProgress || !this.state.callsOpen) return;
 		if (msg.author.id !== this.state.currentPlayer.id) return;
 		const call: Call = parseCall(msg.content);
 		const validated = this.callValidator.validateAndRespond(call, msg);
 		if (!validated) return;
 
-		this.state.handlingCall = false;
+		this.state.callsOpen = false;
 		this.notifications.disableNotif();
 
 		this.state.setCurrentCall(call);
@@ -793,7 +809,7 @@ ${this.players.formatPWSC()}`,
 
 		this.state.forward(); // go to next player
 		await this.sendNewNotif();
-		this.state.handlingCall = true;
+		this.state.callsOpen = true;
 	}
 
 	private assertRoundNotInProgress(interaction: RepliableInteraction) {

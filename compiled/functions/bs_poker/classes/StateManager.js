@@ -4,7 +4,7 @@ export default class StateManager {
     constructor(players) {
         this.players = players;
         this.roundInProgress = false;
-        this.handlingCall = true;
+        this.callsOpen = true;
         this.bsCalled = false;
         this.aborted = false;
         this.bxOpen = false;
@@ -58,7 +58,7 @@ export default class StateManager {
         this.roundInProgress = true;
         this.bsCalled = false;
         this._currentCall = null;
-        this.handlingCall = true;
+        this.callsOpen = true;
         this.clowned = ClownState.NotClowned;
         this.last3CallsTracker = [true, true, true];
     }

@@ -2,6 +2,7 @@ import { type ChatInputCommandInteraction } from "discord.js";
 import { formatBool } from "../../util.js";
 import { createBasicDeck } from "../../cards/basic_card_functions.js";
 import { type ExtCard } from "./../bs_poker_types.js";
+import { optionNames } from "../../../slash_commands/bs_poker_command.js";
 
 export class OptionCreationError extends Error {}
 
@@ -20,6 +21,7 @@ export default class OptionManager {
 	public readonly nonStandard: boolean;
 	public readonly useBloodJoker: boolean;
 	public readonly useClown: boolean;
+	public readonly bleed: boolean;
 
 	public maxPlayerLimit() {
 		const deckSize =
@@ -37,21 +39,24 @@ export default class OptionManager {
 
 	public constructor({ options }: ChatInputCommandInteraction<"cached">) {
 		// Retrieving Options
-		this.cardsToOut = options.getInteger("cards_to_out");
-		this.commonCards = options.getInteger("common_cards") ?? -1;
-		this.startingBet = options.getInteger("bet") ?? 0;
-		this.jokerCount = options.getInteger("joker_count") ?? 2;
-		this.insuranceCount = options.getInteger("insurance_count") ?? 1;
-		this.useSpecialCards = options.getBoolean("use_special_cards") ?? false;
-		this.beginCards = options.getInteger("begin_cards") ?? 1;
-		this.allowJoinMidGame = options.getBoolean("allow_join_mid_game") ?? true;
-		this.useCurses = options.getBoolean("use_curses") ?? false;
-		this.nonStandard = options.getBoolean("nonstandard") ?? true;
-		this.useBloodJoker = options.getBoolean("blood_joker") ?? false;
-		this.useClown = options.getBoolean("clown") ?? false;
+		this.cardsToOut = options.getInteger(optionNames.cardsToOut);
+		this.commonCards = options.getInteger(optionNames.commonCards) ?? -1;
+		this.startingBet = options.getInteger(optionNames.bet) ?? 0;
+		this.jokerCount = options.getInteger(optionNames.jokerCount) ?? 2;
+		this.insuranceCount = options.getInteger(optionNames.insuranceCount) ?? 1;
+		this.useSpecialCards =
+			options.getBoolean(optionNames.specialCards) ?? false;
+		this.beginCards = options.getInteger(optionNames.beginCards) ?? 1;
+		this.allowJoinMidGame = options.getBoolean(optionNames.joinMidGame) ?? true;
+		this.useCurses = options.getBoolean(optionNames.curses) ?? false;
+		this.nonStandard = options.getBoolean(optionNames.nonstandard) ?? true;
+		this.useBloodJoker = options.getBoolean(optionNames.bloodJoker) ?? false;
+		this.useClown = options.getBoolean(optionNames.clown) ?? false;
+		this.bleed = options.getBoolean(optionNames.bleed) ?? false;
 
 		const maxPlayerLimit = this.maxPlayerLimit();
-		this.playerLimit = options.getInteger("player_limit") ?? maxPlayerLimit;
+		this.playerLimit =
+			options.getInteger(optionNames.playerLimit) ?? maxPlayerLimit;
 
 		if (this.beginCards >= this.cardsToOut) {
 			throw new OptionCreationError(
@@ -87,7 +92,8 @@ Use special cards: ${formatBool(this.useSpecialCards)}
 Use curses: ${formatBool(this.useCurses)}
 Allow nonstandard calls: ${formatBool(this.nonStandard)}
 Use Blood Joker: ${formatBool(this.useBloodJoker)}
-Use Clown Joker: ${formatBool(this.useClown)}`;
+Use Clown Joker: ${formatBool(this.useClown)}
+Bleed Cards: ${formatBool(this.bleed)}`;
 	}
 
 	public createDeck(): ExtCard[] {

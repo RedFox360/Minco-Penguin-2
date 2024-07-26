@@ -134,7 +134,7 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 		bsPokerTeams.get(this.channelId).push([playerId]);
 	}
 
-	private loadPWSC() {
+	public loadPWSC() {
 		if (!this.options.useSpecialCards) return;
 		this.pwsc = [];
 		for (const player of this.values()) {

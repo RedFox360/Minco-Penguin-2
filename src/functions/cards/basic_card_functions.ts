@@ -66,6 +66,12 @@ export function cardToEmoji(card: AnyCard | null): [string, string] | null {
 	return null;
 }
 
+export function formatCard(card: AnyCard | null): string | null {
+	const cardEmojis = cardToEmoji(card);
+	if (!cardEmojis) return null;
+	return `${cardEmojis[0]}\n${cardEmojis[1]}`;
+}
+
 export function formatDeckLines(
 	deck: readonly AnyCard[]
 ): [string[], string[]] {
