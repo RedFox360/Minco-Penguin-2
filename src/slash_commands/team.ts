@@ -135,11 +135,12 @@ const team = new SlashCommand()
 				return;
 			}
 			const timeUpToJoin = msToRelTimestamp(timeToJoinTeam);
-			const msg = await interaction.reply({
+			const res = await interaction.reply({
 				content: `${player} — ${interaction.user} has asked to join your team. Use the buttons below to accept/decline ${timeUpToJoin}.`,
 				components: [accDecRow],
+				fetchReply: false,
 			});
-			msg
+			res
 				.awaitMessageComponent({
 					componentType: ComponentType.Button,
 					filter: i =>
@@ -207,11 +208,12 @@ const team = new SlashCommand()
 			}
 
 			const timeUpToJoin = msToRelTimestamp(timeToJoinTeam);
-			const msg = await interaction.reply({
+			const res = await interaction.reply({
 				content: `${player} — ${interaction.user} has invited you to join their team. Use the buttons below to accept/decline ${timeUpToJoin}.`,
 				components: [accDecRow],
+				fetchReply: false,
 			});
-			msg
+			res
 				.awaitMessageComponent({
 					componentType: ComponentType.Button,
 					filter: bi =>

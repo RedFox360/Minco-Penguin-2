@@ -3,7 +3,7 @@ import Player from "./Player.js";
 import { bsPokerTeams, prisma } from "../../../main.js";
 import { formatDeck } from "../../cards/basic_card_functions.js";
 export default class PlayerCollection extends Collection {
-    static fromIds(playerIds, channelId, options, beginCards = 0) {
+    static fromIds(playerIds, channelId, options, beginCards = 1) {
         const players = playerIds.map(id => [
             id,
             new Player(id, channelId, beginCards),
@@ -120,7 +120,7 @@ export default class PlayerCollection extends Collection {
         }
         return "";
     }
-    deal(deck) {
+    dealCards(deck) {
         for (const p of this.values()) {
             p.dealCards(deck);
         }

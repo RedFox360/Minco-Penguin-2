@@ -15,7 +15,7 @@ export default class StateManager {
 	public aborted = false;
 	public bxOpen = false;
 	public clowned: ClownState = ClownState.NotClowned;
-	private last3CallsTracker: [boolean, boolean, boolean] = [true, true, true];
+	private last3CallsTracker: boolean[] = [true, true, true];
 	private _currentCall: PlayerCall | null = null;
 	private _round = 0;
 	private _currPlayerIdx = 0;

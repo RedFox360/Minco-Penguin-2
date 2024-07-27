@@ -21,7 +21,7 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 		playerIds: readonly Snowflake[],
 		channelId: Snowflake,
 		options: OptionManager,
-		beginCards = 0
+		beginCards = 1
 	) {
 		const players: ArrayForm = playerIds.map(id => [
 			id,
@@ -153,7 +153,7 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 		return "";
 	}
 
-	public deal(deck: ExtCard[]) {
+	public dealCards(deck: ExtCard[]) {
 		for (const p of this.values()) {
 			p.dealCards(deck);
 		}

@@ -3,7 +3,11 @@ import Subcommand from "../../../core/Subcommand.js";
 import { getProfile } from "../../../prisma/models.js";
 import { colors, invalidNumber } from "../../util.js";
 
-const perc = (a: number, b: number) => Math.round((a / b) * 100);
+function perc(a: number, b: number): number {
+	const result = Math.round((a / b) * 100);
+	if (invalidNumber(result)) return 0;
+	return result;
+}
 
 const pokerStats = new Subcommand()
 	.setCommandData(subcommand =>
@@ -25,10 +29,8 @@ const pokerStats = new Subcommand()
 			bsPokerRating: rawRating,
 		} = await getProfile(member.id);
 
-		let winPerc = perc(wins, gamesPlayed);
-		let skill = perc(rawRating, gamesPlayed);
-		if (invalidNumber(winPerc)) winPerc = 0;
-		if (invalidNumber(skill)) skill = 0;
+		const winPerc = perc(wins, gamesPlayed);
+		const skill = perc(rawRating, gamesPlayed);
 
 		const embed = new EmbedBuilder()
 			.setColor(colors.brightGreen)

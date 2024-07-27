@@ -161,4 +161,13 @@ const LN_DAILY = 0.07223050775;
 export function logDaily(mincoDollars) {
     return Math.log(mincoDollars / 1000) / LN_DAILY;
 }
+export function arraysEqual(arr1, arr2, comparisonFn = (a, b) => a === b) {
+    if (arr1.length !== arr2.length)
+        return false;
+    for (let i = 0; i < arr1.length; i++) {
+        if (!comparisonFn(arr1[i], arr2[i]))
+            return false;
+    }
+    return true;
+}
 //# sourceMappingURL=util.js.map

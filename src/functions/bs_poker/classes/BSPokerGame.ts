@@ -32,10 +32,8 @@ import {
 	invalidNumber,
 	median,
 	hasAdminForGames,
-	randomElement,
 } from "../../util.js";
 import {
-	formatCard,
 	formatCardSideways,
 	formatDeck,
 } from "../../cards/basic_card_functions.js";
@@ -204,7 +202,7 @@ ${handsList}`,
 			.setColor(colors.green)
 			.setDescription(
 				`Game Host: <@${this.hostId}>
-Player Limit: ${this.options.playerLimit}
+Player Limit: **${this.options.playerLimit}**
 ${this.betInfo()}`
 			)
 			.addFields(
@@ -334,18 +332,22 @@ ${this.state.currentPlayer} will start the round.`,
 		}
 
 		const winner = this.players.first();
+		let potIncrement = 0;
+		if (this.options.startingBet) {
+			potIncrement = this.pot - this.options.startingBet;
+		}
 		if (winner.joinedMidGame || this.players.originalPlayers === 2) {
 			if (this.options.startingBet) {
 				updateProfile(winner.id, {
 					mincoDollars: {
-						increment: this.pot,
+						increment: potIncrement,
 					},
 				});
 			}
 		} else {
 			updateProfile(winner.id, {
 				mincoDollars: {
-					increment: this.pot,
+					increment: potIncrement,
 				},
 				bsPokerGamesPlayed: {
 					increment: 1,
@@ -387,7 +389,7 @@ ${this.state.currentPlayer} will start the round.`,
 		// abort handled in the end of msgColl
 	}
 
-	private async blackJokerBS(playerWBJ: Player, bserId: Snowflake) {
+	private async blackJokerBS(playerWBJ: Player, bser: Player) {
 		const timeUpToTakeCard = msToRelTimestamp(timeToTakeCard);
 		const commonCardsFormattedWithNumbers = this.commonCards
 			.map((card, i) => `\`${i + 1}\` **${formatCardSideways(card)}**`)
@@ -435,7 +437,7 @@ ${this.state.currentPlayer} will start the round.`,
 			})
 			.finally(() => {
 				bxMsg.edit({ content: bxContent });
-				this.handleBS(bserId);
+				this.handleBS(bser);
 			});
 	}
 
@@ -494,7 +496,7 @@ ${this.state.currentPlayer} will start the round.`,
 
 		this.dealCommonCards(deck);
 		if (this.state.round === 0) {
-			this.players.deal(deck);
+			this.players.dealCards(deck);
 			await this.channel.send({
 				embeds: [this.newRoundEmbed(false)],
 			});
@@ -511,7 +513,7 @@ ${this.state.currentPlayer} will start the round.`,
 				await this.endGameSuccess();
 				return;
 			}
-			this.players.deal(deck);
+			this.players.dealCards(deck);
 			newRoundMsg.edit({
 				embeds: [this.newRoundEmbed(false)],
 				components: this.newRoundDisabledComponents,
@@ -523,11 +525,10 @@ ${this.state.currentPlayer} will start the round.`,
 		this.sendNewNotif();
 	}
 
-	private handleBS(bserId: Snowflake) {
-		const bser = this.players.get(bserId);
+	private handleBS(bser: Player) {
 		const bserHasRJ =
 			this.options.useSpecialCards &&
-			!this.options.useClown &&
+			this.options.useRedJoker &&
 			bser.hand.some(card => card.suit === "rj");
 
 		const callIsTrue = callInDeck(
@@ -547,17 +548,11 @@ ${this.state.currentPlayer} will start the round.`,
 				content: `:red_circle: ${this.state.currentCall.player} was lying! They gain 1 card.`,
 			});
 			cardGainer = this.state.currentCall.player;
-			if (bserHasRJ && bserId !== this.state.currentPlayer.id) {
-				if (bser.hand.length === 1) {
-					this.channel.send({
-						content: `<@${bserId}> had a Red Joker and cross-BSed! However, they only had 1 card, so they do not lose any cards.`,
-					});
-				} else {
-					this.channel.send({
-						content: `<@${bserId}> had a Red Joker! Since they successfully cross-BSed, they lose 1 card.`,
-					});
-					bser.cardsEntitled -= 1;
-				}
+			if (bserHasRJ && bser.id !== this.state.currentPlayer.id) {
+				this.channel.send({
+					content: `${bser} had a Red Joker! Since they successfully cross-BSed, they lose 1 card.`,
+				});
+				bser.cardsEntitled -= 1;
 			}
 		}
 		cardGainer.cardsEntitled += 1;
@@ -568,7 +563,8 @@ ${this.state.currentPlayer} will start the round.`,
 	private async kickPlayer(msg: Message) {
 		const kickId = msg.mentions.users.firstKey();
 		if (!kickId) return;
-		if (!this.players.has(kickId)) {
+		const kickPlayer = this.players.get(kickId);
+		if (!kickPlayer) {
 			replyThenDelete(msg, "That player is not in the game.");
 			return;
 		}
@@ -578,7 +574,7 @@ ${this.state.currentPlayer} will start the round.`,
 		}
 		this.state.callsOpen = false;
 		const currentPlayerBeforeKick = this.state.currentPlayer.id;
-		this.players.removePlayers(this.players.get(kickId)).then(() => {
+		this.players.removePlayers(kickPlayer).then(() => {
 			this.players.loadPWSC();
 		});
 		msg.reply(`<@${kickId}> has been kicked from the game.`);
@@ -599,57 +595,38 @@ ${this.state.currentPlayer} will start the round.`,
 			this.getCurrentDeck()
 		);
 		this.state.addToTracker(callIsTrue);
-		if (this.state.last3CallsFalse()) {
-			this.channel.send({
-				content: `${
-					this.state.currentPlayer
-				} has called **${this.state.formatCurrentCall()}**.`,
-			});
-			let playerWRJ: Snowflake;
-			if (this.options.useBloodJoker && !this.options.useClown) {
-				playerWRJ = this.players.findKey(player =>
-					player.hand.some(card => card.suit === "rj")
-				);
-			}
-			let bloodJokerDescription = "";
-			for (const player of this.players.values()) {
-				if (playerWRJ && player.id === playerWRJ) {
-					if (player.cardsEntitled === 1) {
-						bloodJokerDescription = `\n<@${playerWRJ}> had a Blood Joker, but they only had 1 card, so they do not lose any cards.`;
-					} else {
-						player.cardsEntitled -= 1;
-						bloodJokerDescription = `\n<@${playerWRJ}> had a Blood Joker, so they lose a card.`;
-					}
-				} else {
-					player.cardsEntitled += 1;
-				}
-			}
-			this.channel.send({
-				embeds: [createCurseEmbed(bloodJokerDescription)],
-			});
-			this.newRound();
-			return true;
-		}
-		return false;
-	}
+		if (!this.state.last3CallsFalse()) return false;
 
-	private getBleedText(playerId: Snowflake) {
-		if (!this.options.bleed) return "";
-		const ids = [...this.players.keys()];
-		const indexOfViewCards = ids.indexOf(playerId);
-		if (indexOfViewCards === -1) return "";
-		const nextPlayer = this.players.at(
-			(indexOfViewCards + 1) % this.players.size
-		);
-		if (nextPlayer?.hand?.length) {
-			const nextPlayerCard = randomElement(nextPlayer.hand);
-			return `\n**${nextPlayer}'s Card:**\n**${formatCard(nextPlayerCard)}**`;
+		this.channel.send({
+			content: `${
+				this.state.currentPlayer
+			} has called **${this.state.formatCurrentCall()}**.`,
+		});
+		let playerWRJ: Snowflake;
+		if (this.options.useBloodJoker) {
+			playerWRJ = this.players.findKey(player =>
+				player.hand.some(card => card.suit === "rj")
+			);
 		}
-		return "";
+		let bloodJokerDescription = "";
+		for (const player of this.players.values()) {
+			if (playerWRJ && player.id === playerWRJ) {
+				player.cardsEntitled -= 1;
+				bloodJokerDescription = `\n<@${playerWRJ}> had a Blood Joker, so they lose a card.`;
+			} else {
+				player.cardsEntitled += 1;
+			}
+		}
+		this.channel.send({
+			embeds: [createCurseEmbed(bloodJokerDescription)],
+		});
+		this.newRound();
+		return true;
 	}
 
 	private async bsButtonClicked(buttonInteraction: ButtonInteraction) {
-		if (!this.players.has(buttonInteraction.user.id)) {
+		const bser = this.players.get(buttonInteraction.user.id);
+		if (!bser) {
 			await buttonInteraction.reply({
 				content: "You may not BS as you are not a player in this game.",
 				ephemeral: true,
@@ -696,9 +673,9 @@ ${this.state.currentPlayer} will start the round.`,
 			playerWBJ.id !== this.state.currentCall.player.id &&
 			this.commonCards.length > 0
 		) {
-			await this.blackJokerBS(playerWBJ, buttonInteraction.user.id);
+			await this.blackJokerBS(playerWBJ, bser);
 		} else {
-			this.handleBS(buttonInteraction.user.id);
+			this.handleBS(bser);
 		}
 	}
 
@@ -706,7 +683,7 @@ ${this.state.currentPlayer} will start the round.`,
 		const buttonPlayer = this.players.get(buttonInteraction.user.id);
 		if (!buttonPlayer?.hand) {
 			let content = "*You are not a player in this game.*";
-			if (this.commonCards.length)
+			if (this.commonCards?.length)
 				content += `\nCommon Cards:\n${formatDeck(this.commonCards)}`;
 			content += `${this.players.formatTeammateHand(buttonInteraction.user.id)}
 ${this.players.formatPWSC()}`;
@@ -723,11 +700,10 @@ ${this.players.formatPWSC()}`;
 			this.state.clowned === ClownState.NotClowned &&
 			buttonPlayer.hand.some(card => card.suit === "rj");
 		const components = hasClown ? [clownRow] : undefined;
-		const bleedText = this.getBleedText(buttonInteraction.user.id);
 		await buttonInteraction.reply({
 			content: `**Your Hand:**
 ${buttonPlayer.formatHand()}
-**Common Cards:** ${this.formatCommonCards()}${bleedText}
+**Common Cards:** ${this.formatCommonCards()}
 ${this.players.formatPWSC()}`,
 			ephemeral: true,
 			components,
@@ -773,22 +749,7 @@ ${this.players.formatPWSC()}`,
 		});
 	}
 
-	private async messageCollect(msg: Message<true>) {
-		if (hasAdminForGames(msg.author.id, msg.member.permissions, this.hostId)) {
-			const content = msg.content.toLowerCase();
-			if (content === "abort") {
-				await msg.reply({
-					content: "Game aborted.",
-				});
-				this.endCollectors();
-				return;
-			}
-			if (kickRegex.test(content)) {
-				await this.kickPlayer(msg);
-				return;
-			}
-		}
-
+	private async handleCallAttempt(msg: Message<true>) {
 		if (!this.state.roundInProgress || !this.state.callsOpen) return;
 		if (msg.author.id !== this.state.currentPlayer.id) return;
 		const call: Call = parseCall(msg.content);
@@ -812,10 +773,40 @@ ${this.players.formatPWSC()}`,
 		this.state.callsOpen = true;
 	}
 
+	private async messageCollect(msg: Message<true>) {
+		if (hasAdminForGames(msg.author.id, msg.member.permissions, this.hostId)) {
+			const content = msg.content.toLowerCase();
+			if (content === "abort") {
+				await msg.reply({
+					content: "Game aborted.",
+				});
+				this.endCollectors();
+				return;
+			}
+			if (kickRegex.test(content)) {
+				await this.kickPlayer(msg);
+				return;
+			}
+		}
+
+		await this.handleCallAttempt(msg);
+	}
+
 	private assertRoundNotInProgress(interaction: RepliableInteraction) {
 		if (this.state.roundInProgress) {
 			interaction.reply({
 				content: "Please wait for the round to end.",
+				ephemeral: true,
+			});
+			return false;
+		}
+		return true;
+	}
+
+	private assertRoundInProgress(interaction: RepliableInteraction) {
+		if (!this.state.roundInProgress) {
+			interaction.reply({
+				content: "Please wait for the round to begin.",
 				ephemeral: true,
 			});
 			return false;
@@ -832,6 +823,16 @@ ${this.players.formatPWSC()}`,
 				});
 				return;
 			}
+			case customIds.viewCards: {
+				if (this.assertRoundInProgress(buttonInteraction)) {
+					await this.viewCardsClicked(buttonInteraction);
+				}
+				return;
+			}
+			case customIds.bs: {
+				await this.bsButtonClicked(buttonInteraction);
+				return;
+			}
 			case customIds.joinMidGame: {
 				if (this.assertRoundNotInProgress(buttonInteraction)) {
 					await this.handleJoinMidGame(buttonInteraction);
@@ -844,16 +845,10 @@ ${this.players.formatPWSC()}`,
 				}
 				return;
 			}
-			case customIds.viewCards: {
-				await this.viewCardsClicked(buttonInteraction);
-				return;
-			}
-			case customIds.bs: {
-				await this.bsButtonClicked(buttonInteraction);
-				return;
-			}
 			case customIds.clown: {
-				await this.clownClicked(buttonInteraction);
+				if (this.assertRoundInProgress(buttonInteraction)) {
+					await this.clownClicked(buttonInteraction);
+				}
 				return;
 			}
 			default: {

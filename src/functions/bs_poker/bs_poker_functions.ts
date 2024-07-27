@@ -16,7 +16,7 @@ import {
 	suitToBasicEmoji,
 	valueToSymbol,
 } from "../cards/basic_card_functions.js";
-import { countInArray, invalidNumber } from "../util.js";
+import { arraysEqual, countInArray, invalidNumber } from "../util.js";
 
 const toEmptyRgx = /[.,!]/g;
 const toSpacesRgx = /-/g;
@@ -204,6 +204,43 @@ export function parseCall(givenCall: string): Call | null {
 	} catch {
 		return null;
 	}
+}
+
+export function callsEqual(call1: Call, call2: Call): boolean {
+	if (call1.call !== call2.call) return false;
+	if (
+		call1.call === HandRank.DoublePair ||
+		call1.call === HandRank.DoubleTriple ||
+		call1.call === HandRank.TriplePair
+	) {
+		const high1 = call1.high;
+		const high2 = call2.high as typeof high1;
+		high1.sort((a, b) => a - b);
+		high2.sort((a, b) => a - b);
+		return arraysEqual(high1, high2);
+	}
+	if (call1.call === HandRank.FullHouse) {
+		return call1.high[0] === call2.high[0] && call1.high[1] === call2.high[1];
+	}
+	if (call1.call === HandRank.DoubleFlush) {
+		const high1 = call1.high as [ExtCard, ExtCard];
+		const high2 = call2.high as [ExtCard, ExtCard];
+		high1.sort((a, b) => a.value - b.value);
+		high2.sort((a, b) => a.value - b.value);
+		return arraysEqual(
+			high1,
+			high2,
+			(a, b) => a.value === b.value && a.suit === b.suit
+		);
+	}
+	if (call1.call === HandRank.Flush) {
+		const call2High = call2.high as typeof call1.high;
+		return (
+			call1.high.value === call2High.value && call1.high.suit === call2High.suit
+		);
+	}
+	if (call1)
+		return (call1.high as ExtCard).value === (call2.high as ExtCard).value;
 }
 
 function symbolToValue(textGiven: string): ExtValue | null {

@@ -11,13 +11,13 @@ abstract class Player {
 	public constructor(public readonly id: Snowflake) {}
 
 	public dealCards(deck: ExtCard[]) {
-		const newHand = spliceRandom(deck, this.cardsEntitled);
-		newHand.sort((a, b) => a.value - b.value);
-		this.hand = newHand;
+		this.hand = spliceRandom(deck, this.cardsEntitled);
+		this.hand.sort((a, b) => a.value - b.value);
 	}
 
 	public formatHand() {
-		return formatDeck(this.hand);
+		if (this.hand.length) return formatDeck(this.hand);
+		else return "*No cards*";
 	}
 
 	public displayEntitled() {

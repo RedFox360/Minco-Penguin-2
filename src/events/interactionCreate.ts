@@ -3,7 +3,7 @@ import {
 	type Client,
 	type Interaction,
 	type Snowflake,
-	type UserContextMenuCommandInteraction,
+	type RepliableInteraction,
 	Collection,
 	EmbedBuilder,
 	Events,
@@ -109,12 +109,7 @@ function handleCooldowns(
 	return { cooldown: false };
 }
 
-async function handleError(
-	interaction:
-		| ChatInputCommandInteraction<"cached">
-		| UserContextMenuCommandInteraction<"cached">,
-	err: any
-) {
+async function handleError(interaction: RepliableInteraction, err: any) {
 	if (err?.code !== RESTJSONErrorCodes.UnknownInteraction) console.error(err);
 	if (interaction.user.id === ownerId) {
 		const errorEmbed = new EmbedBuilder()

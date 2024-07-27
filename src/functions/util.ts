@@ -227,3 +227,15 @@ const LN_DAILY = 0.07223050775;
 export function logDaily(mincoDollars: number): number {
 	return Math.log(mincoDollars / 1000) / LN_DAILY;
 }
+
+export function arraysEqual<T>(
+	arr1: readonly T[],
+	arr2: readonly T[],
+	comparisonFn: (a: T, b: T) => boolean = (a, b) => a === b
+): boolean {
+	if (arr1.length !== arr2.length) return false;
+	for (let i = 0; i < arr1.length; i++) {
+		if (!comparisonFn(arr1[i], arr2[i])) return false;
+	}
+	return true;
+}

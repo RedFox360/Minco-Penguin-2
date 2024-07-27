@@ -1,6 +1,7 @@
 import { formatBool } from "../../util.js";
 import { createBasicDeck } from "../../cards/basic_card_functions.js";
 import { optionNames } from "../../../slash_commands/bs_poker_command.js";
+import { emoji } from "../../cards/basic_card_types.js";
 export class OptionCreationError extends Error {
 }
 export default class OptionManager {
@@ -14,22 +15,53 @@ export default class OptionManager {
         return maxPlayerLimit;
     }
     constructor({ options }) {
+        this.useSpecialCards = false;
+        this.useRedJoker = false;
+        this.useBloodJoker = false;
+        this.useClown = false;
+        this.redJokerAbility = "";
         // Retrieving Options
         this.cardsToOut = options.getInteger(optionNames.cardsToOut);
         this.commonCards = options.getInteger(optionNames.commonCards) ?? -1;
         this.startingBet = options.getInteger(optionNames.bet) ?? 0;
         this.jokerCount = options.getInteger(optionNames.jokerCount) ?? 2;
         this.insuranceCount = options.getInteger(optionNames.insuranceCount) ?? 1;
-        this.useSpecialCards =
-            options.getBoolean(optionNames.specialCards) ?? false;
+        const useSpecialCardsOption = options.getString(optionNames.specialCards.name);
         this.beginCards = options.getInteger(optionNames.beginCards) ?? 1;
         this.allowJoinMidGame = options.getBoolean(optionNames.joinMidGame) ?? true;
         this.useCurses = options.getBoolean(optionNames.curses) ?? false;
         this.nonStandard = options.getBoolean(optionNames.nonstandard) ?? true;
-        this.useBloodJoker = options.getBoolean(optionNames.bloodJoker) ?? false;
-        this.useClown = options.getBoolean(optionNames.clown) ?? false;
-        this.bleed = options.getBoolean(optionNames.bleed) ?? false;
-        const maxPlayerLimit = this.maxPlayerLimit();
+        switch (useSpecialCardsOption) {
+            case optionNames.specialCards.standard:
+                this.useSpecialCards = true;
+                this.useRedJoker = true;
+                this.redJokerAbility = "Red Joker Ability: **Standard**";
+                break;
+            case optionNames.specialCards.blood:
+                this.useSpecialCards = true;
+                this.useBloodJoker = true;
+                this.useRedJoker = true;
+                this.redJokerAbility = "Red Joker Ability: **Blood Joker**";
+                break;
+            case optionNames.specialCards.clown:
+                this.useSpecialCards = true;
+                this.useClown = true;
+                this.redJokerAbility = `Red Joker Ability: **Clown ${emoji.clown}**`;
+                break;
+            case optionNames.specialCards.allRedJoker:
+                this.useSpecialCards = true;
+                this.useBloodJoker = true;
+                this.useClown = true;
+                this.useRedJoker = true;
+                this.redJokerAbility = "Red Joker Ability: **Blood + Clown + Red**";
+                break;
+        }
+        let maxPlayerLimit = this.maxPlayerLimit();
+        if (maxPlayerLimit < 2) {
+            throw new OptionCreationError(`With your current settings, the deck is not large enough to allow for a game of BS Poker.`);
+        }
+        if (maxPlayerLimit > 15)
+            maxPlayerLimit = 15;
         this.playerLimit =
             options.getInteger(optionNames.playerLimit) ?? maxPlayerLimit;
         if (this.beginCards >= this.cardsToOut) {
@@ -38,15 +70,6 @@ export default class OptionManager {
         if (this.playerLimit > maxPlayerLimit) {
             throw new OptionCreationError(`The maximum number of cards to be dealt is greater than the size of the deck.
 Please decrease the player limit to a value less than or equal to ${maxPlayerLimit}.`);
-        }
-        if (this.useClown) {
-            this.useSpecialCards = true;
-            this.useBloodJoker = false;
-        }
-        else if (this.useBloodJoker) {
-            this.useSpecialCards = true;
-            this.useCurses = true;
-            this.useClown = false;
         }
     }
     display() {
@@ -59,9 +82,7 @@ Allow join mid-game: ${formatBool(this.allowJoinMidGame)}
 Use special cards: ${formatBool(this.useSpecialCards)}
 Use curses: ${formatBool(this.useCurses)}
 Allow nonstandard calls: ${formatBool(this.nonStandard)}
-Use Blood Joker: ${formatBool(this.useBloodJoker)}
-Use Clown Joker: ${formatBool(this.useClown)}
-Bleed Cards: ${formatBool(this.bleed)}`;
+${this.redJokerAbility}`;
     }
     createDeck() {
         const deck = createBasicDeck();

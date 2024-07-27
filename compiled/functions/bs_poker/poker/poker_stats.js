@@ -2,7 +2,12 @@ import { EmbedBuilder } from "discord.js";
 import Subcommand from "../../../core/Subcommand.js";
 import { getProfile } from "../../../prisma/models.js";
 import { colors, invalidNumber } from "../../util.js";
-const perc = (a, b) => Math.round((a / b) * 100);
+function perc(a, b) {
+    const result = Math.round((a / b) * 100);
+    if (invalidNumber(result))
+        return 0;
+    return result;
+}
 const pokerStats = new Subcommand()
     .setCommandData(subcommand => subcommand
     .setName("stats")
@@ -14,12 +19,8 @@ const pokerStats = new Subcommand()
     .setRun(async (interaction) => {
     const member = interaction.options.getMember("user") ?? interaction.member;
     const { bsPokerWins: wins, bsPokerGamesPlayed: gamesPlayed, bsPokerRating: rawRating, } = await getProfile(member.id);
-    let winPerc = perc(wins, gamesPlayed);
-    let skill = perc(rawRating, gamesPlayed);
-    if (invalidNumber(winPerc))
-        winPerc = 0;
-    if (invalidNumber(skill))
-        skill = 0;
+    const winPerc = perc(wins, gamesPlayed);
+    const skill = perc(rawRating, gamesPlayed);
     const embed = new EmbedBuilder()
         .setColor(colors.brightGreen)
         .setAuthor({

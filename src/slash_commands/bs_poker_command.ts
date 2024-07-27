@@ -10,13 +10,40 @@ export const optionNames = {
 	insuranceCount: "insurance_count",
 	beginCards: "begin_cards",
 	joinMidGame: "join_mid_game",
-	specialCards: "special_cards",
+	specialCards: {
+		name: "special_cards",
+		noSpecials: "no_specials_bspo",
+		standard: "standard_bspo",
+		blood: "blood_bspo",
+		clown: "clown_bspo",
+		allRedJoker: "all_red_joker_bspo",
+	},
 	curses: "curses",
 	nonstandard: "nonstandard",
-	bloodJoker: "blood_joker",
-	clown: "clown",
-	bleed: "bleed",
 } as const;
+
+const specialCardChoices = [
+	{
+		name: "Standard",
+		value: optionNames.specialCards.standard,
+	},
+	{
+		name: "Blood Joker",
+		value: optionNames.specialCards.blood,
+	},
+	{
+		name: "Clown Joker",
+		value: optionNames.specialCards.clown,
+	},
+	{
+		name: "Blood + Clown + Red Joker",
+		value: optionNames.specialCards.allRedJoker,
+	},
+	{
+		name: "No Special Cards",
+		value: optionNames.specialCards.noSpecials,
+	},
+];
 
 const bsPokerCommand = new SlashCommand()
 	.setCommandData(builder =>
@@ -40,6 +67,23 @@ const bsPokerCommand = new SlashCommand()
 					.setRequired(false)
 					.setMinValue(10)
 					.setMaxValue(2000)
+			)
+			.addStringOption(option =>
+				option
+					.setName(optionNames.specialCards.name)
+					.setDescription(
+						"/poker help Special Cards for more info (Default: No Special Cards)"
+					)
+					.setChoices(specialCardChoices)
+					.setRequired(false)
+			)
+			.addBooleanOption(option =>
+				option
+					.setName(optionNames.curses)
+					.setDescription(
+						"If the last 3 calls are false, the round will end and everyone will get a card. (Default: False)"
+					)
+					.setRequired(false)
 			)
 			.addIntegerOption(option =>
 				option
@@ -95,49 +139,9 @@ const bsPokerCommand = new SlashCommand()
 			)
 			.addBooleanOption(option =>
 				option
-					.setName(optionNames.specialCards)
-					.setDescription(
-						"/poker help Special Cards for more info (Default: False)"
-					)
-					.setRequired(false)
-			)
-			.addBooleanOption(option =>
-				option
-					.setName(optionNames.curses)
-					.setDescription(
-						"If the last 3 calls were false, the round ends and everyone gets a card. (Default: False)"
-					)
-					.setRequired(false)
-			)
-			.addBooleanOption(option =>
-				option
 					.setName(optionNames.nonstandard)
 					.setDescription(
 						"Allow triple pair, double flush, and double triple (Default: True)"
-					)
-					.setRequired(false)
-			)
-			.addBooleanOption(option =>
-				option
-					.setName(optionNames.bloodJoker)
-					.setDescription(
-						"If a player has a red joker during a curse, they lose a card. (Default: False)"
-					)
-					.setRequired(false)
-			)
-			.addBooleanOption(option =>
-				option
-					.setName(optionNames.clown)
-					.setDescription(
-						"Allow a player with a red joker to reverse the order of play. (Default: False)"
-					)
-					.setRequired(false)
-			)
-			.addBooleanOption(option =>
-				option
-					.setName(optionNames.bleed)
-					.setDescription(
-						"Allow each player to see one random card from the next player (Default: False)"
 					)
 					.setRequired(false)
 			)
