@@ -53,7 +53,7 @@ export default class CallValidator {
             }
         }
         if (call.call === HandRank.StraightFlush &&
-            this.options.insuranceCount > 1 &&
+            this.options.trueInsuranceCount > 1 &&
             call.high.value === 15) {
             replyThenDelete(message, `Sorry, but Insurance-High Straight Flushes are not allowed when there are multiple insurances in the deck (Your call: ${formatCall(call)}). Please try again.`);
             return false;
@@ -63,7 +63,7 @@ export default class CallValidator {
                 replyThenDelete(message, `Double flushes must have different suits (Your call: ${formatCall(call)}). Please try again.`);
                 return false;
             }
-            if (this.options.insuranceCount < 2 &&
+            if (this.options.trueInsuranceCount < 2 &&
                 call.high[0].value === call.high[1].value &&
                 call.high[0].value === 15) {
                 replyThenDelete(message, `There are not enough insurance cards in the deck for a double insurance call (Your call: ${formatCall(call)}). Please try again.`);

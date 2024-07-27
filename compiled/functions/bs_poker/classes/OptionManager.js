@@ -19,6 +19,7 @@ export default class OptionManager {
         this.useRedJoker = false;
         this.useBloodJoker = false;
         this.useClown = false;
+        this.insuranceSpecials = false;
         this.redJokerAbility = "";
         // Retrieving Options
         this.cardsToOut = options.getInteger(optionNames.cardsToOut);
@@ -56,6 +57,12 @@ export default class OptionManager {
                 this.redJokerAbility = "Red Joker Ability: **Blood + Clown + Red**";
                 break;
         }
+        if (this.useSpecialCards) {
+            this.insuranceSpecials =
+                options.getBoolean(optionNames.insuranceSpecials) ?? false;
+        }
+        this.trueInsuranceCount =
+            this.insuranceCount + (this.insuranceSpecials ? 2 : 0);
         let maxPlayerLimit = this.maxPlayerLimit();
         if (maxPlayerLimit < 2) {
             throw new OptionCreationError(`With your current settings, the deck is not large enough to allow for a game of BS Poker.`);
@@ -91,6 +98,9 @@ ${this.redJokerAbility}`;
         }
         if (this.useSpecialCards) {
             deck.push({ suit: "bj", value: 1 }, { suit: "rj", value: 1 });
+            if (this.insuranceSpecials) {
+                deck.push({ suit: "bj", value: 15 }, { suit: "rj", value: 15 });
+            }
         }
         for (let i = 0; i < this.insuranceCount; i++) {
             deck.push({ suit: "i", value: 15 });

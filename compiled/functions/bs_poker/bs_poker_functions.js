@@ -368,7 +368,7 @@ export function callInDeck(call, deck, gInsurances, gJokers) {
     if (call.call === HandRank.Quad)
         return countInArray(deck, card => card.value === call.high.value) >= 4;
     if (call.call === HandRank.Flush) {
-        if (!deck.some(card => (card.suit === call.high.suit || card.suit === "i") &&
+        if (!deck.some(card => (card.suit === call.high.suit || card.value === 15) &&
             card.value === call.high.value))
             return false;
         return (countInArray(deck, card => (card.suit === call.high.suit || card.value === 1) &&
@@ -378,9 +378,9 @@ export function callInDeck(call, deck, gInsurances, gJokers) {
         const flushCall = call;
         const insurances = gInsurances ?? insurancesInDeck(deck);
         const [flush1, flush2] = flushCall.high;
-        if (!deck.some(card => (card.suit === flush1.suit || card.suit === "i") &&
+        if (!deck.some(card => (card.suit === flush1.suit || card.value === 15) &&
             card.value === flush1.value) ||
-            !deck.some(card => (card.suit === flush2.suit || card.suit === "i") &&
+            !deck.some(card => (card.suit === flush2.suit || card.value === 15) &&
                 card.value === flush2.value))
             return false;
         if (flush1.value === 15 && flush2.value === 15) {
@@ -393,7 +393,7 @@ export function callInDeck(call, deck, gInsurances, gJokers) {
         const jokerLength = gJokers ?? jokersInDeck(deck);
         let jokersUsed = 0;
         return flushCall.high.every(card => {
-            const length = countInArray(deck, c => (c.suit === card.suit || c.suit === "i") && c.value <= card.value);
+            const length = countInArray(deck, c => (c.suit === card.suit || c.value === 15) && c.value <= card.value);
             if (length < 4) {
                 jokersUsed += 4 - length;
                 if (jokersUsed > jokerLength)

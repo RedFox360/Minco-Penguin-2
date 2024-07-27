@@ -98,7 +98,7 @@ ${handsList}`,
             embeds: [embed],
         })
             .then(handsMsg => {
-            highestCallInDeck(deck, this.options.nonStandard, this.options.insuranceCount)
+            highestCallInDeck(deck, this.options.nonStandard, this.options.trueInsuranceCount)
                 .then(call => {
                 if (!call)
                     return;

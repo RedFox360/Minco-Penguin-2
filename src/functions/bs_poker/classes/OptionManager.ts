@@ -11,21 +11,22 @@ export default class OptionManager {
 	public readonly cardsToOut: number;
 	public readonly commonCards: number;
 	public readonly startingBet: number;
-	public readonly jokerCount: number;
-	public readonly insuranceCount: number;
 	public readonly beginCards: number;
-	public readonly maxCommonCards: number;
 	public readonly playerLimit: number;
 	public readonly allowJoinMidGame: boolean;
 	public readonly useCurses: boolean;
 	public readonly nonStandard: boolean;
+	public readonly trueInsuranceCount: number;
 
 	public readonly useSpecialCards: boolean = false;
 	public readonly useRedJoker: boolean = false;
 	public readonly useBloodJoker: boolean = false;
 	public readonly useClown: boolean = false;
 
+	private readonly insuranceSpecials: boolean = false;
 	private readonly redJokerAbility: string = "";
+	private readonly jokerCount: number;
+	private readonly insuranceCount: number;
 
 	public maxPlayerLimit() {
 		const deckSize =
@@ -82,6 +83,13 @@ export default class OptionManager {
 				break;
 		}
 
+		if (this.useSpecialCards) {
+			this.insuranceSpecials =
+				options.getBoolean(optionNames.insuranceSpecials) ?? false;
+		}
+		this.trueInsuranceCount =
+			this.insuranceCount + (this.insuranceSpecials ? 2 : 0);
+
 		let maxPlayerLimit = this.maxPlayerLimit();
 		if (maxPlayerLimit < 2) {
 			throw new OptionCreationError(
@@ -127,6 +135,9 @@ ${this.redJokerAbility}`;
 		}
 		if (this.useSpecialCards) {
 			deck.push({ suit: "bj", value: 1 }, { suit: "rj", value: 1 });
+			if (this.insuranceSpecials) {
+				deck.push({ suit: "bj", value: 15 }, { suit: "rj", value: 15 });
+			}
 		}
 		for (let i = 0; i < this.insuranceCount; i++) {
 			deck.push({ suit: "i", value: 15 });

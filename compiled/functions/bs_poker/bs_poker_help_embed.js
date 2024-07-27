@@ -10,7 +10,7 @@ const specials = formatDeck([
 const jokerInsurance = formatDeck([
     { suit: "j", value: 1 },
     { suit: "j", value: 1 },
-    { suit: "i", value: 1 },
+    { suit: "i", value: 15 },
 ]);
 const footer = {
     text: "Bot made by @obvsam",

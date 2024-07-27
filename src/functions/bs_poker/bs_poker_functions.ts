@@ -429,7 +429,7 @@ export function callInDeck(
 		if (
 			!deck.some(
 				card =>
-					(card.suit === call.high.suit || card.suit === "i") &&
+					(card.suit === call.high.suit || card.value === 15) &&
 					card.value === call.high.value
 			)
 		)
@@ -452,12 +452,12 @@ export function callInDeck(
 		if (
 			!deck.some(
 				card =>
-					(card.suit === flush1.suit || card.suit === "i") &&
+					(card.suit === flush1.suit || card.value === 15) &&
 					card.value === flush1.value
 			) ||
 			!deck.some(
 				card =>
-					(card.suit === flush2.suit || card.suit === "i") &&
+					(card.suit === flush2.suit || card.value === 15) &&
 					card.value === flush2.value
 			)
 		)
@@ -481,7 +481,7 @@ export function callInDeck(
 		return flushCall.high.every(card => {
 			const length = countInArray(
 				deck,
-				c => (c.suit === card.suit || c.suit === "i") && c.value <= card.value
+				c => (c.suit === card.suit || c.value === 15) && c.value <= card.value
 			);
 
 			if (length < 4) {

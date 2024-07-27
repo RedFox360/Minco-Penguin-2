@@ -183,7 +183,7 @@ ${handsList}`,
 				highestCallInDeck(
 					deck,
 					this.options.nonStandard,
-					this.options.insuranceCount
+					this.options.trueInsuranceCount
 				)
 					.then(call => {
 						if (!call) return;

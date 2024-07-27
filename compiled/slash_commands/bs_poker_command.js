@@ -19,6 +19,7 @@ export const optionNames = {
     },
     curses: "curses",
     nonstandard: "nonstandard",
+    insuranceSpecials: "insurance_specials",
 };
 const specialCardChoices = [
     {
@@ -66,6 +67,10 @@ const bsPokerCommand = new SlashCommand()
     .addBooleanOption(option => option
     .setName(optionNames.curses)
     .setDescription("If the last 3 calls are false, the round will end and everyone will get a card. (Default: False)")
+    .setRequired(false))
+    .addBooleanOption(option => option
+    .setName(optionNames.insuranceSpecials)
+    .setDescription("Duplicate each special card (one is a joker and one is insurance) (Default: False)")
     .setRequired(false))
     .addIntegerOption(option => option
     .setName(optionNames.commonCards)

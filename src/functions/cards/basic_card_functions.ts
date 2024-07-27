@@ -54,8 +54,12 @@ export function cardToEmoji(card: AnyCard | null): [string, string] | null {
 		if (card.suit === "rj") return [newEmojiSuits.joker, newEmojiSuits.red];
 		return [newEmojiSuits.joker, newEmojiSuits.blankBottom];
 	}
-	if (card.value === 15)
+	if (card.value === 15) {
+		if (card.suit === "bj")
+			return [newEmojiSuits.insurance, newEmojiSuits.black];
+		if (card.suit === "rj") return [newEmojiSuits.insurance, newEmojiSuits.red];
 		return [newEmojiSuits.insurance, newEmojiSuits.blankBottom];
+	}
 
 	const cardEmojis = emojiFromValue(card.value);
 	if (!cardEmojis) return null;
@@ -64,12 +68,6 @@ export function cardToEmoji(card: AnyCard | null): [string, string] | null {
 	if (card.suit === "C") return [cardEmojis[0], newEmojiSuits.clubs];
 	if (card.suit === "S") return [cardEmojis[0], newEmojiSuits.spades];
 	return null;
-}
-
-export function formatCard(card: AnyCard | null): string | null {
-	const cardEmojis = cardToEmoji(card);
-	if (!cardEmojis) return null;
-	return `${cardEmojis[0]}\n${cardEmojis[1]}`;
 }
 
 export function formatDeckLines(

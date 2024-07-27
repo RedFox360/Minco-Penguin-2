@@ -92,7 +92,7 @@ export default class CallValidator {
 		}
 		if (
 			call.call === HandRank.StraightFlush &&
-			this.options.insuranceCount > 1 &&
+			this.options.trueInsuranceCount > 1 &&
 			call.high.value === 15
 		) {
 			replyThenDelete(
@@ -115,7 +115,7 @@ export default class CallValidator {
 			}
 
 			if (
-				this.options.insuranceCount < 2 &&
+				this.options.trueInsuranceCount < 2 &&
 				call.high[0].value === call.high[1].value &&
 				call.high[0].value === 15
 			) {
