@@ -11,7 +11,7 @@ class Player {
         this.hand.sort((a, b) => a.value - b.value);
     }
     formatHand() {
-        if (this.hand.length)
+        if (this.hand?.length)
             return formatDeck(this.hand);
         else
             return "*No cards*";

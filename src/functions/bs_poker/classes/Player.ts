@@ -16,7 +16,7 @@ abstract class Player {
 	}
 
 	public formatHand() {
-		if (this.hand.length) return formatDeck(this.hand);
+		if (this.hand?.length) return formatDeck(this.hand);
 		else return "*No cards*";
 	}
 

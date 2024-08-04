@@ -40,7 +40,7 @@ const connect4 = new SlashCommand()
 			)
 	)
 	.setRun(async interaction => {
-		const opponent = interaction.options.getUser("opponent");
+		const opponent = interaction.options.getUser("opponent", true);
 		const bet = interaction.options.getInteger("bet") ?? 0;
 
 		const joinTimestamp = msToRelTimestamp(timeToJoin);

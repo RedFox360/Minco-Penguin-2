@@ -1,5 +1,10 @@
 import { type Message } from "discord.js";
-import { type Call, ClownState, HandRank } from "../bs_poker_types.js";
+import {
+	type Call,
+	ClownState,
+	HandRank,
+	ReadonlyPlayerCollection,
+} from "../bs_poker_types.js";
 import { invalidNumber, replyThenDelete } from "../../util.js";
 import { formatCall, isHigher } from "../bs_poker_functions.js";
 import { emoji } from "../../cards/basic_card_types.js";
@@ -9,7 +14,8 @@ import type StateManager from "./StateManager.js";
 export default class CallValidator {
 	public constructor(
 		private readonly options: OptionManager,
-		private readonly state: StateManager
+		private readonly state: StateManager,
+		private readonly players: ReadonlyPlayerCollection
 	) {}
 
 	public validateAndRespond(call: Call, message: Message): boolean {
@@ -21,7 +27,7 @@ export default class CallValidator {
 			this.options.useClown &&
 			this.state.clowned === ClownState.ClownedAndCalled
 		) {
-			const hasClown = this.state.currentPlayer.hand?.some(
+			const hasClown = this.players.currentPlayer.hand?.some(
 				c => c.suit === "rj"
 			);
 			if (hasClown) {

@@ -14,7 +14,7 @@ const gift = new SlashCommand()
     .setMinValue(1)
     .setRequired(true)))
     .setRun(async (interaction) => {
-    const user = interaction.options.getUser("user");
+    const user = interaction.options.getUser("user", true);
     if (user.id === interaction.user.id) {
         interaction.reply({
             content: "You can't gift money to yourself.",
@@ -22,7 +22,7 @@ const gift = new SlashCommand()
         });
         return;
     }
-    const amount = interaction.options.getInteger("md_amount");
+    const amount = interaction.options.getInteger("md_amount", true);
     const profile = await getProfile(interaction.user.id);
     if (amount > profile.mincoDollars) {
         interaction.reply({

@@ -16,6 +16,8 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 	public out: Snowflake[] = [];
 	public originalPlayers: number;
 	private pwsc: UserMention[];
+	private _currPlayerIdx = 0;
+	public highestCard: ExtCard;
 
 	public static fromIds(
 		playerIds: readonly Snowflake[],
@@ -134,7 +136,7 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 		bsPokerTeams.get(this.channelId).push([playerId]);
 	}
 
-	public loadPWSC() {
+	private loadPWSC() {
 		if (!this.options.useSpecialCards) return;
 		this.pwsc = [];
 		for (const player of this.values()) {
@@ -158,19 +160,70 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 			p.dealCards(deck);
 		}
 		this.loadPWSC();
+		this.setHighestCard();
 	}
 
-	public formatTeammateHand(userId: Snowflake) {
+	public afterKick() {
+		this.loadPWSC();
+		this.setHighestCard();
+	}
+
+	public formatTeammateHand(
+		userId: Snowflake
+	): { content: string; hand: ExtCard[] } | null {
 		const channelTeams = bsPokerTeams.get(this.channelId);
-		if (!channelTeams?.length) return "";
+		if (!channelTeams?.length) return null;
 		const team = channelTeams.find(t => t.includes(userId));
-		if (!team) return "";
+		if (!team) return null;
 		const teamPlayerInGameId = team[0];
-		if (!this.has(teamPlayerInGameId)) return "";
+		if (!this.has(teamPlayerInGameId)) return null;
 		const teammateHand = this.get(teamPlayerInGameId)?.hand;
-		if (!teammateHand) return "";
-		return `\n*<@${teamPlayerInGameId}> is your teammate. Here are their cards.*\n${formatDeck(
-			teammateHand
-		)}`;
+		if (!teammateHand) return null;
+		return {
+			content: `\n*<@${teamPlayerInGameId}> is your teammate. Here are their cards.*\n${formatDeck(
+				teammateHand
+			)}`,
+			hand: teammateHand,
+		};
+	}
+
+	private get currentPlayerIndex(): number {
+		if (this._currPlayerIdx < 0 || this._currPlayerIdx >= this.size) {
+			return 0;
+		} else {
+			return this._currPlayerIdx;
+		}
+	}
+
+	private set currentPlayerIndex(newIdx: number) {
+		if (newIdx < 0 || newIdx >= this.size) {
+			this._currPlayerIdx = 0;
+		} else {
+			this._currPlayerIdx = newIdx;
+		}
+	}
+
+	public get currentPlayer(): Player {
+		return this.at(this.currentPlayerIndex);
+	}
+
+	public forward() {
+		this.currentPlayerIndex += 1;
+	}
+
+	public setIdxToIdxOf(playerId: Snowflake) {
+		this.currentPlayerIndex = Array.from(this.keys()).indexOf(playerId);
+	}
+
+	public reverseAll() {
+		this.reverse();
+		this.currentPlayerIndex = this.size - this.currentPlayerIndex - 1;
+	}
+
+	private setHighestCard() {
+		if (this.options.useBleedJoker)
+			this.highestCard = this.map(p => p.hand.at(-1)).reduce((prev, curr) => {
+				return prev.value > curr.value ? prev : curr;
+			});
 	}
 }

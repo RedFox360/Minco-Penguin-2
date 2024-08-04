@@ -7,9 +7,7 @@ const ping = new SlashCommand()
 		builder.setName("ping").setDescription("Ping the bot")
 	)
 	.setRun(async interaction => {
-		const deferredReply = await interaction.deferReply({
-			fetchReply: true,
-		});
+		const deferredReply = await interaction.deferReply();
 		const latency = Math.round(interaction.client.ws.ping);
 		const execTime =
 			deferredReply.createdTimestamp - interaction.createdTimestamp;

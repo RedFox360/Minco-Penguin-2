@@ -34,8 +34,10 @@ import {
 	hasAdminForGames,
 } from "../../util.js";
 import {
+	cardToEmoji,
 	formatCardSideways,
 	formatDeck,
+	formatDeckLines,
 } from "../../cards/basic_card_functions.js";
 import { bsPokerTeams, channelsWithActiveGames } from "../../../main.js";
 import { getProfile, updateProfile } from "../../../prisma/models.js";
@@ -121,9 +123,13 @@ export default class BSPoker {
 			options,
 			this.options.beginCards
 		);
-		this.state = new StateManager(this.players);
-		this.callValidator = new CallValidator(options, this.state);
-		this.notifications = new NotificationManager(channel, this.state);
+		this.state = new StateManager();
+		this.callValidator = new CallValidator(options, this.state, this.players);
+		this.notifications = new NotificationManager(
+			channel,
+			this.state,
+			this.players
+		);
 	}
 
 	private get newRoundComponents(): ActionRowBuilder<ButtonBuilder>[] {
@@ -143,6 +149,26 @@ export default class BSPoker {
 		return this.commonCards?.length
 			? `\n${formatDeck(this.commonCards)}`
 			: "None";
+	}
+
+	private formatCommonCardsWithHighest() {
+		const commonCardLines = formatDeckLines(this.commonCards);
+		const cardEmojis = cardToEmoji(this.players?.highestCard);
+		if (cardEmojis) {
+			commonCardLines[0].push(" ", cardEmojis[0]);
+			commonCardLines[1].push(" ", cardEmojis[1]);
+		}
+		return `\n${commonCardLines[0].join(" ")}\n${commonCardLines[1].join(" ")}`;
+	}
+
+	private formatCommonCardsWithName(highest = false) {
+		if (highest) {
+			const title = this.commonCards?.length
+				? "**Common Cards** & Highest Card:"
+				: "**Highest Card:**";
+			return `${title} ${this.formatCommonCardsWithHighest()}`;
+		}
+		return `**Common Cards:** ${this.formatCommonCards()}`;
 	}
 
 	private getCurrentDeck(): ExtCard[] {
@@ -230,7 +256,7 @@ ${this.betInfo()}`
 			description: `${this.betInfo()}
 ${commonCardsToDisplay}
 ${pwsc}
-${this.state.currentPlayer} will start the round.`,
+${this.players.currentPlayer} will start the round.`,
 			fields: [
 				{
 					name: "Players",
@@ -461,17 +487,17 @@ ${this.state.currentPlayer} will start the round.`,
 	}
 
 	private calculateCommonCards(): number {
-		if (this.options.commonCards === -1) {
+		if (this.options.commonCardsAmt === -1) {
 			return Math.floor(median(this.players.cardsEntitled));
 		} else {
-			return this.options.commonCards;
+			return this.options.commonCardsAmt;
 		}
 	}
 
 	private dealCommonCards(deck: ExtCard[]) {
 		const acCCAmount = this.calculateCommonCards();
 		// SET THE COMMON CARDS
-		if (this.options.commonCards !== 0) {
+		if (this.options.commonCardsAmt !== 0) {
 			this.commonCards = spliceRandom(deck, acCCAmount);
 			this.commonCards.sort((a, b) => a.value - b.value);
 		}
@@ -528,7 +554,6 @@ ${this.state.currentPlayer} will start the round.`,
 	private handleBS(bser: Player) {
 		const bserHasRJ =
 			this.options.useSpecialCards &&
-			this.options.useRedJoker &&
 			bser.hand.some(card => card.suit === "rj");
 
 		const callIsTrue = callInDeck(
@@ -536,7 +561,7 @@ ${this.state.currentPlayer} will start the round.`,
 			this.getCurrentDeck()
 		);
 
-		let cardGainer = this.state.currentPlayer;
+		let cardGainer = this.players.currentPlayer;
 
 		if (callIsTrue) {
 			cardGainer = bser;
@@ -544,11 +569,11 @@ ${this.state.currentPlayer} will start the round.`,
 				content: `:green_circle: ${this.state.currentCall.player} was telling the truth! ${cardGainer} gains 1 card.`,
 			});
 		} else {
-			this.channel.send({
-				content: `:red_circle: ${this.state.currentCall.player} was lying! They gain 1 card.`,
-			});
 			cardGainer = this.state.currentCall.player;
-			if (bserHasRJ && bser.id !== this.state.currentPlayer.id) {
+			this.channel.send({
+				content: `:red_circle: ${cardGainer} was lying! They gain 1 card.`,
+			});
+			if (bserHasRJ && bser.id !== this.players.currentPlayer.id) {
 				this.channel.send({
 					content: `${bser} had a Red Joker! Since they successfully cross-BSed, they lose 1 card.`,
 				});
@@ -556,7 +581,7 @@ ${this.state.currentPlayer} will start the round.`,
 			}
 		}
 		cardGainer.cardsEntitled += 1;
-		this.state.setIdxToIdxOf(cardGainer.id);
+		this.players.setIdxToIdxOf(cardGainer.id);
 		this.newRound();
 	}
 
@@ -573,9 +598,9 @@ ${this.state.currentPlayer} will start the round.`,
 			return;
 		}
 		this.state.callsOpen = false;
-		const currentPlayerBeforeKick = this.state.currentPlayer.id;
+		const currentPlayerBeforeKick = this.players.currentPlayer.id;
 		this.players.removePlayers(kickPlayer).then(() => {
-			this.players.loadPWSC();
+			this.players.afterKick();
 		});
 		msg.reply(`<@${kickId}> has been kicked from the game.`);
 		if (this.players.size === 1) {
@@ -597,11 +622,6 @@ ${this.state.currentPlayer} will start the round.`,
 		this.state.addToTracker(callIsTrue);
 		if (!this.state.last3CallsFalse()) return false;
 
-		this.channel.send({
-			content: `${
-				this.state.currentPlayer
-			} has called **${this.state.formatCurrentCall()}**.`,
-		});
 		let playerWRJ: Snowflake;
 		if (this.options.useBloodJoker) {
 			playerWRJ = this.players.findKey(player =>
@@ -618,6 +638,9 @@ ${this.state.currentPlayer} will start the round.`,
 			}
 		}
 		this.channel.send({
+			content: `${
+				this.players.currentPlayer
+			} has called **${this.state.formatCurrentCall()}**.`,
 			embeds: [createCurseEmbed(bloodJokerDescription)],
 		});
 		this.newRound();
@@ -683,10 +706,20 @@ ${this.state.currentPlayer} will start the round.`,
 		const buttonPlayer = this.players.get(buttonInteraction.user.id);
 		if (!buttonPlayer?.hand) {
 			let content = "*You are not a player in this game.*";
-			if (this.commonCards?.length)
-				content += `\nCommon Cards:\n${formatDeck(this.commonCards)}`;
-			content += `${this.players.formatTeammateHand(buttonInteraction.user.id)}
-${this.players.formatPWSC()}`;
+			const teammateHandFormatData = this.players.formatTeammateHand(
+				buttonInteraction.user.id
+			);
+			if (teammateHandFormatData) {
+				const teammateHasBleedJoker =
+					this.options.useBleedJoker &&
+					teammateHandFormatData.hand?.some(card => card.suit === "rj");
+				const commonCardsDisplay = this.formatCommonCardsWithName(
+					teammateHasBleedJoker
+				);
+				content += `\n${teammateHandFormatData.content}\n${commonCardsDisplay}`;
+			} else {
+				content += this.formatCommonCardsWithName();
+			}
 			await buttonInteraction.reply({
 				content,
 				ephemeral: true,
@@ -694,16 +727,22 @@ ${this.players.formatPWSC()}`;
 			return;
 		}
 
+		let hasRJ: boolean;
+		const getHasRJ = () =>
+			hasRJ ?? (hasRJ = buttonPlayer.hand.some(card => card.suit === "rj"));
+
 		const hasClown =
 			this.options.useClown &&
 			this.players.size > 2 &&
 			this.state.clowned === ClownState.NotClowned &&
-			buttonPlayer.hand.some(card => card.suit === "rj");
+			getHasRJ();
+		const hasBleed = this.options.useBleedJoker && getHasRJ();
+
 		const components = hasClown ? [clownRow] : undefined;
 		await buttonInteraction.reply({
 			content: `**Your Hand:**
 ${buttonPlayer.formatHand()}
-**Common Cards:** ${this.formatCommonCards()}
+${this.formatCommonCardsWithName(hasBleed)}
 ${this.players.formatPWSC()}`,
 			ephemeral: true,
 			components,
@@ -741,8 +780,7 @@ ${this.players.formatPWSC()}`,
 			});
 			return;
 		}
-		this.players.reverse();
-		this.state.reverseIdx();
+		this.players.reverseAll();
 		this.state.clowned = ClownState.Clowned;
 		await buttonInteraction.reply({
 			content: `${emoji.clown} ${buttonInteraction.user} has used their Clown Joker. ${emoji.clown}\nThe order of players has been reversed.`,
@@ -751,7 +789,7 @@ ${this.players.formatPWSC()}`,
 
 	private async handleCallAttempt(msg: Message<true>) {
 		if (!this.state.roundInProgress || !this.state.callsOpen) return;
-		if (msg.author.id !== this.state.currentPlayer.id) return;
+		if (msg.author.id !== this.players.currentPlayer.id) return;
 		const call: Call = parseCall(msg.content);
 		const validated = this.callValidator.validateAndRespond(call, msg);
 		if (!validated) return;
@@ -759,7 +797,10 @@ ${this.players.formatPWSC()}`,
 		this.state.callsOpen = false;
 		this.notifications.disableNotif();
 
-		this.state.setCurrentCall(call);
+		this.state.currentCall = {
+			call,
+			player: this.players.currentPlayer,
+		};
 		if (this.options.useCurses && this.players.size > 2) {
 			const cursed = this.handleCurses();
 			if (cursed) return;
@@ -768,7 +809,7 @@ ${this.players.formatPWSC()}`,
 			this.state.clowned = ClownState.ClownedAndCalled;
 		}
 
-		this.state.forward(); // go to next player
+		this.players.forward(); // go to next player
 		await this.sendNewNotif();
 		this.state.callsOpen = true;
 	}

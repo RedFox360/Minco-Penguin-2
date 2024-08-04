@@ -61,7 +61,7 @@ const team = new SlashCommand()
     const thisChannelTeams = bsPokerTeams.get(interaction.channelId);
     const teamWithAsker = thisChannelTeams.find(x => x.includes(interaction.user.id));
     if (subcommand === "join") {
-        const player = interaction.options.getUser("player");
+        const player = interaction.options.getUser("player", true);
         if (player.id === interaction.user.id) {
             await interaction.reply({
                 content: "You may not join a team with yourself.",
@@ -149,7 +149,7 @@ const team = new SlashCommand()
             });
             return;
         }
-        const player = interaction.options.getUser("player");
+        const player = interaction.options.getUser("player", true);
         if (player.id === interaction.user.id) {
             await interaction.reply({
                 content: "You may not invite yourself to a team.",
@@ -254,7 +254,7 @@ const team = new SlashCommand()
         });
     }
     else if (subcommand === "kick") {
-        const player = interaction.options.getUser("player");
+        const player = interaction.options.getUser("player", true);
         if (!teamWithAsker || teamWithAsker.length === 1) {
             await interaction.reply({
                 content: "You are not in a team.",

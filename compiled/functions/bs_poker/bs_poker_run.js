@@ -112,6 +112,7 @@ ${text}`)
     const msg = await interaction.reply({
         embeds: [gameStartEmbed()],
         components: [row1, row2],
+        fetchReply: false,
     });
     const collector = msg.createMessageComponentCollector({
         filter: i => customIdValues.includes(i.customId),
@@ -211,7 +212,7 @@ ${text}`)
             return;
         }
         if (players.length <= 1) {
-            msg.edit({
+            interaction.editReply({
                 content: "Game aborted due to insufficient players.",
                 embeds: [],
                 components: [],
@@ -219,7 +220,7 @@ ${text}`)
             channelsWithActiveGames.delete(interaction.channelId);
             return;
         }
-        msg.edit({
+        interaction.editReply({
             embeds: [gameStartEmbed(true)],
             components: [],
         });

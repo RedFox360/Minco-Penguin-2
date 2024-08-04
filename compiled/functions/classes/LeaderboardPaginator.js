@@ -1,14 +1,14 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, inlineCode, } from "discord.js";
 import { chunkArray, colors } from "../util.js";
+const chunkSize = 15;
 export default class LeaderboardPaginator {
     constructor(options) {
-        var _a, _b, _c;
+        var _a, _b;
         this.options = options;
         this.currentPage = 0;
-        (_a = this.options).chunkSize ?? (_a.chunkSize = 15);
-        (_b = this.options).useSpaces ?? (_b.useSpaces = false);
-        (_c = this.options).ephemeral ?? (_c.ephemeral = false);
-        this.slices = chunkArray(options.data, this.options.chunkSize);
+        (_a = this.options).useSpaces ?? (_a.useSpaces = false);
+        (_b = this.options).ephemeral ?? (_b.ephemeral = false);
+        this.slices = chunkArray(options.data, chunkSize);
         this.customIds = {
             first: `${options.id}-first`,
             prev: `${options.id}-prev`,
@@ -37,8 +37,8 @@ export default class LeaderboardPaginator {
             .setDisabled(this.slices.length === 1);
     }
     calculateSpaces() {
-        const maxIndexAtCurrentPage = (this.currentPage + 1) * this.options.chunkSize -
-            (this.options.chunkSize - this.currentPageData.length);
+        const maxIndexAtCurrentPage = (this.currentPage + 1) * chunkSize -
+            (chunkSize - this.currentPageData.length);
         return " ".repeat(maxIndexAtCurrentPage.toString().length + 1);
     }
     get currentPageData() {
@@ -48,7 +48,7 @@ export default class LeaderboardPaginator {
         return new ActionRowBuilder().addComponents(this.first, this.prev, this.next, this.last);
     }
     pageData() {
-        const chunkOffset = this.currentPage * this.options.chunkSize;
+        const chunkOffset = this.currentPage * chunkSize;
         return this.currentPageData
             .map((data, idx) => {
             const absIndex = chunkOffset + idx + 1;

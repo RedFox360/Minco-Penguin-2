@@ -15,6 +15,7 @@ export default class PlayerCollection extends Collection {
         this.channelId = channelId;
         this.options = options;
         this.out = [];
+        this._currPlayerIdx = 0;
         this.originalPlayers = this.size;
     }
     get everPlayersLen() {
@@ -125,21 +126,64 @@ export default class PlayerCollection extends Collection {
             p.dealCards(deck);
         }
         this.loadPWSC();
+        this.setHighestCard();
+    }
+    afterKick() {
+        this.loadPWSC();
+        this.setHighestCard();
     }
     formatTeammateHand(userId) {
         const channelTeams = bsPokerTeams.get(this.channelId);
         if (!channelTeams?.length)
-            return "";
+            return null;
         const team = channelTeams.find(t => t.includes(userId));
         if (!team)
-            return "";
+            return null;
         const teamPlayerInGameId = team[0];
         if (!this.has(teamPlayerInGameId))
-            return "";
+            return null;
         const teammateHand = this.get(teamPlayerInGameId)?.hand;
         if (!teammateHand)
-            return "";
-        return `\n*<@${teamPlayerInGameId}> is your teammate. Here are their cards.*\n${formatDeck(teammateHand)}`;
+            return null;
+        return {
+            content: `\n*<@${teamPlayerInGameId}> is your teammate. Here are their cards.*\n${formatDeck(teammateHand)}`,
+            hand: teammateHand,
+        };
+    }
+    get currentPlayerIndex() {
+        if (this._currPlayerIdx < 0 || this._currPlayerIdx >= this.size) {
+            return 0;
+        }
+        else {
+            return this._currPlayerIdx;
+        }
+    }
+    set currentPlayerIndex(newIdx) {
+        if (newIdx < 0 || newIdx >= this.size) {
+            this._currPlayerIdx = 0;
+        }
+        else {
+            this._currPlayerIdx = newIdx;
+        }
+    }
+    get currentPlayer() {
+        return this.at(this.currentPlayerIndex);
+    }
+    forward() {
+        this.currentPlayerIndex += 1;
+    }
+    setIdxToIdxOf(playerId) {
+        this.currentPlayerIndex = Array.from(this.keys()).indexOf(playerId);
+    }
+    reverseAll() {
+        this.reverse();
+        this.currentPlayerIndex = this.size - this.currentPlayerIndex - 1;
+    }
+    setHighestCard() {
+        if (this.options.useBleedJoker)
+            this.highestCard = this.map(p => p.hand.at(-1)).reduce((prev, curr) => {
+                return prev.value > curr.value ? prev : curr;
+            });
     }
 }
 //# sourceMappingURL=PlayerCollection.js.map

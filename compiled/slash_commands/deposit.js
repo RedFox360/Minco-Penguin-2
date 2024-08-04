@@ -10,7 +10,7 @@ const deposit = new SlashCommand()
     .setMinValue(1)
     .setRequired(true)))
     .setRun(async (interaction) => {
-    const amount = interaction.options.getInteger("amount");
+    const amount = interaction.options.getInteger("amount", true);
     const profile = await getProfile(interaction.user.id);
     if (amount > profile.mincoDollars) {
         await interaction.reply({

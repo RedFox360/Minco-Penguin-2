@@ -108,9 +108,11 @@ ${specials}
 
 :smiling_imp: **Curses**: If Curses are enabled at the beginning of a game, if 3 calls in a row are false, the round will immediately stop and all players will gain a card. This can cause multiple players to go out in one round.
 
-:red_square: **Blood Joker**: Blood Jokers are displayed the same as a red joker. If a curse happens, the player with the Blood Joker will *lose* a card (unless they have 1 card). Blood Jokers also retain the Red Joker abilities.
+:red_square: **Blood Joker**: Blood Jokers are an extra ability for red jokers. If a curse happens, the player with the Blood Joker will *lose* a card (unless they have 1 card). Blood Jokers also retain the Red Joker abilities.
 
-:clown: **Clown Joker**: Clown Jokers are displayed the same as red joker. When a player with a Clown Joker clicks "View Cards," a "Clown" button will appear. When clicked, the order of players will reverse. If a player uses a Clown Joker and it becomes their turn again, they will be forced to B.S. Clown Jokers do *not* retain Red Joker abilities.
+:clown: **Clown Joker**: Clown Jokers are an extra ability for red jokers. When a player with a Clown Joker clicks "View Cards," a "Clown" button will appear. When clicked, the order of players will reverse. If a player uses a Clown Joker and it becomes their turn again, they will be forced to B.S.
+
+:red_circle: **Bleed Joker**: Bleed Jokers are an extra ability for red jokers. When a player with a Bleed Joker clicks View Cards, an extra card will be displayed after the Common Cards — the highest card of everyone's hands.
 
 :imp: **Blood + Clown + Red Joker**: If this option is selected, the Red Joker will have the abilities of the Blood Joker and Clown Joker as well.
 

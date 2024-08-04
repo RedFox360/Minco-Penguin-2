@@ -12,7 +12,8 @@ import type UserContextMenu from "../core/UserContextMenu.js";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 
-type CommandPromises = Promise<{ default: SlashCommand | UserContextMenu }>[];
+type CommandImport = { default: SlashCommand | UserContextMenu };
+type CommandPromises = Promise<CommandImport>[];
 type CommandData = (
 	| RESTPostAPIChatInputApplicationCommandsJSONBody
 	| RESTPostAPIContextMenuApplicationCommandsJSONBody

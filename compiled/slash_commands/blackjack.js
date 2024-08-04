@@ -30,7 +30,7 @@ const blackjackCommand = new SlashCommand()
     .setRun(async (interaction) => {
     const isSession = interaction.options.getSubcommand() === "session";
     const rounds = isSession ? interaction.options.getInteger("rounds") : null;
-    const bet = interaction.options.getInteger("bet");
+    const bet = interaction.options.getInteger("bet", true);
     const profile = await getProfile(interaction.user.id);
     if (profile.mincoDollars < bet) {
         return interaction.reply({

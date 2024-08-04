@@ -10,41 +10,14 @@ export const optionNames = {
 	insuranceCount: "insurance_count",
 	beginCards: "begin_cards",
 	joinMidGame: "join_mid_game",
-	specialCards: {
-		name: "special_cards",
-		noSpecials: "no_specials_bspo",
-		standard: "standard_bspo",
-		blood: "blood_bspo",
-		clown: "clown_bspo",
-		allRedJoker: "all_red_joker_bspo",
-	},
+	useSpecials: "use_special_cards",
+	bloodJoker: "blood_joker",
+	bleedJoker: "bleed_joker",
+	clownJoker: "clown_joker",
 	curses: "curses",
 	nonstandard: "nonstandard",
 	insuranceSpecials: "insurance_specials",
 } as const;
-
-const specialCardChoices = [
-	{
-		name: "Standard",
-		value: optionNames.specialCards.standard,
-	},
-	{
-		name: "Blood Joker",
-		value: optionNames.specialCards.blood,
-	},
-	{
-		name: "Clown Joker",
-		value: optionNames.specialCards.clown,
-	},
-	{
-		name: "Blood + Clown + Red Joker",
-		value: optionNames.specialCards.allRedJoker,
-	},
-	{
-		name: "No Special Cards",
-		value: optionNames.specialCards.noSpecials,
-	},
-];
 
 const bsPokerCommand = new SlashCommand()
 	.setCommandData(builder =>
@@ -69,13 +42,30 @@ const bsPokerCommand = new SlashCommand()
 					.setMinValue(10)
 					.setMaxValue(2000)
 			)
-			.addStringOption(option =>
+			.addBooleanOption(option =>
 				option
-					.setName(optionNames.specialCards.name)
+					.setName(optionNames.useSpecials)
 					.setDescription(
-						"/poker help Special Cards for more info (Default: No Special Cards)"
+						"Use special cards (/poker help Special Cards for more info) (Default: False)"
 					)
-					.setChoices(specialCardChoices)
+					.setRequired(false)
+			)
+			.addBooleanOption(option =>
+				option
+					.setName(optionNames.bloodJoker)
+					.setDescription("Use blood joker (Default: False)")
+					.setRequired(false)
+			)
+			.addBooleanOption(option =>
+				option
+					.setName(optionNames.bleedJoker)
+					.setDescription("Use bleed joker (Default: False)")
+					.setRequired(false)
+			)
+			.addBooleanOption(option =>
+				option
+					.setName(optionNames.clownJoker)
+					.setDescription("Use clown joker (Default: False)")
 					.setRequired(false)
 			)
 			.addBooleanOption(option =>

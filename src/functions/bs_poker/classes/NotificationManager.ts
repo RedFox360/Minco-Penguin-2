@@ -6,7 +6,7 @@ import {
 	type Message,
 } from "discord.js";
 import type StateManager from "./StateManager.js";
-import { customIds } from "../bs_poker_types.js";
+import { customIds, ReadonlyPlayerCollection } from "../bs_poker_types.js";
 import { msToRelTimestamp } from "../../util.js";
 
 const timeToMakeCall = 60_000;
@@ -31,7 +31,8 @@ export default class NotificationManager {
 
 	public constructor(
 		private readonly channel: GuildTextBasedChannel,
-		private readonly state: StateManager
+		private readonly state: StateManager,
+		private readonly players: ReadonlyPlayerCollection
 	) {}
 
 	private getMsgForNotif() {
@@ -41,7 +42,7 @@ export default class NotificationManager {
 						this.state.currentCall.player
 				  } has called **${this.state.formatCurrentCall()}**.\n`
 				: ""
-		}${this.state.currentPlayer}, it is your turn.`;
+		}${this.players.currentPlayer}, it is your turn.`;
 	}
 
 	private getNotifRow(disabled: boolean) {
@@ -71,9 +72,9 @@ export default class NotificationManager {
 				components: [this.getNotifRow(true)],
 			});
 			this.channel.send({
-				content: `${this.state.currentPlayer} failed to make a call in time. They gain a card and a new round will start now.`,
+				content: `${this.players.currentPlayer} failed to make a call in time. They gain a card and a new round will start now.`,
 			});
-			this.state.currentPlayer.cardsEntitled += 1;
+			this.players.currentPlayer.cardsEntitled += 1;
 			onTimeout();
 		}, timeToMakeCall);
 

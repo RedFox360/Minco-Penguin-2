@@ -1,6 +1,5 @@
 import { getProfile, updateProfile } from "../prisma/models.js";
 import SlashCommand from "../core/SlashCommand.js";
-import { prisma } from "../main.js";
 
 const gift = new SlashCommand()
 	.setCommandData(builder =>
@@ -22,7 +21,7 @@ const gift = new SlashCommand()
 			)
 	)
 	.setRun(async interaction => {
-		const user = interaction.options.getUser("user");
+		const user = interaction.options.getUser("user", true);
 		if (user.id === interaction.user.id) {
 			interaction.reply({
 				content: "You can't gift money to yourself.",
@@ -31,7 +30,7 @@ const gift = new SlashCommand()
 			return;
 		}
 
-		const amount = interaction.options.getInteger("md_amount");
+		const amount = interaction.options.getInteger("md_amount", true);
 		const profile = await getProfile(interaction.user.id);
 		if (amount > profile.mincoDollars) {
 			interaction.reply({

@@ -18,9 +18,10 @@ interface PaginatorConstructorOptions {
 	readonly creatorId: string;
 	readonly creatorRank: number;
 	useSpaces?: boolean;
-	chunkSize?: number;
 	ephemeral?: boolean;
 }
+
+const chunkSize = 15;
 
 export default class LeaderboardPaginator {
 	public currentPage = 0;
@@ -37,10 +38,9 @@ export default class LeaderboardPaginator {
 	};
 
 	public constructor(private options: PaginatorConstructorOptions) {
-		this.options.chunkSize ??= 15;
 		this.options.useSpaces ??= false;
 		this.options.ephemeral ??= false;
-		this.slices = chunkArray(options.data, this.options.chunkSize);
+		this.slices = chunkArray(options.data, chunkSize);
 		this.customIds = {
 			first: `${options.id}-first`,
 			prev: `${options.id}-prev`,
@@ -71,8 +71,8 @@ export default class LeaderboardPaginator {
 
 	private calculateSpaces() {
 		const maxIndexAtCurrentPage =
-			(this.currentPage + 1) * this.options.chunkSize -
-			(this.options.chunkSize - this.currentPageData.length);
+			(this.currentPage + 1) * chunkSize -
+			(chunkSize - this.currentPageData.length);
 		return " ".repeat(maxIndexAtCurrentPage.toString().length + 1);
 	}
 
@@ -90,7 +90,7 @@ export default class LeaderboardPaginator {
 	}
 
 	private pageData() {
-		const chunkOffset = this.currentPage * this.options.chunkSize;
+		const chunkOffset = this.currentPage * chunkSize;
 		return this.currentPageData
 			.map((data, idx) => {
 				const absIndex = chunkOffset + idx + 1;

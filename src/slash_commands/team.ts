@@ -98,7 +98,7 @@ const team = new SlashCommand()
 		);
 
 		if (subcommand === "join") {
-			const player = interaction.options.getUser("player");
+			const player = interaction.options.getUser("player", true);
 			if (player.id === interaction.user.id) {
 				await interaction.reply({
 					content: "You may not join a team with yourself.",
@@ -190,7 +190,7 @@ const team = new SlashCommand()
 				});
 				return;
 			}
-			const player = interaction.options.getUser("player");
+			const player = interaction.options.getUser("player", true);
 			if (player.id === interaction.user.id) {
 				await interaction.reply({
 					content: "You may not invite yourself to a team.",
@@ -297,7 +297,7 @@ const team = new SlashCommand()
 				ephemeral: true,
 			});
 		} else if (subcommand === "kick") {
-			const player = interaction.options.getUser("player");
+			const player = interaction.options.getUser("player", true);
 			if (!teamWithAsker || teamWithAsker.length === 1) {
 				await interaction.reply({
 					content: "You are not in a team.",

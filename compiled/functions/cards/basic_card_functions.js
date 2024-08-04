@@ -40,6 +40,9 @@ export function cardToEmoji(card) {
     if (card === null) {
         return [newEmojiSuits.blankTop, newEmojiSuits.blankBottom];
     }
+    if (card === undefined) {
+        return null;
+    }
     if (card.value === 1) {
         if (card.suit === "bj")
             return [newEmojiSuits.joker, newEmojiSuits.black];
@@ -86,10 +89,18 @@ export function formatDeck(deck) {
     return `${tops}\n${bottoms}`;
 }
 export function formatCardSideways(card, short = false) {
-    if (card.value === 1 && card.suit === "bj")
-        return short ? "BX" : "Black Joker";
-    if (card.value === 1 && card.suit === "rj")
-        return short ? "RX" : "Red Joker";
+    if (card.suit === "bj") {
+        if (card.value === 1)
+            return short ? "BX" : "Black Joker";
+        if (card.value === 15)
+            return short ? "BI" : "Black Insurance";
+    }
+    if (card.suit === "rj") {
+        if (card.value === 1)
+            return short ? "RX" : "Red Joker";
+        if (card.value === 15)
+            return short ? "RI" : "Red Insurance";
+    }
     return `${valueToSymbol(card.value, short)}${suitToBasicEmoji(card.suit)}`;
 }
 function deckToSidewaysCards(deck, short = false) {

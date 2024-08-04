@@ -156,7 +156,7 @@ export function countInArray<T>(
 	return count;
 }
 
-export function formatBool(bool: boolean): "**True**" | "**False**" {
+export function formatBool(bool: boolean) {
 	return bool ? "**True**" : "**False**";
 }
 
@@ -190,7 +190,7 @@ interface TableReturnData {
 
 export function asciiTable(
 	items: readonly Readonly<TableItem>[],
-	data: ReadonlyArray<ReadonlyArray<string>>
+	data: readonly (readonly string[])[]
 ): TableReturnData {
 	const top = items.map(item => item.name.padEnd(item.pad)).join("");
 	const rows = data.map(row => {

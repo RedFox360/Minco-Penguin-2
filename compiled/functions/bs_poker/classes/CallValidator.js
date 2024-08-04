@@ -1,11 +1,12 @@
-import { ClownState, HandRank } from "../bs_poker_types.js";
+import { ClownState, HandRank, } from "../bs_poker_types.js";
 import { invalidNumber, replyThenDelete } from "../../util.js";
 import { formatCall, isHigher } from "../bs_poker_functions.js";
 import { emoji } from "../../cards/basic_card_types.js";
 export default class CallValidator {
-    constructor(options, state) {
+    constructor(options, state, players) {
         this.options = options;
         this.state = state;
+        this.players = players;
     }
     validateAndRespond(call, message) {
         if (!call || invalidNumber(call.call) || call.call === -1) {
@@ -14,7 +15,7 @@ export default class CallValidator {
         }
         if (this.options.useClown &&
             this.state.clowned === ClownState.ClownedAndCalled) {
-            const hasClown = this.state.currentPlayer.hand?.some(c => c.suit === "rj");
+            const hasClown = this.players.currentPlayer.hand?.some(c => c.suit === "rj");
             if (hasClown) {
                 message.reply({
                     content: `${emoji.clown} You have used a Clown Joker this round and now it is your turn. You must call BS. ${emoji.clown}`,

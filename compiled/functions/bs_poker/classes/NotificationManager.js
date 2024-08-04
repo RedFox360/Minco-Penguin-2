@@ -16,14 +16,15 @@ const viewGameInfoButton = new ButtonBuilder()
     .setStyle(ButtonStyle.Secondary);
 const bsButtonDisabled = new ButtonBuilder(bsButton.toJSON()).setDisabled(true);
 export default class NotificationManager {
-    constructor(channel, state) {
+    constructor(channel, state, players) {
         this.channel = channel;
         this.state = state;
+        this.players = players;
     }
     getMsgForNotif() {
         return `${this.state.currentCall
             ? `${this.state.currentCall.player} has called **${this.state.formatCurrentCall()}**.\n`
-            : ""}${this.state.currentPlayer}, it is your turn.`;
+            : ""}${this.players.currentPlayer}, it is your turn.`;
     }
     getNotifRow(disabled) {
         const row = new ActionRowBuilder().addComponents(viewCardsButton, viewGameInfoButton);
@@ -47,9 +48,9 @@ export default class NotificationManager {
                 components: [this.getNotifRow(true)],
             });
             this.channel.send({
-                content: `${this.state.currentPlayer} failed to make a call in time. They gain a card and a new round will start now.`,
+                content: `${this.players.currentPlayer} failed to make a call in time. They gain a card and a new round will start now.`,
             });
-            this.state.currentPlayer.cardsEntitled += 1;
+            this.players.currentPlayer.cardsEntitled += 1;
             onTimeout();
         }, timeToMakeCall);
         this.notification = msg;
