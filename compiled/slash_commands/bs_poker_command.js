@@ -9,7 +9,7 @@ export const optionNames = {
     insuranceCount: "insurance_count",
     beginCards: "begin_cards",
     joinMidGame: "join_mid_game",
-    useSpecials: "use_special_cards",
+    useSpecials: "special_cards",
     bloodJoker: "blood_joker",
     bleedJoker: "bleed_joker",
     clownJoker: "clown_joker",
