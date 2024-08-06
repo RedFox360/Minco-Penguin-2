@@ -2,6 +2,11 @@ import SlashCommand from "../core/SlashCommand.js";
 import { prisma } from "../main.js";
 import { asciiTable, invalidNumber, logDaily } from "../functions/util.js";
 import LeaderboardPaginator from "../functions/classes/LeaderboardPaginator.js";
+function trunc(str, length = 20) {
+    if (!str)
+        return null;
+    return str.length > length ? `${str.slice(0, length - 3)}...` : str;
+}
 const leaderboard = new SlashCommand()
     .setCommandData(builder => builder
     .setName("leaderboard")
@@ -76,10 +81,13 @@ const leaderboard = new SlashCommand()
     else {
         const validProfiles = profiles
             .filter(profile => profile && profile.bsPokerGamesPlayed > 4)
-            .map(profile => ({
-            profile,
-            memberName: members.get(profile.userId)?.displayName,
-        }));
+            .map(profile => {
+            const memberName = trunc(members.get(profile.userId)?.displayName);
+            return {
+                profile,
+                memberName,
+            };
+        });
         const namePad = Math.max(...validProfiles.map(({ memberName }) => memberName?.length ?? 0)) + 1;
         const items = [
             {

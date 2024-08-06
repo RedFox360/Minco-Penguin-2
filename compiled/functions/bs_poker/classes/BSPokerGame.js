@@ -559,16 +559,16 @@ ${this.players.currentPlayer} will start the round.`,
     async viewCardsClicked(buttonInteraction) {
         const buttonPlayer = this.players.get(buttonInteraction.user.id);
         if (!buttonPlayer?.hand) {
-            let content = "*You are not a player in this game.*";
+            let content = "*You are not a player in this game.*\n";
             const teammateHandFormatData = this.players.formatTeammateHand(buttonInteraction.user.id);
             if (teammateHandFormatData) {
                 const teammateHasBleedJoker = this.options.useBleedJoker &&
                     teammateHandFormatData.hand?.some(card => card.suit === "rj");
                 const commonCardsDisplay = this.formatCommonCardsWithName(teammateHasBleedJoker);
-                content += `\n${teammateHandFormatData.content}\n${commonCardsDisplay}`;
+                content += `${teammateHandFormatData.content}\n${commonCardsDisplay}\n${this.players.formatPWSC()}`;
             }
             else {
-                content += this.formatCommonCardsWithName();
+                content += `${this.formatCommonCardsWithName()}\n${this.players.formatPWSC()}`;
             }
             await buttonInteraction.reply({
                 content,

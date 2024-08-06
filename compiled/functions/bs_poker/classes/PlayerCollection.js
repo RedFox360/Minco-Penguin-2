@@ -146,7 +146,7 @@ export default class PlayerCollection extends Collection {
         if (!teammateHand)
             return null;
         return {
-            content: `\n*<@${teamPlayerInGameId}> is your teammate. Here are their cards.*\n${formatDeck(teammateHand)}`,
+            content: `*<@${teamPlayerInGameId}> is your teammate. Here are their cards.*\n${formatDeck(teammateHand)}`,
             hand: teammateHand,
         };
     }

@@ -33,10 +33,10 @@ export const RNI = {
 };
 export const RNIKeys = Object.keys(RNI).map(n => parseInt(n));
 export const names = [
-    ["high", "h", "haut"],
-    ["pair", "double", "p", "d", "paire"],
-    ["triple", "t", "brelan"],
-    ["high straight", "straight", "s", "suite"],
+    ["high", "h", "haut", "‌"], // 1 U+200C character
+    ["pair", "double", "p", "d", "paire", "drunk", "‌‌"], // 2 U+200C characters
+    ["triple", "t", "brelan", "hungover", "‌‌‌"], // 3 U+200C characters
+    ["high straight", "straight", "s", "suite", "‌‌‌‌"], // 4 U+200C characters
     [
         "flush hearts",
         "hearts flush",
@@ -45,6 +45,7 @@ export const names = [
         "fh",
         "hf",
         "couleur cœur",
+        "‌‌‌‌‌", // 5 U+200C characters
     ],
     [
         "flush diamonds",
@@ -54,6 +55,7 @@ export const names = [
         "fd",
         "df",
         "couleur carreau",
+        "‌‌‌‌‌‌", // 6 U+200C characters
     ],
     [
         "flush clubs",
@@ -63,6 +65,7 @@ export const names = [
         "fc",
         "cf",
         "couleur trèfle",
+        "‌‌‌‌‌‌‌", // 7 U+200C characters
     ],
     [
         "flush spades",
@@ -72,8 +75,9 @@ export const names = [
         "fs",
         "sf",
         "couleur pique",
+        "‍‍‍‍‍‍‍‍‌‌‌‌‌‌‌‌", // 8 U+200C characters
     ],
-    ["quad", "q", "quadruple", "carré"],
+    ["quad", "q", "quadruple", "carré", "overdose", "‌‌‌‌‌‌‌‌‌"], // 9 U+200C characters
     [
         "straight flush hearts",
         "hearts straight flush",
@@ -82,6 +86,7 @@ export const names = [
         "sfh",
         "hsf",
         "quinte flush cœur",
+        "‌‌‌‌‌‌", // 10 U+200C characters
     ],
     [
         "straight flush diamonds",
@@ -91,6 +96,7 @@ export const names = [
         "sfd",
         "dsf",
         "quinte flush carreau",
+        "‌‌‌‌‌‌‌‌‌‌‌", // 11 U+200C characters
     ],
     [
         "straight flush clubs",
@@ -100,6 +106,7 @@ export const names = [
         "sfc",
         "csf",
         "quinte flush trèfle",
+        "‌‌‌‌‌‌‌‌‌‌‌‌", // 12 U+200C characters
     ],
     [
         "straight flush spades",
@@ -109,6 +116,7 @@ export const names = [
         "sfs",
         "ssf",
         "quinte flush pique",
+        "‌‌‌‌‌‌‌‌‌‌‌‌‌", // 13 U+200C characters
     ],
 ];
 export const royalFlushes = [
@@ -120,6 +128,7 @@ export const royalFlushes = [
         "rhf",
         "hrf",
         "quinte flush royale de cœur",
+        "‌‌‌‌‌‌‌‌‌‌‌‌‌‌", // 14 U+200C characters
     ],
     [
         "diamonds royal flush",
@@ -129,6 +138,7 @@ export const royalFlushes = [
         "rdf",
         "drf",
         "quinte flush royale de carreau",
+        "‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌", // 15 U+200C characters
     ],
     [
         "clubs royal flush",
@@ -138,6 +148,7 @@ export const royalFlushes = [
         "rcf",
         "crf",
         "quinte flush royale de trèfle",
+        "‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌", // 16 U+200C characters
     ],
     [
         "spades royal flush",
@@ -147,51 +158,67 @@ export const royalFlushes = [
         "rsf",
         "srf",
         "quinte flush royale de pique",
+        "‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌", // 17 U+200C characters
     ],
 ];
 export const symbolToValueObj = {
     joker: 1,
     x: 1,
     spark: 1,
+    "‌": 1, // 1 U+200C character
     two: 2,
     deuce: 2,
     deux: 2,
+    "‌‌": 2, // 2 U+200C characters
     three: 3,
     trois: 3,
+    "‌‌‌": 3, // 3 U+200C characters
     four: 4,
     quatre: 4,
+    "‌‌‌‌": 4, // 4 U+200C characters
     five: 5,
     cinq: 5,
+    "‌‌‌‌‌": 5, // 5 U+200C characters
     six: 6,
+    "‌‌‌‌‌‌": 6, // 6 U+200C characters
     seven: 7,
     sept: 7,
+    "‌‌‌‌‌‌‌": 7, // 7 U+200C characters
     eight: 8,
     huit: 8,
+    "‌‌‌‌‌‌‌‌": 8, // 8 U+200C characters
     nine: 9,
     neuf: 9,
+    "‌‌‌‌‌‌‌‌‌": 9, // 9 U+200C characters
     ten: 10,
     t: 10,
     dix: 10,
+    "‌‌‌‌‌‌‌‌‌‌": 10, // 10 U+200C characters
     jack: 11,
     j: 11,
     knave: 11,
     valet: 11,
     grenade: 11,
+    "‌‌‌‌‌‌‌‌‌‌‌": 11, // 11 U+200C characters
     queen: 12,
     q: 12,
     dame: 12,
     tnt: 12,
+    "‌‌‌‌‌‌‌‌‌‌‌‌": 12, // 12 U+200C characters
     king: 13,
     k: 13,
     roi: 13,
     dynamite: 13,
+    "‌‌‌‌‌‌‌‌‌‌‌‌‌": 13, // 13 U+200C characters
     ace: 14,
     a: 14,
     as: 14,
+    "‌‌‌‌‌‌‌‌‌‌‌‌‌‌": 14, // 14 U+200C characters
     insurance: 15,
     i: 15,
     assurance: 15,
     flashbang: 15,
+    "‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌": 15, // 15 U+200C characters
 };
 export var ClownState;
 (function (ClownState) {

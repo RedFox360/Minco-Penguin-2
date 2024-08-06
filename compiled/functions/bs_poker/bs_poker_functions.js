@@ -2,18 +2,19 @@ import { HandRank, names, RNI, RNIKeys, royalFlushes, symbolToValueObj, } from "
 import { emoji, suits } from "../cards/basic_card_types.js";
 import { suitToBasicEmoji, valueToSymbol, } from "../cards/basic_card_functions.js";
 import { arraysEqual, countInArray, invalidNumber } from "../util.js";
-const toEmptyRgx = /[.,!]/g;
-const toSpacesRgx = /-/g;
+const toSpacesRgx = /[^a-z0-9\u200C]/g;
+const doubleSpacesRgx = / +(?= )/g;
+const fix = (str) => str
+    .toLowerCase()
+    .replace(toSpacesRgx, " ")
+    .replace(doubleSpacesRgx, "")
+    .trim();
 function namesHas(index, given) {
     return names[index].some(name => given.startsWith(name));
 }
 export function parseCall(givenCall) {
     try {
-        const call = givenCall
-            .toLowerCase()
-            .replace(toEmptyRgx, "")
-            .replace(toSpacesRgx, " ")
-            .trim();
+        const call = fix(givenCall);
         const royalIndex = royalFlushes.findIndex(x => x.includes(call));
         if (royalIndex !== -1) {
             const suit = suits[royalIndex];
