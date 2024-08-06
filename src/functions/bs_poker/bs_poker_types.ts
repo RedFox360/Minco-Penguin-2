@@ -83,8 +83,8 @@ export interface DoubleFlushCall {
 
 export const names = [
 	["high", "h", "haut"],
-	["pair", "double", "p", "d", "paire"],
-	["triple", "t", "brelan"],
+	["pair", "double", "p", "d", "paire", "drunk"],
+	["triple", "t", "brelan", "hungover"],
 	["high straight", "straight", "s", "suite"],
 	[
 		"flush hearts",
@@ -122,7 +122,7 @@ export const names = [
 		"sf",
 		"couleur pique",
 	],
-	["quad", "q", "quadruple", "carré"],
+	["quad", "q", "quadruple", "carré", "overdose"],
 	[
 		"straight flush hearts",
 		"hearts straight flush",
