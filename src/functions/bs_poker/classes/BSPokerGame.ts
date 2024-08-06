@@ -705,7 +705,7 @@ ${this.players.currentPlayer} will start the round.`,
 	private async viewCardsClicked(buttonInteraction: ButtonInteraction) {
 		const buttonPlayer = this.players.get(buttonInteraction.user.id);
 		if (!buttonPlayer?.hand) {
-			let content = "*You are not a player in this game.*";
+			let content = "*You are not a player in this game.*\n";
 			const teammateHandFormatData = this.players.formatTeammateHand(
 				buttonInteraction.user.id
 			);
@@ -716,9 +716,11 @@ ${this.players.currentPlayer} will start the round.`,
 				const commonCardsDisplay = this.formatCommonCardsWithName(
 					teammateHasBleedJoker
 				);
-				content += `\n${teammateHandFormatData.content}\n${commonCardsDisplay}`;
+				content += `${
+					teammateHandFormatData.content
+				}\n${commonCardsDisplay}\n${this.players.formatPWSC()}`;
 			} else {
-				content += this.formatCommonCardsWithName();
+				content += `${this.formatCommonCardsWithName()}\n${this.players.formatPWSC()}`;
 			}
 			await buttonInteraction.reply({
 				content,

@@ -180,7 +180,7 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 		const teammateHand = this.get(teamPlayerInGameId)?.hand;
 		if (!teammateHand) return null;
 		return {
-			content: `\n*<@${teamPlayerInGameId}> is your teammate. Here are their cards.*\n${formatDeck(
+			content: `*<@${teamPlayerInGameId}> is your teammate. Here are their cards.*\n${formatDeck(
 				teammateHand
 			)}`,
 			hand: teammateHand,
