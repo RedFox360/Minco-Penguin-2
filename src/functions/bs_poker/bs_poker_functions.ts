@@ -18,8 +18,8 @@ import {
 } from "../cards/basic_card_functions.js";
 import { arraysEqual, countInArray, invalidNumber } from "../util.js";
 
-const toEmptyRgx = /[.,!?]|[^a-z0-9\-~;:+*\^\\&%$#@<>]/g;
-const toSpacesRgx = /[\-~;:+*\^\\&%$#@<>]/g;
+const toEmptyRgx = /[.,!?]|[^a-z0-9\-~;:+*\^\\&%$#@<>/\u200B[\]]/g;
+const toSpacesRgx = /[\-~;:+*\^\\&%$#@<>/\u200B[\]]/g;
 
 function namesHas(index: number, given: string) {
 	return names[index].some(name => given.startsWith(name));
