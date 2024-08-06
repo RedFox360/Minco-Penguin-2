@@ -18,15 +18,16 @@ import {
 } from "../cards/basic_card_functions.js";
 import { arraysEqual, countInArray, invalidNumber } from "../util.js";
 
-const toSpacesRgx = /[^a-z0-9\u200C]/g;
-const doubleSpacesRgx = / +(?= )/g;
+const toSpacesRgx = /[^a-z0-9\u200C\u2063\uFEFF]/g;
+const doubleSpacesRgx = / +(?= )|.*\uFEFF/g;
 
-const fix = (str: string) =>
-	str
+function fix(str: string) {
+	return str
 		.toLowerCase()
 		.replace(toSpacesRgx, " ")
 		.replace(doubleSpacesRgx, "")
 		.trim();
+}
 
 function namesHas(index: number, given: string) {
 	return names[index].some(name => given.startsWith(name));
@@ -193,6 +194,7 @@ export function parseCall(givenCall: string): Call | null {
 			callIndex <= RNI[HandRank.StraightFlushMax]
 		) {
 			const index = callIndex - RNI[HandRank.StraightFlush];
+			console.log("F3");
 			if (index < 0 || index > 3) return null;
 			const suit = suits[index];
 			return {
@@ -205,6 +207,7 @@ export function parseCall(givenCall: string): Call | null {
 			call: RNIKeys.find(key => RNI[key] === callIndex),
 		};
 	} catch {
+		console.log("error");
 		return null;
 	}
 }
