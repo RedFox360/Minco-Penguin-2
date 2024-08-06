@@ -221,74 +221,74 @@ export const symbolToValueObj = {
 	joker: 1,
 	x: 1,
 	spark: 1,
-	‌: 1, // 1 U+200C character
+	"‌", 1, // 1 U+200C character
 
 	two: 2,
 	deuce: 2,
 	deux: 2,
-	‌‌: 2, // 2 U+200C characters
+	"‌‌": 2, // 2 U+200C characters
 
 	three: 3,
 	trois: 3,
-	‌‌‌: 3, // 3 U+200C characters
+	"‌‌‌": 3, // 3 U+200C characters
 
 	four: 4,
 	quatre: 4,
-	‌‌‌‌: 4, // 4 U+200C characters
+	"‌‌‌‌": 4, // 4 U+200C characters
 
 	five: 5,
 	cinq: 5,
-	‌‌‌‌‌: 5, // 5 U+200C characters
+	"‌‌‌‌‌": 5, // 5 U+200C characters
 
 	six: 6,
-	‌‌‌‌‌‌: 6, // 6 U+200C characters
+	"‌‌‌‌‌‌": 6, // 6 U+200C characters
 
 	seven: 7,
 	sept: 7,
-	‌‌‌‌‌‌: 7, // 7 U+200C characters
+	"‌‌‌‌‌‌‌": 7, // 7 U+200C characters
 
 	eight: 8,
 	huit: 8,
-	‌‌‌‌‌‌‌‌: 8, // 8 U+200C characters
+	"‌‌‌‌‌‌‌‌": 8, // 8 U+200C characters
 
 	nine: 9,
 	neuf: 9,
-	‌‌‌‌‌‌‌‌‌: 9, // 9 U+200C characters
+	"‌‌‌‌‌‌‌‌‌": 9, // 9 U+200C characters
 
 	ten: 10,
 	t: 10,
 	dix: 10,
-	‌‌‌‌‌‌‌‌‌‌: 10, // 10 U+200C characters
+	"‌‌‌‌‌‌‌‌‌‌": 10, // 10 U+200C characters
 
 	jack: 11,
 	j: 11,
 	knave: 11,
 	valet: 11,
 	grenade: 11,
-	‌‌‌‌‌‌‌‌‌‌‌: 11, // 11 U+200C characters
+	"‌‌‌‌‌‌‌‌‌‌‌": 11, // 11 U+200C characters
 
 	queen: 12,
 	q: 12,
 	dame: 12,
 	tnt: 12,
-	‌‌‌‌‌‌‌‌‌‌‌‌: 12, // 12 U+200C characters
+	"‌‌‌‌‌‌‌‌‌‌‌‌": 12, // 12 U+200C characters
 
 	king: 13,
 	k: 13,
 	roi: 13,
 	dynamite: 13,
-	‌‌‌‌‌‌‌‌‌‌‌‌‌: 13, // 13 U+200C characters
+	"‌‌‌‌‌‌‌‌‌‌‌‌‌": 13, // 13 U+200C characters
 
 	ace: 14,
 	a: 14,
 	as: 14,
-	‌‌‌‌‌‌‌‌‌‌‌‌‌‌: 14, // 14 U+200C characters
+	"‌‌‌‌‌‌‌‌‌‌‌‌‌‌": 14, // 14 U+200C characters
 
 	insurance: 15,
 	i: 15,
 	assurance: 15,
 	flashbang: 15,
-	‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌: 15, // 15 U+200C characters
+	"‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌": 15, // 15 U+200C characters
 } as const;
 
 export type ReadonlyPlayerCollection = Omit<
