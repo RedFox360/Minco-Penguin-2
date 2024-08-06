@@ -221,7 +221,7 @@ export const symbolToValueObj = {
 	joker: 1,
 	x: 1,
 	spark: 1,
-	"‌", 1, // 1 U+200C character
+	"‌": 1, // 1 U+200C character
 
 	two: 2,
 	deuce: 2,

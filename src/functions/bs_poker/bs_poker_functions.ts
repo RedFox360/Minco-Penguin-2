@@ -18,8 +18,15 @@ import {
 } from "../cards/basic_card_functions.js";
 import { arraysEqual, countInArray, invalidNumber } from "../util.js";
 
-const toEmptyRgx = /[^a-z0-9\-~;:+*\^\\&%$#@<>/\u200B[\](){}|=_]/g;
-const toSpacesRgx = /[\-~;:+*\^\\&%$#@<>/\u200B[\](){}|=_]/g;
+const toSpacesRgx = /[^a-z0-9\u200C]/g;
+const doubleSpacesRgx = / +(?= )/g;
+
+const fix = (str: string) =>
+	str
+		.toLowerCase()
+		.replace(toSpacesRgx, " ")
+		.replace(doubleSpacesRgx, "")
+		.trim();
 
 function namesHas(index: number, given: string) {
 	return names[index].some(name => given.startsWith(name));
@@ -27,11 +34,7 @@ function namesHas(index: number, given: string) {
 
 export function parseCall(givenCall: string): Call | null {
 	try {
-		const call = givenCall
-			.toLowerCase()
-			.replace(toEmptyRgx, "")
-			.replace(toSpacesRgx, " ")
-			.trim();
+		const call = fix(givenCall);
 		const royalIndex = royalFlushes.findIndex(x => x.includes(call));
 		if (royalIndex !== -1) {
 			const suit = suits[royalIndex];
