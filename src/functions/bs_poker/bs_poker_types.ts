@@ -209,59 +209,74 @@ export const symbolToValueObj = {
 	joker: 1,
 	x: 1,
 	spark: 1,
+	‌: 1, // U+200C
 
 	two: 2,
 	deuce: 2,
 	deux: 2,
+	‌‌: 2, // U+200C
 
 	three: 3,
 	trois: 3,
+	‌‌‌: 3, // U+200C
 
 	four: 4,
 	quatre: 4,
+	‌‌‌‌: 4, // U+200C
 
 	five: 5,
 	cinq: 5,
+	‌‌‌‌‌: 5, // U+200C
 
 	six: 6,
+	‌‌‌‌‌‌: 6, // U+200C
 
 	seven: 7,
 	sept: 7,
+	‌‌‌‌‌‌: 7, // U+200C
 
 	eight: 8,
 	huit: 8,
+	‌‌‌‌‌‌‌‌: 8, // U+200C
 
 	nine: 9,
 	neuf: 9,
+	‌‌‌‌‌‌‌‌‌: 9, // U+200C
 
 	ten: 10,
 	t: 10,
 	dix: 10,
+	‌‌‌‌‌‌‌‌‌‌: 10, // U+200C
 
 	jack: 11,
 	j: 11,
 	knave: 11,
 	valet: 11,
 	grenade: 11,
+	‌‌‌‌‌‌‌‌‌‌‌: 11, // U+200C
 
 	queen: 12,
 	q: 12,
 	dame: 12,
 	tnt: 12,
+	‌‌‌‌‌‌‌‌‌‌‌‌: 12, // U+200C
 
 	king: 13,
 	k: 13,
 	roi: 13,
 	dynamite: 13,
+	‌‌‌‌‌‌‌‌‌‌‌‌‌: 13, // U+200C
 
 	ace: 14,
 	a: 14,
 	as: 14,
+	‌‌‌‌‌‌‌‌‌‌‌‌‌‌: 14, // U+200C
 
 	insurance: 15,
 	i: 15,
 	assurance: 15,
 	flashbang: 15,
+	‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌: 15, // U+200C
 } as const;
 
 export type ReadonlyPlayerCollection = Omit<
