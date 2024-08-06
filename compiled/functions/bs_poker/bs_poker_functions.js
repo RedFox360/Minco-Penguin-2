@@ -2,13 +2,15 @@ import { HandRank, names, RNI, RNIKeys, royalFlushes, symbolToValueObj, } from "
 import { emoji, suits } from "../cards/basic_card_types.js";
 import { suitToBasicEmoji, valueToSymbol, } from "../cards/basic_card_functions.js";
 import { arraysEqual, countInArray, invalidNumber } from "../util.js";
-const toSpacesRgx = /[^a-z0-9\u200C]/g;
-const doubleSpacesRgx = / +(?= )/g;
-const fix = (str) => str
-    .toLowerCase()
-    .replace(toSpacesRgx, " ")
-    .replace(doubleSpacesRgx, "")
-    .trim();
+const toSpacesRgx = /[^a-z0-9\u200C\u2063\uFEFF]/g;
+const doubleSpacesRgx = / +(?= )|.*\uFEFF/g;
+function fix(str) {
+    return str
+        .toLowerCase()
+        .replace(toSpacesRgx, " ")
+        .replace(doubleSpacesRgx, "")
+        .trim();
+}
 function namesHas(index, given) {
     return names[index].some(name => given.startsWith(name));
 }
@@ -168,6 +170,7 @@ export function parseCall(givenCall) {
         if (callIndex >= RNI[HandRank.StraightFlush] &&
             callIndex <= RNI[HandRank.StraightFlushMax]) {
             const index = callIndex - RNI[HandRank.StraightFlush];
+            console.log("F3");
             if (index < 0 || index > 3)
                 return null;
             const suit = suits[index];
@@ -182,6 +185,7 @@ export function parseCall(givenCall) {
         };
     }
     catch {
+        console.log("error");
         return null;
     }
 }

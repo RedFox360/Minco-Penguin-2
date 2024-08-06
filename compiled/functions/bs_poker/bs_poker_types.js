@@ -32,11 +32,13 @@ export const RNI = {
     [HandRank.StraightFlushMax]: 12, // Spades
 };
 export const RNIKeys = Object.keys(RNI).map(n => parseInt(n));
+const callInvis = "\u200C";
+const rankInvis = "\u2063";
 export const names = [
-    ["high", "h", "haut", "‌"], // 1 U+200C character
-    ["pair", "double", "p", "d", "paire", "drunk", "‌‌"], // 2 U+200C characters
-    ["triple", "t", "brelan", "hungover", "‌‌‌"], // 3 U+200C characters
-    ["high straight", "straight", "s", "suite", "‌‌‌‌"], // 4 U+200C characters
+    ["high", "h", "haut", callInvis.repeat(1)],
+    ["pair", "double", "p", "d", "paire", "drunk", callInvis.repeat(2)],
+    ["triple", "t", "brelan", "hungover", callInvis.repeat(3)],
+    ["high straight", "straight", "s", "suite", callInvis.repeat(4)],
     [
         "flush hearts",
         "hearts flush",
@@ -45,7 +47,7 @@ export const names = [
         "fh",
         "hf",
         "couleur cœur",
-        "‌‌‌‌‌", // 5 U+200C characters
+        callInvis.repeat(5),
     ],
     [
         "flush diamonds",
@@ -55,7 +57,7 @@ export const names = [
         "fd",
         "df",
         "couleur carreau",
-        "‌‌‌‌‌‌", // 6 U+200C characters
+        callInvis.repeat(6),
     ],
     [
         "flush clubs",
@@ -65,7 +67,7 @@ export const names = [
         "fc",
         "cf",
         "couleur trèfle",
-        "‌‌‌‌‌‌‌", // 7 U+200C characters
+        callInvis.repeat(7),
     ],
     [
         "flush spades",
@@ -75,9 +77,9 @@ export const names = [
         "fs",
         "sf",
         "couleur pique",
-        "‍‍‍‍‍‍‍‍‌‌‌‌‌‌‌‌", // 8 U+200C characters
+        callInvis.repeat(8),
     ],
-    ["quad", "q", "quadruple", "carré", "overdose", "‌‌‌‌‌‌‌‌‌"], // 9 U+200C characters
+    ["quad", "q", "quadruple", "carré", "overdose", callInvis.repeat(9)],
     [
         "straight flush hearts",
         "hearts straight flush",
@@ -86,7 +88,7 @@ export const names = [
         "sfh",
         "hsf",
         "quinte flush cœur",
-        "‌‌‌‌‌‌", // 10 U+200C characters
+        callInvis.repeat(10),
     ],
     [
         "straight flush diamonds",
@@ -96,7 +98,7 @@ export const names = [
         "sfd",
         "dsf",
         "quinte flush carreau",
-        "‌‌‌‌‌‌‌‌‌‌‌", // 11 U+200C characters
+        callInvis.repeat(11),
     ],
     [
         "straight flush clubs",
@@ -106,7 +108,7 @@ export const names = [
         "sfc",
         "csf",
         "quinte flush trèfle",
-        "‌‌‌‌‌‌‌‌‌‌‌‌", // 12 U+200C characters
+        callInvis.repeat(12),
     ],
     [
         "straight flush spades",
@@ -116,7 +118,7 @@ export const names = [
         "sfs",
         "ssf",
         "quinte flush pique",
-        "‌‌‌‌‌‌‌‌‌‌‌‌‌", // 13 U+200C characters
+        callInvis.repeat(13),
     ],
 ];
 export const royalFlushes = [
@@ -128,7 +130,7 @@ export const royalFlushes = [
         "rhf",
         "hrf",
         "quinte flush royale de cœur",
-        "‌‌‌‌‌‌‌‌‌‌‌‌‌‌", // 14 U+200C characters
+        callInvis.repeat(14),
     ],
     [
         "diamonds royal flush",
@@ -138,7 +140,7 @@ export const royalFlushes = [
         "rdf",
         "drf",
         "quinte flush royale de carreau",
-        "‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌", // 15 U+200C characters
+        callInvis.repeat(15),
     ],
     [
         "clubs royal flush",
@@ -148,7 +150,7 @@ export const royalFlushes = [
         "rcf",
         "crf",
         "quinte flush royale de trèfle",
-        "‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌", // 16 U+200C characters
+        callInvis.repeat(16),
     ],
     [
         "spades royal flush",
@@ -158,67 +160,67 @@ export const royalFlushes = [
         "rsf",
         "srf",
         "quinte flush royale de pique",
-        "‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌", // 17 U+200C characters
+        callInvis.repeat(17),
     ],
 ];
 export const symbolToValueObj = {
     joker: 1,
     x: 1,
     spark: 1,
-    "‌": 1, // 1 U+200C character
+    [rankInvis.repeat(1)]: 1,
     two: 2,
     deuce: 2,
     deux: 2,
-    "‌‌": 2, // 2 U+200C characters
+    [rankInvis.repeat(2)]: 2,
     three: 3,
     trois: 3,
-    "‌‌‌": 3, // 3 U+200C characters
+    [rankInvis.repeat(3)]: 3,
     four: 4,
     quatre: 4,
-    "‌‌‌‌": 4, // 4 U+200C characters
+    [rankInvis.repeat(4)]: 4,
     five: 5,
     cinq: 5,
-    "‌‌‌‌‌": 5, // 5 U+200C characters
+    [rankInvis.repeat(5)]: 5,
     six: 6,
-    "‌‌‌‌‌‌": 6, // 6 U+200C characters
+    [rankInvis.repeat(6)]: 6,
     seven: 7,
     sept: 7,
-    "‌‌‌‌‌‌‌": 7, // 7 U+200C characters
+    [rankInvis.repeat(7)]: 7,
     eight: 8,
     huit: 8,
-    "‌‌‌‌‌‌‌‌": 8, // 8 U+200C characters
+    [rankInvis.repeat(8)]: 8,
     nine: 9,
     neuf: 9,
-    "‌‌‌‌‌‌‌‌‌": 9, // 9 U+200C characters
+    [rankInvis.repeat(9)]: 9,
     ten: 10,
     t: 10,
     dix: 10,
-    "‌‌‌‌‌‌‌‌‌‌": 10, // 10 U+200C characters
+    [rankInvis.repeat(10)]: 10,
     jack: 11,
     j: 11,
     knave: 11,
     valet: 11,
     grenade: 11,
-    "‌‌‌‌‌‌‌‌‌‌‌": 11, // 11 U+200C characters
+    [rankInvis.repeat(11)]: 11,
     queen: 12,
     q: 12,
     dame: 12,
     tnt: 12,
-    "‌‌‌‌‌‌‌‌‌‌‌‌": 12, // 12 U+200C characters
+    [rankInvis.repeat(12)]: 12,
     king: 13,
     k: 13,
     roi: 13,
     dynamite: 13,
-    "‌‌‌‌‌‌‌‌‌‌‌‌‌": 13, // 13 U+200C characters
+    [rankInvis.repeat(13)]: 13,
     ace: 14,
     a: 14,
     as: 14,
-    "‌‌‌‌‌‌‌‌‌‌‌‌‌‌": 14, // 14 U+200C characters
+    [rankInvis.repeat(14)]: 14,
     insurance: 15,
     i: 15,
     assurance: 15,
     flashbang: 15,
-    "‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌": 15, // 15 U+200C characters
+    [rankInvis.repeat(15)]: 15,
 };
 export var ClownState;
 (function (ClownState) {
