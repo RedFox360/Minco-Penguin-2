@@ -19,7 +19,7 @@ const deposit = new SlashCommand()
 		const profile = await getProfile(interaction.user.id);
 		if (amount > profile.mincoDollars) {
 			await interaction.reply({
-				content: "You don't have that amount of Minco Dollars to deposit",
+				content: `You do not have ${amount.toLocaleString()} Minco Dollars in your wallet.`,
 				ephemeral: true,
 			});
 			return;
@@ -37,7 +37,7 @@ const deposit = new SlashCommand()
 			false
 		);
 		await interaction.reply(
-			`You deposited ${amount} Minco Dollars into your bank`
+			`You deposited **${amount.toLocaleString()}** Minco Dollars into your bank.`
 		);
 	});
 

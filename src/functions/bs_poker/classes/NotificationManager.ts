@@ -5,9 +5,10 @@ import {
 	type GuildTextBasedChannel,
 	type Message,
 } from "discord.js";
-import type StateManager from "./StateManager.js";
-import { customIds, ReadonlyPlayerCollection } from "../bs_poker_types.js";
+import { type ReadonlyStateManager } from "./StateManager.js";
+import { customIds } from "../bs_poker_types.js";
 import { msToRelTimestamp } from "../../util.js";
+import { type ReadonlyPlayerCollection } from "./PlayerCollection.js";
 
 const timeToMakeCall = 60_000;
 const viewCardsButton = new ButtonBuilder()
@@ -24,6 +25,23 @@ const viewGameInfoButton = new ButtonBuilder()
 	.setStyle(ButtonStyle.Secondary);
 const bsButtonDisabled = new ButtonBuilder(bsButton.toJSON()).setDisabled(true);
 
+const rowWithoutBS = new ActionRowBuilder<ButtonBuilder>().addComponents(
+	viewCardsButton,
+	viewGameInfoButton
+);
+
+const rowWithBS = new ActionRowBuilder<ButtonBuilder>().addComponents(
+	viewCardsButton,
+	viewGameInfoButton,
+	bsButton
+);
+
+const rowWithBSDisabled = new ActionRowBuilder<ButtonBuilder>().addComponents(
+	viewCardsButton,
+	viewGameInfoButton,
+	bsButtonDisabled
+);
+
 export default class NotificationManager {
 	private notifText: string;
 	private notification: Message;
@@ -31,7 +49,7 @@ export default class NotificationManager {
 
 	public constructor(
 		private readonly channel: GuildTextBasedChannel,
-		private readonly state: StateManager,
+		private readonly state: ReadonlyStateManager,
 		private readonly players: ReadonlyPlayerCollection
 	) {}
 
@@ -46,13 +64,10 @@ export default class NotificationManager {
 	}
 
 	private getNotifRow(disabled: boolean) {
-		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-			viewCardsButton,
-			viewGameInfoButton
-		);
-		if (this.state.currentCall)
-			row.addComponents(disabled ? bsButtonDisabled : bsButton);
-		return row;
+		if (this.state.currentCall) {
+			return disabled ? rowWithBSDisabled : rowWithBS;
+		}
+		return rowWithoutBS;
 	}
 
 	public async sendNewNotif(onTimeout: () => unknown) {

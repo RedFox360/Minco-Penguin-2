@@ -1,7 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, } from "discord.js";
 import { ClownState, customIds, customIdValues, } from "../bs_poker_types.js";
 import { callInDeck, formatCall, highestCallInDeck, parseCall, } from "../bs_poker_functions.js";
-import { msToRelTimestamp, replyThenDelete, invalidNumber, median, hasAdminForGames, } from "../../util.js";
+import { msToRelTimestamp, replyThenDelete, invalidNumber, median, hasAdminForGames, cache, } from "../../util.js";
 import { cardToEmoji, formatCardSideways, formatDeck, formatDeckLines, } from "../../cards/basic_card_functions.js";
 import { bsPokerTeams, channelsWithActiveGames } from "../../../main.js";
 import { getProfile, updateProfile } from "../../../prisma/models.js";
@@ -98,7 +98,7 @@ export default class BSPoker {
         const handsList = this.players
             .map(player => {
             const teammates = player.displayTeammates();
-            return `${player}${teammates}\n${player.formatHand()}`;
+            return `${player} ${teammates}\n${player.formatHand()}`;
         })
             .join("\n");
         return {
@@ -235,13 +235,14 @@ ${this.players.currentPlayer} will start the round.`,
     }
     async endGameSuccess() {
         if (this.players.size === 0) {
-            let description = "There were no players left at the end of this game due to a curse or players leaving.";
+            let description = "There were no players left at the end of this game due to a curse.";
             if (this.options.startingBet)
                 description += "\nThe pot will not be given to any player.";
-            const noWinnerEmbed = new EmbedBuilder()
-                .setTitle("Game Over!")
-                .setDescription(description)
-                .setColor(colors.red);
+            const noWinnerEmbed = {
+                title: "Game Over!",
+                description,
+                color: colors.red,
+            };
             this.channel.send({
                 embeds: [noWinnerEmbed],
             });
@@ -312,6 +313,11 @@ ${this.players.currentPlayer} will start the round.`,
             content: bxContent +
                 `\n*Please type the number of the card you want to remove* ${timeUpToTakeCard}.\nIf you do not want to take a card, type \`0\`.`,
         });
+        const handleError = () => {
+            this.channel.send({
+                content: `${playerWBJ} failed to take a card in time. They will not take any card.`,
+            });
+        };
         this.channel
             .awaitMessages({
             max: 1,
@@ -328,6 +334,10 @@ ${this.players.currentPlayer} will start the round.`,
         })
             .then(messages => {
             const msg = messages.first();
+            if (!msg) {
+                handleError();
+                return;
+            }
             const cardNumber = parseInt(msg.content);
             if (cardNumber > 0 && cardNumber <= this.commonCards.length) {
                 const card = this.commonCards.splice(cardNumber - 1, 1)[0];
@@ -342,9 +352,7 @@ ${this.players.currentPlayer} will start the round.`,
             }
         })
             .catch(() => {
-            this.channel.send({
-                content: `${playerWBJ} failed to take a card in time. They will not take any card.`,
-            });
+            handleError();
         })
             .finally(() => {
             bxMsg.edit({ content: bxContent });
@@ -556,28 +564,30 @@ ${this.players.currentPlayer} will start the round.`,
             this.handleBS(bser);
         }
     }
+    async viewCardsPlayerNotInGame(buttonInteraction) {
+        let content = "*You are not a player in this game.*\n";
+        const teammateHandFormatData = this.players.formatTeammateHand(buttonInteraction.user.id);
+        if (teammateHandFormatData) {
+            const teammateHasBleedJoker = this.options.useBleedJoker &&
+                teammateHandFormatData.hand?.some(card => card.suit === "rj");
+            const commonCardsDisplay = this.formatCommonCardsWithName(teammateHasBleedJoker);
+            content += `${teammateHandFormatData.content}\n${commonCardsDisplay}\n${this.players.formatPWSC()}`;
+        }
+        else {
+            content += `${this.formatCommonCardsWithName()}\n${this.players.formatPWSC()}`;
+        }
+        await buttonInteraction.reply({
+            content,
+            ephemeral: true,
+        });
+    }
     async viewCardsClicked(buttonInteraction) {
         const buttonPlayer = this.players.get(buttonInteraction.user.id);
         if (!buttonPlayer?.hand) {
-            let content = "*You are not a player in this game.*\n";
-            const teammateHandFormatData = this.players.formatTeammateHand(buttonInteraction.user.id);
-            if (teammateHandFormatData) {
-                const teammateHasBleedJoker = this.options.useBleedJoker &&
-                    teammateHandFormatData.hand?.some(card => card.suit === "rj");
-                const commonCardsDisplay = this.formatCommonCardsWithName(teammateHasBleedJoker);
-                content += `${teammateHandFormatData.content}\n${commonCardsDisplay}\n${this.players.formatPWSC()}`;
-            }
-            else {
-                content += `${this.formatCommonCardsWithName()}\n${this.players.formatPWSC()}`;
-            }
-            await buttonInteraction.reply({
-                content,
-                ephemeral: true,
-            });
+            await this.viewCardsPlayerNotInGame(buttonInteraction);
             return;
         }
-        let hasRJ;
-        const getHasRJ = () => hasRJ ?? (hasRJ = buttonPlayer.hand.some(card => card.suit === "rj"));
+        const getHasRJ = cache(() => buttonPlayer.hand.some(card => card.suit === "rj"));
         const hasClown = this.options.useClown &&
             this.players.size > 2 &&
             this.state.clowned === ClownState.NotClowned &&

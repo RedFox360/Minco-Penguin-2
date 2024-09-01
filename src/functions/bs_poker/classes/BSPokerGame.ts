@@ -32,6 +32,7 @@ import {
 	invalidNumber,
 	median,
 	hasAdminForGames,
+	cache,
 } from "../../util.js";
 import {
 	cardToEmoji,
@@ -187,7 +188,7 @@ export default class BSPoker {
 		const handsList = this.players
 			.map(player => {
 				const teammates = player.displayTeammates();
-				return `${player}${teammates}\n${player.formatHand()}`;
+				return `${player} ${teammates}\n${player.formatHand()}`;
 			})
 			.join("\n");
 		return {
@@ -343,13 +344,14 @@ ${this.players.currentPlayer} will start the round.`,
 	private async endGameSuccess() {
 		if (this.players.size === 0) {
 			let description =
-				"There were no players left at the end of this game due to a curse or players leaving.";
+				"There were no players left at the end of this game due to a curse.";
 			if (this.options.startingBet)
 				description += "\nThe pot will not be given to any player.";
-			const noWinnerEmbed = new EmbedBuilder()
-				.setTitle("Game Over!")
-				.setDescription(description)
-				.setColor(colors.red);
+			const noWinnerEmbed: APIEmbed = {
+				title: "Game Over!",
+				description,
+				color: colors.red,
+			};
 			this.channel.send({
 				embeds: [noWinnerEmbed],
 			});
@@ -427,6 +429,12 @@ ${this.players.currentPlayer} will start the round.`,
 				`\n*Please type the number of the card you want to remove* ${timeUpToTakeCard}.\nIf you do not want to take a card, type \`0\`.`,
 		});
 
+		const handleError = () => {
+			this.channel.send({
+				content: `${playerWBJ} failed to take a card in time. They will not take any card.`,
+			});
+		};
+
 		this.channel
 			.awaitMessages({
 				max: 1,
@@ -444,6 +452,10 @@ ${this.players.currentPlayer} will start the round.`,
 			})
 			.then(messages => {
 				const msg = messages.first();
+				if (!msg) {
+					handleError();
+					return;
+				}
 				const cardNumber = parseInt(msg.content);
 				if (cardNumber > 0 && cardNumber <= this.commonCards.length) {
 					const card = this.commonCards.splice(cardNumber - 1, 1)[0];
@@ -457,9 +469,7 @@ ${this.players.currentPlayer} will start the round.`,
 				}
 			})
 			.catch(() => {
-				this.channel.send({
-					content: `${playerWBJ} failed to take a card in time. They will not take any card.`,
-				});
+				handleError();
 			})
 			.finally(() => {
 				bxMsg.edit({ content: bxContent });
@@ -702,36 +712,40 @@ ${this.players.currentPlayer} will start the round.`,
 		}
 	}
 
+	private async viewCardsPlayerNotInGame(buttonInteraction: ButtonInteraction) {
+		let content = "*You are not a player in this game.*\n";
+		const teammateHandFormatData = this.players.formatTeammateHand(
+			buttonInteraction.user.id
+		);
+		if (teammateHandFormatData) {
+			const teammateHasBleedJoker =
+				this.options.useBleedJoker &&
+				teammateHandFormatData.hand?.some(card => card.suit === "rj");
+			const commonCardsDisplay = this.formatCommonCardsWithName(
+				teammateHasBleedJoker
+			);
+			content += `${
+				teammateHandFormatData.content
+			}\n${commonCardsDisplay}\n${this.players.formatPWSC()}`;
+		} else {
+			content += `${this.formatCommonCardsWithName()}\n${this.players.formatPWSC()}`;
+		}
+		await buttonInteraction.reply({
+			content,
+			ephemeral: true,
+		});
+	}
+
 	private async viewCardsClicked(buttonInteraction: ButtonInteraction) {
 		const buttonPlayer = this.players.get(buttonInteraction.user.id);
 		if (!buttonPlayer?.hand) {
-			let content = "*You are not a player in this game.*\n";
-			const teammateHandFormatData = this.players.formatTeammateHand(
-				buttonInteraction.user.id
-			);
-			if (teammateHandFormatData) {
-				const teammateHasBleedJoker =
-					this.options.useBleedJoker &&
-					teammateHandFormatData.hand?.some(card => card.suit === "rj");
-				const commonCardsDisplay = this.formatCommonCardsWithName(
-					teammateHasBleedJoker
-				);
-				content += `${
-					teammateHandFormatData.content
-				}\n${commonCardsDisplay}\n${this.players.formatPWSC()}`;
-			} else {
-				content += `${this.formatCommonCardsWithName()}\n${this.players.formatPWSC()}`;
-			}
-			await buttonInteraction.reply({
-				content,
-				ephemeral: true,
-			});
+			await this.viewCardsPlayerNotInGame(buttonInteraction);
 			return;
 		}
 
-		let hasRJ: boolean;
-		const getHasRJ = () =>
-			hasRJ ?? (hasRJ = buttonPlayer.hand.some(card => card.suit === "rj"));
+		const getHasRJ = cache(() =>
+			buttonPlayer.hand.some(card => card.suit === "rj")
+		);
 
 		const hasClown =
 			this.options.useClown &&

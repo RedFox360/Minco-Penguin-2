@@ -26,7 +26,7 @@ const gift = new SlashCommand()
     const profile = await getProfile(interaction.user.id);
     if (amount > profile.mincoDollars) {
         interaction.reply({
-            content: `You don't have ${amount.toLocaleString()} Minco Dollars.`,
+            content: `You do not have ${amount.toLocaleString()} Minco Dollars.`,
             ephemeral: true,
         });
         return;

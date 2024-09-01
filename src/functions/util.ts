@@ -239,3 +239,11 @@ export function arraysEqual<T>(
 	}
 	return true;
 }
+
+export function cache<T>(callback: () => T): () => T {
+	let value: T;
+	return () => {
+		if (value === undefined) value = callback();
+		return value;
+	};
+}

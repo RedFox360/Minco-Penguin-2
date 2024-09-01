@@ -170,4 +170,12 @@ export function arraysEqual(arr1, arr2, comparisonFn = (a, b) => a === b) {
     }
     return true;
 }
+export function cache(callback) {
+    let value;
+    return () => {
+        if (value === undefined)
+            value = callback();
+        return value;
+    };
+}
 //# sourceMappingURL=util.js.map

@@ -15,6 +15,9 @@ const viewGameInfoButton = new ButtonBuilder()
     .setLabel("Game Info")
     .setStyle(ButtonStyle.Secondary);
 const bsButtonDisabled = new ButtonBuilder(bsButton.toJSON()).setDisabled(true);
+const rowWithoutBS = new ActionRowBuilder().addComponents(viewCardsButton, viewGameInfoButton);
+const rowWithBS = new ActionRowBuilder().addComponents(viewCardsButton, viewGameInfoButton, bsButton);
+const rowWithBSDisabled = new ActionRowBuilder().addComponents(viewCardsButton, viewGameInfoButton, bsButtonDisabled);
 export default class NotificationManager {
     constructor(channel, state, players) {
         this.channel = channel;
@@ -27,10 +30,10 @@ export default class NotificationManager {
             : ""}${this.players.currentPlayer}, it is your turn.`;
     }
     getNotifRow(disabled) {
-        const row = new ActionRowBuilder().addComponents(viewCardsButton, viewGameInfoButton);
-        if (this.state.currentCall)
-            row.addComponents(disabled ? bsButtonDisabled : bsButton);
-        return row;
+        if (this.state.currentCall) {
+            return disabled ? rowWithBSDisabled : rowWithBS;
+        }
+        return rowWithoutBS;
     }
     async sendNewNotif(onTimeout) {
         const timeUp = msToRelTimestamp(timeToMakeCall);

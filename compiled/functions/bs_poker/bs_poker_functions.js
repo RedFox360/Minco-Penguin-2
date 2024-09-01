@@ -14,6 +14,27 @@ function fix(str) {
 function namesHas(index, given) {
     return names[index].some(name => given.startsWith(name));
 }
+function flushCallToSuit(call) {
+    if (namesHas(RNI[HandRank.Flush], call))
+        return "H";
+    if (namesHas(RNI[HandRank.Flush + 1], call))
+        return "D";
+    if (namesHas(RNI[HandRank.Flush + 2], call))
+        return "C";
+    if (namesHas(RNI[HandRank.Flush + 3], call))
+        return "S";
+    return null;
+}
+function flushCallsToSuits(...calls) {
+    const suits = [];
+    for (const call of calls) {
+        const suit = flushCallToSuit(call);
+        if (suit)
+            suits.push(suit);
+    }
+    return suits;
+}
+const validSymbol = (x) => symbolToValue(x) != null;
 export function parseCall(givenCall) {
     try {
         const call = fix(givenCall);
@@ -94,14 +115,14 @@ export function parseCall(givenCall) {
             return null;
         const callName = tokens.slice(1).join(" ");
         const callIndex = names.findIndex(name => name.includes(callName));
-        const call1 = tokens.findIndex(x => symbolToValue(x) !== null);
-        const call2 = tokens.findLastIndex(x => symbolToValue(x) !== null);
+        const call1 = tokens.findIndex(validSymbol);
+        const call2 = tokens.findLastIndex(validSymbol);
         const c1c2good = call1 !== -1 && call2 !== -1 && call1 !== call2;
         // Split the call into 4 sections
         // Example call: A flush hearts K flush clubs -> ["A", "flush hearts", "K", "flush clubs"]
         // the indexes of the A and K are given in call1 and call2
-        const newSplit = c1c2good
-            ? [
+        if (c1c2good) {
+            const rfrfSplit = [
                 tokens
                     .slice(0, call1 + 1)
                     .join(" ")
@@ -118,59 +139,47 @@ export function parseCall(givenCall) {
                     .slice(call2 + 1)
                     .join(" ")
                     .trim(),
-            ]
-            : null;
-        const flushAppearances = newSplit
-            ? newSplit
-                .map((x) => {
-                if (namesHas(RNI[HandRank.Flush], x))
-                    return "H";
-                if (namesHas(RNI[HandRank.Flush + 1], x))
-                    return "D";
-                if (namesHas(RNI[HandRank.Flush + 2], x))
-                    return "C";
-                if (namesHas(RNI[HandRank.Flush + 3], x))
-                    return "S";
-                return null;
-            })
-                .filter(x => x !== null)
-            : null;
-        // Flushes
-        if ((flushAppearances && flushAppearances.length > 0) ||
-            (callIndex >= RNI[HandRank.Flush] && callIndex <= RNI[HandRank.FlushMax])) {
-            if (flushAppearances && flushAppearances.length === 2) {
-                // double flush case
-                // double flushes are asked like this: 2 flush 4 flush
-                const suit1 = flushAppearances[0];
-                const suit2 = flushAppearances[1];
-                if (!suit1 || !suit2)
+            ];
+            const flushAppearances = flushCallsToSuits(rfrfSplit[1], rfrfSplit[3]);
+            // Flushes
+            if (flushAppearances.length ||
+                (callIndex >= RNI[HandRank.Flush] &&
+                    callIndex <= RNI[HandRank.FlushMax])) {
+                if (flushAppearances.length === 2) {
+                    // double flush case
+                    // double flushes are asked like this: 2 flush 4 flush
+                    const suit1 = flushAppearances[0];
+                    const suit2 = flushAppearances[1];
+                    if (!suit1 || !suit2)
+                        return null;
+                    const high1 = symbolToValue(rfrfSplit[0]);
+                    if (invalidNumber(high1))
+                        return null;
+                    const high2 = symbolToValue(rfrfSplit[2]);
+                    if (invalidNumber(high2))
+                        return null;
+                    return {
+                        high: [
+                            { value: high1, suit: suit1 },
+                            { value: high2, suit: suit2 },
+                        ],
+                        call: HandRank.DoubleFlush,
+                    };
+                }
+                const index = callIndex - RNI[HandRank.Flush];
+                if (index < 0 || index > 3)
                     return null;
-                const high1 = symbolToValue(newSplit[0]);
-                const high2 = symbolToValue(newSplit[2]);
-                if (invalidNumber(high1) || invalidNumber(high2))
-                    return null;
+                const suit = suits[index];
                 return {
-                    high: [
-                        { value: high1, suit: suit1 },
-                        { value: high2, suit: suit2 },
-                    ],
-                    call: HandRank.DoubleFlush,
+                    high: { value: high, suit },
+                    call: HandRank.Flush,
                 };
             }
-            const index = callIndex - RNI[HandRank.Flush];
-            if (index < 0 || index > 3)
-                return null;
-            const suit = suits[index];
-            return {
-                high: { value: high, suit },
-                call: HandRank.Flush,
-            };
         }
         // Straight Flushes
         if (callIndex >= RNI[HandRank.StraightFlush] &&
             callIndex <= RNI[HandRank.StraightFlushMax]) {
             const index = callIndex - RNI[HandRank.StraightFlush];
-            console.log("F3");
             if (index < 0 || index > 3)
                 return null;
             const suit = suits[index];
@@ -184,8 +193,8 @@ export function parseCall(givenCall) {
             call: RNIKeys.find(key => RNI[key] === callIndex),
         };
     }
-    catch {
-        console.log("error");
+    catch (e) {
+        console.error(e);
         return null;
     }
 }
@@ -215,19 +224,20 @@ export function callsEqual(call1, call2) {
         const call2High = call2.high;
         return (call1.high.value === call2High.value && call1.high.suit === call2High.suit);
     }
-    if (call1)
-        return call1.high.value === call2.high.value;
+    return call1.high.value === call2.high.value;
 }
 function symbolToValue(textGiven) {
     const text = textGiven.toLowerCase().trim();
-    const lookup = symbolToValueObj[text];
-    if (lookup)
-        return lookup;
+    if (Object.hasOwn(symbolToValueObj, text)) {
+        return symbolToValueObj[text];
+    }
     const value = parseInt(text);
-    if (invalidNumber(value))
+    if (invalidNumber(value)) {
         return null;
-    if (value < 1 || value > 15)
+    }
+    if (value < 1 || value > 15) {
         return null;
+    }
     return value;
 }
 // make every word in a string start with a capital
@@ -300,22 +310,8 @@ export function isHigher(call1, call2) {
     return call1_high < call2_high;
 }
 export function formatCall(call) {
-    if (!call || call.call == null)
+    if (call?.call == null)
         return "Unknown Call";
-    if (call.call === HandRank.StraightFlush && call.high.value === 14) {
-        switch (call.high.suit) {
-            case "H":
-                return `Royal Flush${emoji.hearts}`;
-            case "D":
-                return `Royal Flush${emoji.diamonds}`;
-            case "C":
-                return `Royal Flush${emoji.clubs}`;
-            case "S":
-                return `Royal Flush${emoji.spades}`;
-            default:
-                return "Unknown Call";
-        }
-    }
     if (call.call === HandRank.DoublePair) {
         return `${valueToSymbol(call.high[0])} Pair ${valueToSymbol(call.high[1])} Pair`;
     }
@@ -332,6 +328,20 @@ export function formatCall(call) {
         return `${valueToSymbol(call.high.value)} Flush${suitToBasicEmoji(call.high.suit)}`;
     }
     if (call.call === HandRank.StraightFlush) {
+        if (call.high.value === 14) {
+            switch (call.high.suit) {
+                case "H":
+                    return `Royal Flush${emoji.hearts}`;
+                case "D":
+                    return `Royal Flush${emoji.diamonds}`;
+                case "C":
+                    return `Royal Flush${emoji.clubs}`;
+                case "S":
+                    return `Royal Flush${emoji.spades}`;
+                default:
+                    return "Unknown Call";
+            }
+        }
         return `${valueToSymbol(call.high.value)} Straight Flush${suitToBasicEmoji(call.high.suit)}`;
     }
     if (call.call === HandRank.DoubleFlush) {

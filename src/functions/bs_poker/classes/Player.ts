@@ -49,10 +49,10 @@ export default class BSPokerPlayer extends Player {
 			?.filter(t => t !== this.id);
 	}
 
-	public displayTeammates(): ` (Team: ${string})` | "" {
+	public displayTeammates(): `(Team: ${string})` | "" {
 		const teammates = this.getTeammates();
 		if (teammates?.length > 0)
-			return ` (Team: ${teammates.map(userMention).join(" ")})`;
+			return `(Team: ${teammates.map(userMention).join(" ")})`;
 		return "";
 	}
 }

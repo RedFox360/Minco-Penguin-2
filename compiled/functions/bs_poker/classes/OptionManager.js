@@ -31,9 +31,8 @@ export default class OptionManager {
             options.getBoolean(optionNames.insuranceSpecials) ?? false;
         this.useSpecialCards =
             (options.getBoolean(optionNames.useSpecials) ?? false) ||
-                this.useClown ||
-                this.useBloodJoker ||
-                this.useBleedJoker;
+                ((this.useClown || this.useBloodJoker || this.useBleedJoker) &&
+                    !this.insuranceSpecials);
         this.useCurses =
             options.getBoolean(optionNames.curses) || this.useBloodJoker;
         this.trueInsuranceCount =
@@ -52,6 +51,12 @@ export default class OptionManager {
         if (this.playerLimit > maxPlayerLimit) {
             throw new OptionCreationError(`The maximum number of cards to be dealt is greater than the size of the deck.
 Please decrease the player limit to a value less than or equal to ${maxPlayerLimit}.`);
+        }
+        if (this.trueInsuranceCount > 4) {
+            throw new OptionCreationError(`The number of insurance cards in the deck is greater than 4. (Enabling insurance specials adds 2 insurance cards.)`);
+        }
+        if (this.useSpecialCards && this.jokerCount > 2) {
+            throw new OptionCreationError(`The number of jokers in the deck is greater than 4. (Enabling special cards adds 2 jokers.)`);
         }
         if (this.useSpecialCards) {
             const abilities = ["Red"];

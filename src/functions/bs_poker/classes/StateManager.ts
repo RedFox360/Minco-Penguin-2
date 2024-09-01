@@ -42,3 +42,8 @@ export default class StateManager {
 		return this.last3CallsTracker.every(x => x === false);
 	}
 }
+
+export type ReadonlyStateManager = Omit<
+	Readonly<StateManager>,
+	"reset" | "nextRound" | "addToTracker"
+>;

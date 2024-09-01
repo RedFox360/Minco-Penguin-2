@@ -59,6 +59,7 @@ const leaderboard = new SlashCommand()
             };
         })
             .sort((a, b) => b.total - a.total);
+        const inCirculation = rawData.reduce((acc, curr) => acc + curr.total, 0);
         const formatted = rawData.map(d => {
             const member = members.get(d.id);
             const mdDisplay = useLog
@@ -66,7 +67,6 @@ const leaderboard = new SlashCommand()
                 : `**${d.total.toLocaleString()}**`;
             return `${member?.displayName ?? `<@${d.id}>`}: ${mdDisplay}`;
         });
-        const inCirculation = profiles.reduce((acc, curr) => acc + curr.mincoDollars, 0);
         const paginator = new LeaderboardPaginator({
             title: "MD Leaderboard",
             description: `MD in Circulation: **${inCirculation.toLocaleString()}**`,

@@ -15,6 +15,7 @@ type ArrayForm = Iterable<readonly [Snowflake, Player]>;
 export default class PlayerCollection extends Collection<Snowflake, Player> {
 	public out: Snowflake[] = [];
 	public originalPlayers: number;
+
 	private pwsc: UserMention[];
 	private _currPlayerIdx = 0;
 	public highestCard: ExtCard;
@@ -227,3 +228,26 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 			});
 	}
 }
+
+export type ReadonlyPlayerCollection = Omit<
+	Readonly<PlayerCollection>,
+	| "delete"
+	| "ensure"
+	| "forEach"
+	| "get"
+	| "reverse"
+	| "set"
+	| "sort"
+	| "sweep"
+	| "updatePlayerData"
+	| "removePlayers"
+	| "removePlayerFromTeams"
+	| "addPlayer"
+	| "dealCards"
+	| "afterKick"
+	| "forward"
+	| "setIdxToIdxOf"
+	| "reverseAll"
+	| "setHighestCard"
+> &
+	ReadonlyMap<Snowflake, Player>;

@@ -1,4 +1,4 @@
-import { ClownState, HandRank, } from "../bs_poker_types.js";
+import { ClownState, HandRank } from "../bs_poker_types.js";
 import { invalidNumber, replyThenDelete } from "../../util.js";
 import { formatCall, isHigher } from "../bs_poker_functions.js";
 import { emoji } from "../../cards/basic_card_types.js";

@@ -19,7 +19,7 @@ const withdraw = new SlashCommand()
 		const profile = await getProfile(interaction.user.id);
 		if (amount > profile.bank) {
 			await interaction.reply({
-				content: "You don't have that amount of Minco Dollars to withdraw",
+				content: `You do not have ${amount.toLocaleString()} Minco Dollars in your bank.`,
 				ephemeral: true,
 			});
 			return;
@@ -36,7 +36,9 @@ const withdraw = new SlashCommand()
 			},
 			false
 		);
-		await interaction.reply(`You withdrew ${amount} Minco Dollars from bank`);
+		await interaction.reply(
+			`You withdrew **${amount.toLocaleString()}** Minco Dollars from your bank.`
+		);
 	});
 
 export default withdraw;

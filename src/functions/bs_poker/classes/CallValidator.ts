@@ -1,20 +1,16 @@
 import { type Message } from "discord.js";
-import {
-	type Call,
-	ClownState,
-	HandRank,
-	ReadonlyPlayerCollection,
-} from "../bs_poker_types.js";
+import { type Call, ClownState, HandRank } from "../bs_poker_types.js";
 import { invalidNumber, replyThenDelete } from "../../util.js";
 import { formatCall, isHigher } from "../bs_poker_functions.js";
 import { emoji } from "../../cards/basic_card_types.js";
 import type OptionManager from "./OptionManager.js";
-import type StateManager from "./StateManager.js";
+import { type ReadonlyStateManager } from "./StateManager.js";
+import { type ReadonlyPlayerCollection } from "./PlayerCollection.js";
 
 export default class CallValidator {
 	public constructor(
 		private readonly options: OptionManager,
-		private readonly state: StateManager,
+		private readonly state: ReadonlyStateManager,
 		private readonly players: ReadonlyPlayerCollection
 	) {}
 
