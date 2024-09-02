@@ -141,40 +141,36 @@ export function parseCall(givenCall) {
                     .trim(),
             ];
             const flushAppearances = flushCallsToSuits(rfrfSplit[1], rfrfSplit[3]);
-            // Flushes
-            if (flushAppearances.length ||
-                (callIndex >= RNI[HandRank.Flush] &&
-                    callIndex <= RNI[HandRank.FlushMax])) {
-                if (flushAppearances.length === 2) {
-                    // double flush case
-                    // double flushes are asked like this: 2 flush 4 flush
-                    const suit1 = flushAppearances[0];
-                    const suit2 = flushAppearances[1];
-                    if (!suit1 || !suit2)
-                        return null;
-                    const high1 = symbolToValue(rfrfSplit[0]);
-                    if (invalidNumber(high1))
-                        return null;
-                    const high2 = symbolToValue(rfrfSplit[2]);
-                    if (invalidNumber(high2))
-                        return null;
-                    return {
-                        high: [
-                            { value: high1, suit: suit1 },
-                            { value: high2, suit: suit2 },
-                        ],
-                        call: HandRank.DoubleFlush,
-                    };
-                }
-                const index = callIndex - RNI[HandRank.Flush];
-                if (index < 0 || index > 3)
+            if (flushAppearances?.length === 2) {
+                // double flush case
+                // double flushes are asked like this: 2 flush 4 flush
+                const suit1 = flushAppearances[0];
+                const suit2 = flushAppearances[1];
+                if (!suit1 || !suit2)
                     return null;
-                const suit = suits[index];
+                const high1 = symbolToValue(rfrfSplit[0]);
+                if (invalidNumber(high1))
+                    return null;
+                const high2 = symbolToValue(rfrfSplit[2]);
+                if (invalidNumber(high2))
+                    return null;
                 return {
-                    high: { value: high, suit },
-                    call: HandRank.Flush,
+                    high: [
+                        { value: high1, suit: suit1 },
+                        { value: high2, suit: suit2 },
+                    ],
+                    call: HandRank.DoubleFlush,
                 };
             }
+        }
+        // Flushes
+        const index = callIndex - RNI[HandRank.Flush];
+        if (index >= 0 && index <= 3) {
+            const suit = suits[index];
+            return {
+                high: { value: high, suit },
+                call: HandRank.Flush,
+            };
         }
         // Straight Flushes
         if (callIndex >= RNI[HandRank.StraightFlush] &&
