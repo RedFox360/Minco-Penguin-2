@@ -1,5 +1,4 @@
 import {
-	type ExtValue,
 	type Call,
 	type ExtCard,
 	type DoubleFlushCall,
@@ -10,6 +9,7 @@ import {
 	royalFlushes,
 	symbolToValueObj,
 } from "./bs_poker_types.js";
+import { ExtValue } from "../cards/basic_card_types.js";
 import { emoji, type Suit, suits } from "../cards/basic_card_types.js";
 import {
 	suitToBasicEmoji,

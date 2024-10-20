@@ -15,6 +15,13 @@ export type Value =
 	| 12 // queen
 	| 13 // king
 	| 14; // ace
+export type JISuit = Suit | "j" | "i";
+export type ExtValue = 1 | Value | 15;
+
+export interface JICard {
+	suit: JISuit;
+	value: ExtValue;
+}
 
 export const suits = ["H", "D", "C", "S"] as const;
 export const values = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] as const;
@@ -24,7 +31,7 @@ export interface Card {
 	value: Value;
 }
 
-export type AnyCard = Card | ExtCard;
+export type AnyCard = Card | JICard | ExtCard;
 
 export const emoji = {
 	hearts: ":hearts:",

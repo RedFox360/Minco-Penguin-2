@@ -1,36 +1,9 @@
 import { type Snowflake, userMention } from "discord.js";
 import { type ExtCard } from "../bs_poker_types.js";
-import { spliceRandom } from "../../util.js";
 import { bsPokerTeams } from "../../../main.js";
-import { formatDeck } from "../../cards/basic_card_functions.js";
+import Player from "../../cards/Player.js";
 
-abstract class Player {
-	public abstract hand: ExtCard[];
-	public abstract cardsEntitled: number;
-
-	public constructor(public readonly id: Snowflake) {}
-
-	public dealCards(deck: ExtCard[]) {
-		this.hand = spliceRandom(deck, this.cardsEntitled);
-		this.hand.sort((a, b) => a.value - b.value);
-	}
-
-	public formatHand() {
-		if (this.hand?.length) return formatDeck(this.hand);
-		else return "*No cards*";
-	}
-
-	public displayEntitled() {
-		if (this.cardsEntitled === 1) return `${this.toString()}: 1 card`;
-		return `${this.toString()}: ${this.cardsEntitled} cards`;
-	}
-
-	public toString() {
-		return userMention(this.id);
-	}
-}
-
-export default class BSPokerPlayer extends Player {
+export default class BSPokerPlayer extends Player<ExtCard> {
 	public hand: ExtCard[] = [];
 
 	public constructor(

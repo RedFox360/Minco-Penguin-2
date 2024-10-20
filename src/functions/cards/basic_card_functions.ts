@@ -1,10 +1,10 @@
 import {
 	type AnyCard,
 	emoji,
+	ExtValue,
 	newEmoji,
 	newEmojiSuits,
 } from "./basic_card_types.js";
-import { type ExtValue } from "../bs_poker/bs_poker_types.js";
 
 export function suitToBasicEmoji(suit: string) {
 	switch (suit) {
@@ -172,6 +172,16 @@ const basicDeck = [
 	{ suit: "S", value: 14 },
 ] as const;
 
+const jiDeck = [
+	...basicDeck,
+	{ suit: "j", value: 1 },
+	{ suit: "i", value: 15 },
+] as const;
+
 export function createBasicDeck() {
 	return basicDeck.slice();
+}
+
+export function createJIDeck() {
+	return jiDeck.slice();
 }

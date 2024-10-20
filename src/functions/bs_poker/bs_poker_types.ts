@@ -1,18 +1,11 @@
-import { type Snowflake } from "discord.js";
-import { type Suit, type Value } from "../cards/basic_card_types.js";
+import { type JISuit, type ExtValue } from "../cards/basic_card_types.js";
 import type Player from "./classes/Player.js";
-import type PlayerCollection from "./classes/PlayerCollection.js";
 
-export type ExtSuit = Suit | "j" | "i" | "bj" | "rj" | null;
+export type ExtSuit = JISuit | "bj" | "rj" | null;
 // Hearts, Diamonds, Clubs, Spades, Joker, Insurance, Black Joker, Red Joker, [No Suit/Unprovided]
 
 // bj = black joker (take a common card)
 // rj = red joker (cross bs-ing = -1 card)
-
-export type ExtValue =
-	| 1 // joker
-	| Value
-	| 15; // insurance
 
 export interface ExtCard {
 	suit: ExtSuit;
