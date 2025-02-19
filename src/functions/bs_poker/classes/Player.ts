@@ -22,6 +22,11 @@ export default class BSPokerPlayer extends Player<ExtCard> {
 			?.filter(t => t !== this.id);
 	}
 
+	public displayEntitled() {
+		if (this.cardsEntitled === 1) return `${this.toString()}: 1 card`;
+		return `${this.toString()}: ${this.cardsEntitled} cards`;
+	}
+
 	public displayTeammates(): `(Team: ${string})` | "" {
 		const teammates = this.getTeammates();
 		if (teammates?.length > 0)

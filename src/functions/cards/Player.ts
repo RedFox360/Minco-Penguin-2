@@ -19,11 +19,6 @@ export default abstract class Player<T extends AnyCard> {
 		else return "*No cards*";
 	}
 
-	public displayEntitled() {
-		if (this.cardsEntitled === 1) return `${this.toString()}: 1 card`;
-		return `${this.toString()}: ${this.cardsEntitled} cards`;
-	}
-
 	public toString() {
 		return userMention(this.id);
 	}

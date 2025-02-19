@@ -7,12 +7,12 @@ import {
 	RNI,
 	RNIKeys,
 	royalFlushes,
-	symbolToValueObj,
 } from "./bs_poker_types.js";
 import { ExtValue } from "../cards/basic_card_types.js";
 import { emoji, type Suit, suits } from "../cards/basic_card_types.js";
 import {
 	suitToBasicEmoji,
+	symbolToValue,
 	valueToSymbol,
 } from "../cards/basic_card_functions.js";
 import { arraysEqual, countInArray, invalidNumber } from "../util.js";
@@ -251,21 +251,6 @@ export function callsEqual(call1: Call, call2: Call): boolean {
 	}
 
 	return (call1.high as ExtCard).value === (call2.high as ExtCard).value;
-}
-
-function symbolToValue(textGiven: string): ExtValue | null {
-	const text = textGiven.toLowerCase().trim();
-	if (Object.hasOwn(symbolToValueObj, text)) {
-		return symbolToValueObj[text];
-	}
-	const value = parseInt(text);
-	if (invalidNumber(value)) {
-		return null;
-	}
-	if (value < 1 || value > 15) {
-		return null;
-	}
-	return value as ExtValue;
 }
 
 // make every word in a string start with a capital

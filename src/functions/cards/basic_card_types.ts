@@ -110,3 +110,58 @@ export const newEmojiSuitsRaw = {
 	blankBottom: "1244485668462399529",
 	blankTop: "1244485669594726400",
 } as const;
+
+export const symbolToValueObj: Record<string, ExtValue> = {
+	joker: 1,
+	x: 1,
+
+	two: 2,
+	deuce: 2,
+	deux: 2,
+
+	three: 3,
+	trois: 3,
+
+	four: 4,
+	quatre: 4,
+
+	five: 5,
+	cinq: 5,
+
+	six: 6,
+
+	seven: 7,
+	sept: 7,
+
+	eight: 8,
+	huit: 8,
+
+	nine: 9,
+	neuf: 9,
+
+	ten: 10,
+	t: 10,
+	dix: 10,
+
+	jack: 11,
+	j: 11,
+	knave: 11,
+	valet: 11,
+
+	queen: 12,
+	q: 12,
+	dame: 12,
+	reine: 12,
+
+	king: 13,
+	k: 13,
+	roi: 13,
+
+	ace: 14,
+	a: 14,
+	as: 14,
+
+	insurance: 15,
+	i: 15,
+	assurance: 15,
+} as const;

@@ -29,7 +29,6 @@ export default [
 				"error",
 				{ max: 1000, skipBlankLines: true, skipComments: true },
 			],
-			"no-await-in-loop": "error",
 			"class-methods-use-this": "error",
 			"no-template-curly-in-string": "warn",
 			"no-extra-semi": "off",

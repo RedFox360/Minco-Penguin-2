@@ -1,3 +1,15 @@
+# DOCKER INSTRUCTIONS
+# sudo docker ps -a
+# sudo docker kill [id]
+# sudo docker compose down
+# git fetch
+# git pull
+# sudo docker compose up --build -d
+# sudo docker build -t .
+# sudo docker run -td minco-penguin-2
+
+# how to clear cache: docker system prune -a
+
 # syntax=docker/dockerfile:1
 
 # Comments are provided throughout this file to help you get started.

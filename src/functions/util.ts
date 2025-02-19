@@ -247,3 +247,9 @@ export function cache<T>(callback: () => T): () => T {
 		return value;
 	};
 }
+
+export function deleteSoon(message: Message, timeMS = 40_000) {
+	setTimeout(() => {
+		if (message.deletable) message.delete();
+	}, timeMS);
+}

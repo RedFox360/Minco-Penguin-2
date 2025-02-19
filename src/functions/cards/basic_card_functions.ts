@@ -1,9 +1,12 @@
+import { invalidNumber } from "../util.js";
 import {
 	type AnyCard,
 	emoji,
 	ExtValue,
+	JISuit,
 	newEmoji,
 	newEmojiSuits,
+	symbolToValueObj,
 } from "./basic_card_types.js";
 
 export function suitToBasicEmoji(suit: string) {
@@ -184,4 +187,38 @@ export function createBasicDeck() {
 
 export function createJIDeck() {
 	return jiDeck.slice();
+}
+
+export function symbolToValue(textGiven: string): ExtValue | null {
+	const text = textGiven.toLowerCase().trim();
+	if (Object.hasOwn(symbolToValueObj, text)) {
+		return symbolToValueObj[text];
+	}
+	const value = parseInt(text);
+	if (invalidNumber(value)) {
+		return null;
+	}
+	if (value < 1 || value > 15) {
+		return null;
+	}
+	return value as ExtValue;
+}
+
+export function suitToSuitValue(textGiven: string): JISuit | null {
+	const text = textGiven.toLowerCase().trim();
+	switch (text) {
+		case "h":
+		case "hearts":
+			return "H";
+		case "d":
+		case "diamonds":
+			return "D";
+		case "c":
+		case "clubs":
+			return "C";
+		case "s":
+		case "spades":
+			return "S";
+	}
+	return null;
 }

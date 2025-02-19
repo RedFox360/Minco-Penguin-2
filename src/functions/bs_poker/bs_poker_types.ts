@@ -74,13 +74,11 @@ export interface DoubleFlushCall {
 	call: HandRank.DoubleFlush;
 }
 
-const callInvis = "\u200C";
-const rankInvis = "\u2063";
 export const names: readonly string[][] = [
-	["high", "h", "haut", callInvis.repeat(1)],
-	["pair", "double", "p", "d", "paire", "drunk", callInvis.repeat(2)],
-	["triple", "t", "brelan", "hungover", callInvis.repeat(3)],
-	["high straight", "straight", "s", "suite", callInvis.repeat(4)],
+	["high", "h", "haut"],
+	["pair", "double", "p", "d", "paire", "drunk"],
+	["triple", "t", "brelan", "hungover"],
+	["high straight", "straight", "s", "suite"],
 	[
 		"flush hearts",
 		"hearts flush",
@@ -89,7 +87,6 @@ export const names: readonly string[][] = [
 		"fh",
 		"hf",
 		"couleur cœur",
-		callInvis.repeat(5),
 	],
 	[
 		"flush diamonds",
@@ -99,7 +96,6 @@ export const names: readonly string[][] = [
 		"fd",
 		"df",
 		"couleur carreau",
-		callInvis.repeat(6),
 	],
 	[
 		"flush clubs",
@@ -109,7 +105,6 @@ export const names: readonly string[][] = [
 		"fc",
 		"cf",
 		"couleur trèfle",
-		callInvis.repeat(7),
 	],
 	[
 		"flush spades",
@@ -119,9 +114,8 @@ export const names: readonly string[][] = [
 		"fs",
 		"sf",
 		"couleur pique",
-		callInvis.repeat(8),
 	],
-	["quad", "q", "quadruple", "carré", "overdose", callInvis.repeat(9)],
+	["quad", "q", "quadruple", "carré", "overdose"],
 	[
 		"straight flush hearts",
 		"hearts straight flush",
@@ -130,7 +124,6 @@ export const names: readonly string[][] = [
 		"sfh",
 		"hsf",
 		"quinte flush cœur",
-		callInvis.repeat(10),
 	],
 	[
 		"straight flush diamonds",
@@ -140,7 +133,6 @@ export const names: readonly string[][] = [
 		"sfd",
 		"dsf",
 		"quinte flush carreau",
-		callInvis.repeat(11),
 	],
 	[
 		"straight flush clubs",
@@ -150,7 +142,6 @@ export const names: readonly string[][] = [
 		"sfc",
 		"csf",
 		"quinte flush trèfle",
-		callInvis.repeat(12),
 	],
 	[
 		"straight flush spades",
@@ -160,7 +151,6 @@ export const names: readonly string[][] = [
 		"sfs",
 		"ssf",
 		"quinte flush pique",
-		callInvis.repeat(13),
 	],
 ];
 
@@ -178,7 +168,6 @@ export const royalFlushes = [
 		"rhf",
 		"hrf",
 		"quinte flush royale de cœur",
-		callInvis.repeat(14),
 	],
 	[
 		"diamonds royal flush",
@@ -188,7 +177,6 @@ export const royalFlushes = [
 		"rdf",
 		"drf",
 		"quinte flush royale de carreau",
-		callInvis.repeat(15),
 	],
 	[
 		"clubs royal flush",
@@ -198,7 +186,6 @@ export const royalFlushes = [
 		"rcf",
 		"crf",
 		"quinte flush royale de trèfle",
-		callInvis.repeat(16),
 	],
 	[
 		"spades royal flush",
@@ -208,72 +195,8 @@ export const royalFlushes = [
 		"rsf",
 		"srf",
 		"quinte flush royale de pique",
-		callInvis.repeat(17),
 	],
 ];
-
-function getSymbolToValueObj() {
-	const obj: Record<string, ExtValue> = {
-		joker: 1,
-		x: 1,
-
-		two: 2,
-		deuce: 2,
-		deux: 2,
-
-		three: 3,
-		trois: 3,
-
-		four: 4,
-		quatre: 4,
-
-		five: 5,
-		cinq: 5,
-
-		six: 6,
-
-		seven: 7,
-		sept: 7,
-
-		eight: 8,
-		huit: 8,
-
-		nine: 9,
-		neuf: 9,
-
-		ten: 10,
-		t: 10,
-		dix: 10,
-
-		jack: 11,
-		j: 11,
-		knave: 11,
-		valet: 11,
-
-		queen: 12,
-		q: 12,
-		dame: 12,
-		reine: 12,
-
-		king: 13,
-		k: 13,
-		roi: 13,
-
-		ace: 14,
-		a: 14,
-		as: 14,
-
-		insurance: 15,
-		i: 15,
-		assurance: 15,
-	};
-	for (let i = 1; i <= 15; i++) {
-		obj[rankInvis.repeat(i)] = i as ExtValue;
-	}
-	return obj;
-}
-
-export const symbolToValueObj = Object.freeze(getSymbolToValueObj());
 
 export enum ClownState {
 	NotClowned,
