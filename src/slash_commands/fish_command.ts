@@ -19,7 +19,7 @@ import {
 } from "../functions/util";
 import { FakeUser } from "../functions/fish/fish_types.js";
 
-const collectorTime = 180_000;
+const collectorTime = 300_000;
 const customIds = {
 	join0: "join_fish_0_s",
 	join1: "join_fish_1_s",

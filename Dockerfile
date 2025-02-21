@@ -5,7 +5,7 @@
 # git fetch
 # git pull
 # sudo docker compose up --build -d
-# sudo docker build -t .
+# sudo docker build . -t minco-penguin-2
 # sudo docker run -td minco-penguin-2
 
 # how to clear cache: docker system prune -a
