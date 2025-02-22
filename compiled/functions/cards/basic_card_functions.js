@@ -1,4 +1,5 @@
-import { emoji, newEmoji, newEmojiSuits, } from "./basic_card_types.js";
+import { invalidNumber } from "../util.js";
+import { emoji, newEmoji, newEmojiSuits, symbolToValueObj, } from "./basic_card_types.js";
 export function suitToBasicEmoji(suit) {
     switch (suit) {
         case "H":
@@ -163,7 +164,47 @@ const basicDeck = [
     { suit: "S", value: 13 },
     { suit: "S", value: 14 },
 ];
+const jiDeck = [
+    ...basicDeck,
+    { suit: "j", value: 1 },
+    { suit: "i", value: 15 },
+];
 export function createBasicDeck() {
     return basicDeck.slice();
+}
+export function createJIDeck() {
+    return jiDeck.slice();
+}
+export function symbolToValue(textGiven) {
+    const text = textGiven.toLowerCase().trim();
+    if (Object.hasOwn(symbolToValueObj, text)) {
+        return symbolToValueObj[text];
+    }
+    const value = parseInt(text);
+    if (invalidNumber(value)) {
+        return null;
+    }
+    if (value < 1 || value > 15) {
+        return null;
+    }
+    return value;
+}
+export function suitToSuitValue(textGiven) {
+    const text = textGiven.toLowerCase().trim();
+    switch (text) {
+        case "h":
+        case "hearts":
+            return "H";
+        case "d":
+        case "diamonds":
+            return "D";
+        case "c":
+        case "clubs":
+            return "C";
+        case "s":
+        case "spades":
+            return "S";
+    }
+    return null;
 }
 //# sourceMappingURL=basic_card_functions.js.map

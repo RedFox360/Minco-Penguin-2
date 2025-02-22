@@ -49,4 +49,5 @@ const token = inDev ? process.env.CANARY_TOKEN : process.env.TOKEN;
 const rest = new REST().setToken(token);
 client.login(token);
 export { rest, prisma, bsPokerTeams, channelsWithActiveGames, slashCommands, inDev, };
+// Hello
 //# sourceMappingURL=main.js.map

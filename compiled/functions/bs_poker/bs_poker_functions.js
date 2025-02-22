@@ -1,6 +1,6 @@
-import { HandRank, names, RNI, RNIKeys, royalFlushes, symbolToValueObj, } from "./bs_poker_types.js";
+import { HandRank, names, RNI, RNIKeys, royalFlushes, } from "./bs_poker_types.js";
 import { emoji, suits } from "../cards/basic_card_types.js";
-import { suitToBasicEmoji, valueToSymbol, } from "../cards/basic_card_functions.js";
+import { suitToBasicEmoji, symbolToValue, valueToSymbol, } from "../cards/basic_card_functions.js";
 import { arraysEqual, countInArray, invalidNumber } from "../util.js";
 const toSpacesRgx = /[^a-z0-9\u200C\u2063\uFEFF]/g;
 const doubleSpacesRgx = / +(?= )|.*\uFEFF/g;
@@ -221,20 +221,6 @@ export function callsEqual(call1, call2) {
         return (call1.high.value === call2High.value && call1.high.suit === call2High.suit);
     }
     return call1.high.value === call2.high.value;
-}
-function symbolToValue(textGiven) {
-    const text = textGiven.toLowerCase().trim();
-    if (Object.hasOwn(symbolToValueObj, text)) {
-        return symbolToValueObj[text];
-    }
-    const value = parseInt(text);
-    if (invalidNumber(value)) {
-        return null;
-    }
-    if (value < 1 || value > 15) {
-        return null;
-    }
-    return value;
 }
 // make every word in a string start with a capital
 function capitalize(text) {

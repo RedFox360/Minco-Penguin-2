@@ -5,7 +5,7 @@ import { getProfile } from "../../prisma/models.js";
 import { colors } from "../util.js";
 import { bsPokerTeams, channelsWithActiveGames } from "../../main.js";
 import OptionManager, { OptionCreationError } from "./classes/OptionManager.js";
-const collectorTime = 60000;
+const collectorTime = 300000;
 const customIds = {
     join: "join_bspoker_s",
     leave: "leave_bspoker_s",

@@ -178,4 +178,10 @@ export function cache(callback) {
         return value;
     };
 }
+export function deleteSoon(message, timeMS = 40000) {
+    setTimeout(() => {
+        if (message.deletable)
+            message.delete();
+    }, timeMS);
+}
 //# sourceMappingURL=util.js.map

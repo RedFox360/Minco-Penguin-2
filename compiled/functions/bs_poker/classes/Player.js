@@ -1,30 +1,6 @@
 import { userMention } from "discord.js";
-import { spliceRandom } from "../../util.js";
 import { bsPokerTeams } from "../../../main.js";
-import { formatDeck } from "../../cards/basic_card_functions.js";
-class Player {
-    constructor(id) {
-        this.id = id;
-    }
-    dealCards(deck) {
-        this.hand = spliceRandom(deck, this.cardsEntitled);
-        this.hand.sort((a, b) => a.value - b.value);
-    }
-    formatHand() {
-        if (this.hand?.length)
-            return formatDeck(this.hand);
-        else
-            return "*No cards*";
-    }
-    displayEntitled() {
-        if (this.cardsEntitled === 1)
-            return `${this.toString()}: 1 card`;
-        return `${this.toString()}: ${this.cardsEntitled} cards`;
-    }
-    toString() {
-        return userMention(this.id);
-    }
-}
+import Player from "../../cards/Player.js";
 export default class BSPokerPlayer extends Player {
     constructor(id, channelId, cardsEntitled = 0, joinedMidGame = false) {
         super(id);
@@ -38,6 +14,11 @@ export default class BSPokerPlayer extends Player {
             .get(this.channelId)
             .find(t => t.includes(this.id))
             ?.filter(t => t !== this.id);
+    }
+    displayEntitled() {
+        if (this.cardsEntitled === 1)
+            return `${this.toString()}: 1 card`;
+        return `${this.toString()}: ${this.cardsEntitled} cards`;
     }
     displayTeammates() {
         const teammates = this.getTeammates();
