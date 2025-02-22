@@ -15,7 +15,6 @@ import {
 	User,
 } from "discord.js";
 import {
-	createBasicDeck,
 	createJIDeck,
 	formatCardSideways,
 	formatDeck,
@@ -47,7 +46,7 @@ import {
 	halfSuitSelectMenuRow,
 	hasOtherCardInSameHalfSuit,
 	nonDisjointCards,
-} from "../fish_functions";
+} from "../fish_functions.js";
 import FishPlayer from "./FishPlayer.js";
 
 const callButton = new ButtonBuilder()

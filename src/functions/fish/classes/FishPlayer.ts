@@ -1,6 +1,6 @@
 import { type Snowflake } from "discord.js";
-import { JICard } from "../../cards/basic_card_types";
-import Player from "../../cards/Player";
+import { JICard } from "../../cards/basic_card_types.js";
+import Player from "../../cards/Player.js";
 
 export default class FishPlayer extends Player<JICard> {
 	public hand: JICard[] = [];

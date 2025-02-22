@@ -7,16 +7,14 @@ import {
 	formatDeck,
 	suitToSuitValue,
 	symbolToValue,
-} from "../cards/basic_card_functions";
-import { AnyCard, emojiRaw, JICard } from "../cards/basic_card_types";
+} from "../cards/basic_card_functions.js";
+import { AnyCard, emojiRaw, JICard } from "../cards/basic_card_types.js";
 import {
 	cardToHalfSuit,
 	customIds,
 	HalfSuit,
-	HalfSuitCall,
 	HalfSuitCallCollection,
-} from "./fish_types";
-import FishPlayer from "./classes/FishPlayer";
+} from "./fish_types.js";
 
 export function extrapolateCard(ask: string): JICard | null {
 	const [valueGiven, suitGiven] = ask.split(" ");

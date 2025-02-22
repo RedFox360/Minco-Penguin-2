@@ -8,7 +8,6 @@ import {
 	InteractionCollector,
 	Snowflake,
 } from "discord.js";
-import EventEmitter from "events";
 import {
 	customIds,
 	customIdValues,

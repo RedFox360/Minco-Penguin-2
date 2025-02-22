@@ -16,7 +16,7 @@ import {
 	removeByValue,
 	removeC,
 	shuffleArray,
-} from "../functions/util";
+} from "../functions/util.js";
 import { FakeUser } from "../functions/fish/fish_types.js";
 
 const collectorTime = 300_000;

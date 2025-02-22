@@ -1,5 +1,5 @@
 import { Collection, Snowflake } from "discord.js";
-import { JICard, Suit } from "../cards/basic_card_types";
+import { JICard, Suit } from "../cards/basic_card_types.js";
 
 export const customIds = {
 	call: "call_fish",

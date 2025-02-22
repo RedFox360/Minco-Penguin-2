@@ -1,8 +1,8 @@
 import { Collection } from "discord.js";
-import FishPlayer from "./FishPlayer";
-import { CardsPerHalfSuit, SignificantCardPerHalfSuit, } from "../fish_types";
-import { formatDeck } from "../../cards/basic_card_functions";
-import { deckHasCard } from "../fish_functions";
+import FishPlayer from "./FishPlayer.js";
+import { CardsPerHalfSuit, SignificantCardPerHalfSuit, } from "../fish_types.js";
+import { formatDeck } from "../../cards/basic_card_functions.js";
+import { deckHasCard } from "../fish_functions.js";
 export default class FishPlayerCollection extends Collection {
     constructor() {
         super(...arguments);

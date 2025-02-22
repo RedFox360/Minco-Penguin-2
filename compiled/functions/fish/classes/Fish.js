@@ -3,7 +3,7 @@ import { createJIDeck, formatCardSideways, formatDeck, } from "../../cards/basic
 import { colors, deleteSoon, msToRelTimestamp, removeC, replyThenDelete, } from "../../util.js";
 import FishPlayerCollection from "./FishPlayerCollection.js";
 import { CardsPerHalfSuit, customIds, customIdValues, gameLength, timeToMakeCall, } from "../fish_types.js";
-import { deckHasCard, extrapolateCard, formatHalfSuitCall, halfSuitSelectMenuRow, hasOtherCardInSameHalfSuit, nonDisjointCards, } from "../fish_functions";
+import { deckHasCard, extrapolateCard, formatHalfSuitCall, halfSuitSelectMenuRow, hasOtherCardInSameHalfSuit, nonDisjointCards, } from "../fish_functions.js";
 const callButton = new ButtonBuilder()
     .setCustomId(customIds.call)
     .setLabel("Call")

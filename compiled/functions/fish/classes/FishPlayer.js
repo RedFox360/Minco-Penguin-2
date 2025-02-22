@@ -1,4 +1,4 @@
-import Player from "../../cards/Player";
+import Player from "../../cards/Player.js";
 export default class FishPlayer extends Player {
     get out() {
         return this.disjoint.length === 3 || this.hand.length === 0;

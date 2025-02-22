@@ -2,7 +2,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuild
 import SlashCommand from "../core/SlashCommand.js";
 import Fish from "../functions/fish/classes/Fish.js";
 import { channelsWithActiveGames } from "../main.js";
-import { colors, hasAdminForGames, msToRelTimestamp, removeByValue, removeC, shuffleArray, } from "../functions/util";
+import { colors, hasAdminForGames, msToRelTimestamp, removeByValue, removeC, shuffleArray, } from "../functions/util.js";
 const collectorTime = 300000;
 const customIds = {
     join0: "join_fish_0_s",

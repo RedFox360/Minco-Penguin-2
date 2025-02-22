@@ -1,6 +1,6 @@
 import { Collection, Snowflake, User, userMention } from "discord.js";
-import FishPlayer from "./FishPlayer";
-import { JICard } from "../../cards/basic_card_types";
+import FishPlayer from "./FishPlayer.js";
+import { JICard } from "../../cards/basic_card_types.js";
 import {
 	CardsPerHalfSuit,
 	FakeUser,
@@ -8,9 +8,9 @@ import {
 	HalfSuitCall,
 	HalfSuitCallCollection,
 	SignificantCardPerHalfSuit,
-} from "../fish_types";
-import { formatDeck } from "../../cards/basic_card_functions";
-import { deckHasCard } from "../fish_functions";
+} from "../fish_types.js";
+import { formatDeck } from "../../cards/basic_card_functions.js";
+import { deckHasCard } from "../fish_functions.js";
 
 export default class FishPlayerCollection extends Collection<
 	Snowflake,

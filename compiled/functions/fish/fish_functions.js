@@ -1,7 +1,7 @@
 import { ActionRowBuilder, StringSelectMenuBuilder, userMention, } from "discord.js";
-import { formatDeck, suitToSuitValue, symbolToValue, } from "../cards/basic_card_functions";
-import { emojiRaw } from "../cards/basic_card_types";
-import { cardToHalfSuit, customIds, HalfSuit, } from "./fish_types";
+import { formatDeck, suitToSuitValue, symbolToValue, } from "../cards/basic_card_functions.js";
+import { emojiRaw } from "../cards/basic_card_types.js";
+import { cardToHalfSuit, customIds, HalfSuit, } from "./fish_types.js";
 export function extrapolateCard(ask) {
     const [valueGiven, suitGiven] = ask.split(" ");
     const value = symbolToValue(valueGiven);
