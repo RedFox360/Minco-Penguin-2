@@ -8,6 +8,8 @@ export default class BSPokerPlayer extends Player {
         this.cardsEntitled = cardsEntitled;
         this.joinedMidGame = joinedMidGame;
         this.hand = [];
+        this.bses = 0;
+        this.bsSuccesses = 0;
     }
     getTeammates() {
         return bsPokerTeams

@@ -3,6 +3,34 @@ import { createBasicDeck } from "../../cards/basic_card_functions.js";
 import { optionNames } from "../../../slash_commands/bs_poker_command.js";
 export class OptionCreationError extends Error {
 }
+export const Preset1 = {
+    getInteger(name) {
+        switch (name) {
+            case optionNames.cardsToOut:
+                return 6;
+            case optionNames.beginCards:
+                return 2;
+            default:
+                return null;
+        }
+    },
+    getBoolean(name) {
+        switch (name) {
+            case optionNames.clownJoker:
+                return true;
+            case optionNames.bloodJoker:
+                return true;
+            case optionNames.bleedJoker:
+                return true;
+            case optionNames.useSpecials:
+                return true;
+            case optionNames.curses:
+                return true;
+            default:
+                return null;
+        }
+    },
+};
 export default class OptionManager {
     maxPlayerLimit() {
         const deckSize = 52 +
@@ -13,7 +41,7 @@ export default class OptionManager {
         const maxPlayerLimit = Math.floor((deckSize - maxCommonCards) / (this.cardsToOut - 1));
         return maxPlayerLimit;
     }
-    constructor({ options }) {
+    constructor(options) {
         this.redJokerAbilities = "";
         // Retrieving Options
         this.cardsToOut = options.getInteger(optionNames.cardsToOut);

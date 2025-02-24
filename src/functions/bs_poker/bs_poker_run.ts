@@ -17,7 +17,10 @@ import {
 import { getProfile } from "../../prisma/models.js";
 import { colors } from "../util.js";
 import { bsPokerTeams, channelsWithActiveGames } from "../../main.js";
-import OptionManager, { OptionCreationError } from "./classes/OptionManager.js";
+import OptionManager, {
+	OptionCreationError,
+	Preset1,
+} from "./classes/OptionManager.js";
 const collectorTime = 300_000;
 
 const customIds = {
@@ -29,7 +32,8 @@ const customIds = {
 const customIdValues = Object.values(customIds);
 
 export default async function bsPokerRun(
-	interaction: ChatInputCommandInteraction<"cached">
+	interaction: ChatInputCommandInteraction<"cached">,
+	usePresetOptions = false
 ) {
 	if (channelsWithActiveGames.has(interaction.channelId)) {
 		await interaction.reply({
@@ -42,7 +46,9 @@ export default async function bsPokerRun(
 	// Retrieving Options
 	let options: OptionManager;
 	try {
-		options = new OptionManager(interaction);
+		options = new OptionManager(
+			usePresetOptions ? Preset1 : interaction.options
+		);
 	} catch (e) {
 		if (e instanceof OptionCreationError) {
 			await interaction.reply({

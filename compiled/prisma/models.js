@@ -12,6 +12,8 @@ export function getProfile(userId) {
             bsPokerWins: 0,
             bsPokerGamesPlayed: 0,
             bsPokerRating: 0.0,
+            bsCount: 0,
+            bsSuccesses: 0,
         },
     });
 }

@@ -96,6 +96,8 @@ const bsPokerCommand = new SlashCommand()
     .setDescription("Allow triple pair, double flush, and double triple (Default: True)")
     .setRequired(false)))
     .setCooldown(15)
-    .setRun(bsPokerRun);
+    .setRun(async (interaction) => {
+    await bsPokerRun(interaction);
+});
 export default bsPokerCommand;
 //# sourceMappingURL=bs_poker_command.js.map

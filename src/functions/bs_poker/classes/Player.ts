@@ -5,6 +5,8 @@ import Player from "../../cards/Player.js";
 
 export default class BSPokerPlayer extends Player<ExtCard> {
 	public hand: ExtCard[] = [];
+	public bses = 0;
+	public bsSuccesses = 0;
 
 	public constructor(
 		id: Snowflake,

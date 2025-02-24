@@ -1,4 +1,4 @@
-import { type ChatInputCommandInteraction } from "discord.js";
+import { type CommandInteractionOptionResolver } from "discord.js";
 import { formatBool } from "../../util.js";
 import { createBasicDeck } from "../../cards/basic_card_functions.js";
 import { type ExtCard } from "./../bs_poker_types.js";
@@ -6,6 +6,38 @@ import { optionNames } from "../../../slash_commands/bs_poker_command.js";
 
 export class OptionCreationError extends Error {}
 
+export const Preset1: MockOptionResolver = {
+	getInteger(name: string): number {
+		switch (name) {
+			case optionNames.cardsToOut:
+				return 6;
+			case optionNames.beginCards:
+				return 2;
+			default:
+				return null;
+		}
+	},
+	getBoolean(name: string): boolean {
+		switch (name) {
+			case optionNames.clownJoker:
+				return true;
+			case optionNames.bloodJoker:
+				return true;
+			case optionNames.bleedJoker:
+				return true;
+			case optionNames.useSpecials:
+				return true;
+			case optionNames.curses:
+				return true;
+			default:
+				return null;
+		}
+	},
+};
+interface MockOptionResolver {
+	getInteger(name: string): number;
+	getBoolean(name: string): boolean;
+}
 export default class OptionManager {
 	public readonly cardsToOut: number;
 	public readonly commonCardsAmt: number;
@@ -40,7 +72,14 @@ export default class OptionManager {
 		return maxPlayerLimit;
 	}
 
-	public constructor({ options }: ChatInputCommandInteraction<"cached">) {
+	public constructor(
+		options:
+			| Omit<
+					CommandInteractionOptionResolver<"cached">,
+					"getMessage" | "getFocused"
+			  >
+			| MockOptionResolver
+	) {
 		// Retrieving Options
 		this.cardsToOut = options.getInteger(optionNames.cardsToOut);
 		this.commonCardsAmt = options.getInteger(optionNames.commonCards) ?? -1;

@@ -146,6 +146,8 @@ const bsPokerCommand = new SlashCommand()
 			)
 	)
 	.setCooldown(15)
-	.setRun(bsPokerRun);
+	.setRun(async interaction => {
+		await bsPokerRun(interaction);
+	});
 
 export default bsPokerCommand;

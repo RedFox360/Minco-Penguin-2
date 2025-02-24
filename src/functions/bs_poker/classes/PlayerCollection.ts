@@ -110,6 +110,30 @@ export default class PlayerCollection extends Collection<Snowflake, Player> {
 		return Promise.all(promises);
 	}
 
+	public updateAllBSData() {
+		const promises: Promise<unknown>[] = [];
+		for (const p of this.values()) {
+			if (!p.joinedMidGame && (p.bses !== 0 || p.bsSuccesses !== 0)) {
+				promises.push(
+					prisma.profile.update({
+						where: {
+							userId: p.id,
+						},
+						data: {
+							bsCount: {
+								increment: p.bses,
+							},
+							bsSuccesses: {
+								increment: p.bsSuccesses,
+							},
+						},
+					})
+				);
+			}
+		}
+		return Promise.all(promises);
+	}
+
 	public async removePlayers(...players: readonly Player[]) {
 		const playerIds = players.map(p => p.id);
 		for (const id of playerIds) this.delete(id);

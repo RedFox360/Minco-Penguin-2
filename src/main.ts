@@ -23,6 +23,7 @@ dayjs.tz.setDefault("America/Los_Angeles");
 const prisma = new PrismaClient();
 
 console.log(chalk.yellow("Connected to the database!"));
+
 const inDev = !process.argv.includes("--prod");
 const updateCommands = process.argv.includes("--update");
 console.log(chalk.red(`In dev: ${inDev}`));

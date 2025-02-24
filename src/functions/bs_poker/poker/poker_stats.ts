@@ -3,10 +3,10 @@ import Subcommand from "../../../core/Subcommand.js";
 import { getProfile } from "../../../prisma/models.js";
 import { colors, invalidNumber } from "../../util.js";
 
-function perc(a: number, b: number): number {
+function perc(a: number, b: number): string {
 	const result = Math.round((a / b) * 100);
-	if (invalidNumber(result)) return 0;
-	return result;
+	if (invalidNumber(result)) return "0";
+	return result.toFixed(2);
 }
 
 const pokerStats = new Subcommand()
@@ -23,15 +23,11 @@ const pokerStats = new Subcommand()
 	)
 	.setRun(async interaction => {
 		const member = interaction.options.getMember("user") ?? interaction.member;
-		const {
-			bsPokerWins: wins,
-			bsPokerGamesPlayed: gamesPlayed,
-			bsPokerRating: rawRating,
-		} = await getProfile(member.id);
+		const profile = await getProfile(member.id);
 
-		const winPerc = perc(wins, gamesPlayed);
-		const skill = perc(rawRating, gamesPlayed);
-
+		const winPerc = perc(profile.bsPokerWins, profile.bsPokerGamesPlayed);
+		const skill = perc(profile.bsPokerRating, profile.bsPokerGamesPlayed);
+		const bsAccuracy = perc(profile.bsSuccesses, profile.bsCount);
 		const embed = new EmbedBuilder()
 			.setColor(colors.brightGreen)
 			.setAuthor({
@@ -39,11 +35,12 @@ const pokerStats = new Subcommand()
 				iconURL: member.displayAvatarURL(),
 			})
 			.setDescription(
-				`Wins: **${wins.toLocaleString()}**
-Games Played: **${gamesPlayed.toLocaleString()}**
+				`Wins: **${profile.bsPokerWins.toLocaleString()}**
+Games Played: **${profile.bsPokerGamesPlayed.toLocaleString()}**
 Win Rate: **${winPerc}%**
-Raw Rating: **${rawRating.toFixed(2)}**
-Skill: **${skill}%**`
+Raw Rating: **${profile.bsPokerRating.toFixed(2)}**
+Skill: **${skill}%**
+BS Accuracy: **${bsAccuracy}%**`
 			);
 		await interaction.reply({ embeds: [embed] });
 	});

@@ -342,6 +342,7 @@ ${this.players.currentPlayer} will start the round.`,
 	}
 
 	private async endGameSuccess() {
+		await this.players.updateAllBSData();
 		if (this.players.size === 0) {
 			let description =
 				"There were no players left at the end of this game due to a curse.";
@@ -572,8 +573,9 @@ ${this.players.currentPlayer} will start the round.`,
 		);
 
 		let cardGainer = this.players.currentPlayer;
-
+		bser.bses += 1;
 		if (callIsTrue) {
+			bser.bsSuccesses += 1;
 			cardGainer = bser;
 			this.channel.send({
 				content: `:green_circle: ${this.state.currentCall.player} was telling the truth! ${cardGainer} gains 1 card.`,

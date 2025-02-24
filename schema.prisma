@@ -22,4 +22,6 @@ model Profile {
   bsPokerWins        Int       @default(0)
   bsPokerGamesPlayed Int       @default(0)
   bsPokerRating      Float     @default(0.0)
+  bsCount            Int       @default(0)
+  bsSuccesses        Int       @default(0)
 }

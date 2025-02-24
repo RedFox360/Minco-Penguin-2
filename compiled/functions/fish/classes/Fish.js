@@ -1,9 +1,10 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, Collection, ComponentType, EmbedBuilder, } from "discord.js";
 import { createJIDeck, formatCardSideways, formatDeck, } from "../../cards/basic_card_functions.js";
-import { colors, deleteSoon, msToRelTimestamp, removeC, replyThenDelete, } from "../../util.js";
+import { colors, deleteSoon, hasAdminForGames, msToRelTimestamp, removeC, replyThenDelete, } from "../../util.js";
 import FishPlayerCollection from "./FishPlayerCollection.js";
 import { CardsPerHalfSuit, customIds, customIdValues, gameLength, timeToMakeCall, } from "../fish_types.js";
 import { deckHasCard, extrapolateCard, formatHalfSuitCall, halfSuitSelectMenuRow, hasOtherCardInSameHalfSuit, nonDisjointCards, } from "../fish_functions.js";
+import { channelsWithActiveGames } from "../../../main.js";
 const callButton = new ButtonBuilder()
     .setCustomId(customIds.call)
     .setLabel("Call")
@@ -79,6 +80,23 @@ export default class Fish {
         });
         this.msgColl.on("collect", async (msg) => {
             this.messageCollect(msg);
+        });
+    }
+    endCollectors() {
+        this.mcompColl.stop();
+        this.msgColl.stop();
+        channelsWithActiveGames.delete(this.channel.id);
+    }
+    endGameSuccess(winner) {
+        this.endCollectors();
+        this.channel.send({
+            embeds: [
+                new EmbedBuilder()
+                    .setAuthor({ name: "Fish" })
+                    .setTitle(`Team ${winner + 1} has won!`)
+                    .setColor(colors.green),
+            ],
+            components: [],
         });
     }
     generateAskButtons(player, useDisjointCodes = false) {
@@ -200,6 +218,12 @@ export default class Fish {
             this.players.incrementScore(player.team === 0 ? 1 : 0);
             const teamApp = player.team === 0 ? this.players.team1Table : this.players.team0Table;
             teamApp.push(suit);
+        }
+        if (this.players.team0Table.length >= 5) {
+            this.endGameSuccess(0);
+        }
+        else if (this.players.team1Table.length >= 5) {
+            this.endGameSuccess(1);
         }
         this.players.removeSuitFromPlayers(suit);
     }
@@ -470,6 +494,11 @@ Please try asking again.`);
         this.turn();
     }
     async messageCollect(msg) {
+        if (msg.content === "abort" &&
+            hasAdminForGames(msg.author.id, msg.member.permissions, this.hostId)) {
+            this.endCollectors();
+            msg.reply("Game aborted.");
+        }
         if (this.ongoingAskId) {
             this.askCollect(msg);
         }

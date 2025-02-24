@@ -4,7 +4,7 @@ import { removeByValue, msToRelTimestamp, shuffleArray, hasAdminForGames, } from
 import { getProfile } from "../../prisma/models.js";
 import { colors } from "../util.js";
 import { bsPokerTeams, channelsWithActiveGames } from "../../main.js";
-import OptionManager, { OptionCreationError } from "./classes/OptionManager.js";
+import OptionManager, { OptionCreationError, Preset1, } from "./classes/OptionManager.js";
 const collectorTime = 300000;
 const customIds = {
     join: "join_bspoker_s",
@@ -13,7 +13,7 @@ const customIds = {
     start: "start_bspoker_s",
 };
 const customIdValues = Object.values(customIds);
-export default async function bsPokerRun(interaction) {
+export default async function bsPokerRun(interaction, usePresetOptions = false) {
     if (channelsWithActiveGames.has(interaction.channelId)) {
         await interaction.reply({
             content: "There is already an active game in this channel.",
@@ -24,7 +24,7 @@ export default async function bsPokerRun(interaction) {
     // Retrieving Options
     let options;
     try {
-        options = new OptionManager(interaction);
+        options = new OptionManager(usePresetOptions ? Preset1 : interaction.options);
     }
     catch (e) {
         if (e instanceof OptionCreationError) {

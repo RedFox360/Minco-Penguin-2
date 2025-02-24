@@ -22,6 +22,7 @@ import {
 import {
 	colors,
 	deleteSoon,
+	hasAdminForGames,
 	msToRelTimestamp,
 	randomInt,
 	removeByValue,
@@ -48,6 +49,7 @@ import {
 	nonDisjointCards,
 } from "../fish_functions.js";
 import FishPlayer from "./FishPlayer.js";
+import { channelsWithActiveGames } from "../../../main.js";
 
 const callButton = new ButtonBuilder()
 	.setCustomId(customIds.call)
@@ -153,6 +155,25 @@ export default class Fish {
 		);
 		this.msgColl.on("collect", async (msg: Message<true>) => {
 			this.messageCollect(msg);
+		});
+	}
+
+	private endCollectors() {
+		this.mcompColl.stop();
+		this.msgColl.stop();
+		channelsWithActiveGames.delete(this.channel.id);
+	}
+
+	private endGameSuccess(winner: 0 | 1) {
+		this.endCollectors();
+		this.channel.send({
+			embeds: [
+				new EmbedBuilder()
+					.setAuthor({ name: "Fish" })
+					.setTitle(`Team ${winner + 1} has won!`)
+					.setColor(colors.green),
+			],
+			components: [],
 		});
 	}
 
@@ -289,6 +310,11 @@ export default class Fish {
 			const teamApp =
 				player.team === 0 ? this.players.team1Table : this.players.team0Table;
 			teamApp.push(suit);
+		}
+		if (this.players.team0Table.length >= 5) {
+			this.endGameSuccess(0);
+		} else if (this.players.team1Table.length >= 5) {
+			this.endGameSuccess(1);
 		}
 		this.players.removeSuitFromPlayers(suit);
 	}
@@ -588,6 +614,13 @@ Please try asking again.`
 	}
 
 	private async messageCollect(msg: Message<true>) {
+		if (
+			msg.content === "abort" &&
+			hasAdminForGames(msg.author.id, msg.member.permissions, this.hostId)
+		) {
+			this.endCollectors();
+			msg.reply("Game aborted.");
+		}
 		if (this.ongoingAskId) {
 			this.askCollect(msg);
 		}
