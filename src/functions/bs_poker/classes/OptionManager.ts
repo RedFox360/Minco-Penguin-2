@@ -6,12 +6,18 @@ import { optionNames } from "../../../slash_commands/bs_poker_command.js";
 
 export class OptionCreationError extends Error {}
 
+interface MockOptionResolver {
+	getInteger(name: string): number;
+	getBoolean(name: string): boolean;
+}
 export const Preset1: MockOptionResolver = {
 	getInteger(name: string): number {
 		switch (name) {
 			case optionNames.cardsToOut:
 				return 6;
 			case optionNames.beginCards:
+				return 2;
+			case optionNames.insuranceCount:
 				return 2;
 			default:
 				return null;
@@ -34,10 +40,6 @@ export const Preset1: MockOptionResolver = {
 		}
 	},
 };
-interface MockOptionResolver {
-	getInteger(name: string): number;
-	getBoolean(name: string): boolean;
-}
 export default class OptionManager {
 	public readonly cardsToOut: number;
 	public readonly commonCardsAmt: number;

@@ -33,6 +33,7 @@ import {
 	median,
 	hasAdminForGames,
 	cache,
+	isAlt,
 } from "../../util.js";
 import {
 	cardToEmoji,
@@ -268,7 +269,9 @@ ${this.players.currentPlayer} will start the round.`,
 		};
 	}
 
-	private async handleJoinMidGame(buttonInteraction: ButtonInteraction) {
+	private async handleJoinMidGame(
+		buttonInteraction: ButtonInteraction<"cached">
+	) {
 		if (this.players.has(buttonInteraction.user.id)) {
 			buttonInteraction.reply({
 				content: "You are already in the game.",
@@ -279,6 +282,13 @@ ${this.players.currentPlayer} will start the round.`,
 		if (this.players.out.includes(buttonInteraction.user.id)) {
 			buttonInteraction.reply({
 				content: "You are out of this game, so you may not rejoin.",
+				ephemeral: true,
+			});
+			return;
+		}
+		if (isAlt(buttonInteraction.member)) {
+			buttonInteraction.reply({
+				content: "Alt accounts may not join.",
 				ephemeral: true,
 			});
 			return;
@@ -575,12 +585,12 @@ ${this.players.currentPlayer} will start the round.`,
 		let cardGainer = this.players.currentPlayer;
 		bser.bses += 1;
 		if (callIsTrue) {
-			bser.bsSuccesses += 1;
 			cardGainer = bser;
 			this.channel.send({
 				content: `:green_circle: ${this.state.currentCall.player} was telling the truth! ${cardGainer} gains 1 card.`,
 			});
 		} else {
+			bser.bsSuccesses += 1;
 			cardGainer = this.state.currentCall.player;
 			this.channel.send({
 				content: `:red_circle: ${cardGainer} was lying! They gain 1 card.`,
@@ -873,7 +883,7 @@ ${this.players.formatPWSC()}`,
 		return true;
 	}
 
-	private async buttonCollect(buttonInteraction: ButtonInteraction) {
+	private async buttonCollect(buttonInteraction: ButtonInteraction<"cached">) {
 		switch (buttonInteraction.customId) {
 			case customIds.viewGameInfo: {
 				await buttonInteraction.reply({
@@ -929,12 +939,14 @@ ${this.players.formatPWSC()}`,
 
 		await this.newRound(); // start the game with the 1st round
 
-		this.msgColl.on("collect", (m: Message<true>) => {
-			this.messageCollect(m);
+		this.msgColl.on("collect", m => {
+			if (m.inGuild()) this.messageCollect(m);
 		});
 
 		this.mcompColl.on("collect", bi => {
-			this.buttonCollect(bi);
+			if (bi.inCachedGuild()) {
+				this.buttonCollect(bi);
+			}
 		});
 
 		this.msgColl.on("end", (_, reason) => {

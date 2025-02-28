@@ -1,7 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, } from "discord.js";
 import { ClownState, customIds, customIdValues, } from "../bs_poker_types.js";
 import { callInDeck, formatCall, highestCallInDeck, parseCall, } from "../bs_poker_functions.js";
-import { msToRelTimestamp, replyThenDelete, invalidNumber, median, hasAdminForGames, cache, } from "../../util.js";
+import { msToRelTimestamp, replyThenDelete, invalidNumber, median, hasAdminForGames, cache, isAlt, } from "../../util.js";
 import { cardToEmoji, formatCardSideways, formatDeck, formatDeckLines, } from "../../cards/basic_card_functions.js";
 import { bsPokerTeams, channelsWithActiveGames } from "../../../main.js";
 import { getProfile, updateProfile } from "../../../prisma/models.js";
@@ -177,6 +177,13 @@ ${this.players.currentPlayer} will start the round.`,
         if (this.players.out.includes(buttonInteraction.user.id)) {
             buttonInteraction.reply({
                 content: "You are out of this game, so you may not rejoin.",
+                ephemeral: true,
+            });
+            return;
+        }
+        if (isAlt(buttonInteraction.member)) {
+            buttonInteraction.reply({
+                content: "Alt accounts may not join.",
                 ephemeral: true,
             });
             return;
@@ -443,13 +450,13 @@ ${this.players.currentPlayer} will start the round.`,
         let cardGainer = this.players.currentPlayer;
         bser.bses += 1;
         if (callIsTrue) {
-            bser.bsSuccesses += 1;
             cardGainer = bser;
             this.channel.send({
                 content: `:green_circle: ${this.state.currentCall.player} was telling the truth! ${cardGainer} gains 1 card.`,
             });
         }
         else {
+            bser.bsSuccesses += 1;
             cardGainer = this.state.currentCall.player;
             this.channel.send({
                 content: `:red_circle: ${cardGainer} was lying! They gain 1 card.`,
@@ -760,11 +767,14 @@ ${this.players.formatPWSC()}`,
             filter: i => customIdValues.includes(i.customId),
         });
         await this.newRound(); // start the game with the 1st round
-        this.msgColl.on("collect", (m) => {
-            this.messageCollect(m);
+        this.msgColl.on("collect", m => {
+            if (m.inGuild())
+                this.messageCollect(m);
         });
         this.mcompColl.on("collect", bi => {
-            this.buttonCollect(bi);
+            if (bi.inCachedGuild()) {
+                this.buttonCollect(bi);
+            }
         });
         this.msgColl.on("end", (_, reason) => {
             if (reason === "time") {

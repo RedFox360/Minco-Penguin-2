@@ -10,6 +10,8 @@ export const Preset1 = {
                 return 6;
             case optionNames.beginCards:
                 return 2;
+            case optionNames.insuranceCount:
+                return 2;
             default:
                 return null;
         }

@@ -99,6 +99,12 @@ const leaderboard = new SlashCommand()
 						memberName,
 					};
 				});
+			if (!validProfiles.length) {
+				await interaction.editReply({
+					content:
+						"No players have played more than 4 games of BS Poker yet, so the leaderboard is unavailable.",
+				});
+			}
 			const namePad =
 				Math.max(
 					...validProfiles.map(({ memberName }) => memberName?.length ?? 0)

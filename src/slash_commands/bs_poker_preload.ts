@@ -6,7 +6,7 @@ const bsPokerCommand = new SlashCommand()
 		builder
 			.setName("bs_poker_load")
 			.setDescription(
-				"Cards to out: 6; Begin cards: 2; All joker specials activated"
+				"Cards to out: 6; Begin cards: 2; Insurances: 2; All joker specials activated"
 			)
 	)
 	.setCooldown(15)

@@ -4,6 +4,7 @@ import {
 	type MessagePayload,
 	type MessageReplyOptions,
 	type Snowflake,
+	GuildMember,
 	PermissionsBitField,
 	RESTJSONErrorCodes,
 	TimestampStyles,
@@ -219,6 +220,12 @@ export function hasAdminForGames(
 		userId === checkId ||
 		userPermissions.has(PermissionsBitField.Flags.ManageMessages)
 	);
+}
+
+export function isAlt(member: GuildMember) {
+	if (member.guild.id === process.env.MAIN_GUILD_ID)
+		return member.roles.cache.has(process.env.ALT_ROLE_ID);
+	return false;
 }
 
 export const sleep = promisify(setTimeout);

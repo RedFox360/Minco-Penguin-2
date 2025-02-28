@@ -13,6 +13,7 @@ import {
 	msToRelTimestamp,
 	shuffleArray,
 	hasAdminForGames,
+	isAlt,
 } from "../util.js";
 import { getProfile } from "../../prisma/models.js";
 import { colors } from "../util.js";
@@ -168,6 +169,12 @@ ${text}`
 						ephemeral: true,
 					});
 					return;
+				}
+				if (isAlt(buttonInteraction.member)) {
+					await buttonInteraction.reply({
+						content: "Alt accounts may not join.",
+						ephemeral: true,
+					});
 				}
 				const joinerProfile = await getProfile(buttonInteraction.user.id);
 				if (

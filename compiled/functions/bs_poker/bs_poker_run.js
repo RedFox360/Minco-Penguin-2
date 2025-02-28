@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, userMention, } from "discord.js";
 import BSPoker from "./classes/BSPokerGame.js";
-import { removeByValue, msToRelTimestamp, shuffleArray, hasAdminForGames, } from "../util.js";
+import { removeByValue, msToRelTimestamp, shuffleArray, hasAdminForGames, isAlt, } from "../util.js";
 import { getProfile } from "../../prisma/models.js";
 import { colors } from "../util.js";
 import { bsPokerTeams, channelsWithActiveGames } from "../../main.js";
@@ -128,6 +128,12 @@ ${text}`)
                         ephemeral: true,
                     });
                     return;
+                }
+                if (isAlt(buttonInteraction.member)) {
+                    await buttonInteraction.reply({
+                        content: "Alt accounts may not join.",
+                        ephemeral: true,
+                    });
                 }
                 const joinerProfile = await getProfile(buttonInteraction.user.id);
                 if (options.startingBet &&
