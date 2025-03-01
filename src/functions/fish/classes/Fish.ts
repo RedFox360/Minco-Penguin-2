@@ -12,7 +12,6 @@ import {
 	MessageCollector,
 	Snowflake,
 	StringSelectMenuInteraction,
-	User,
 } from "discord.js";
 import {
 	createJIDeck,
@@ -24,8 +23,6 @@ import {
 	deleteSoon,
 	hasAdminForGames,
 	msToRelTimestamp,
-	randomInt,
-	removeByValue,
 	removeC,
 	replyThenDelete,
 } from "../../util.js";

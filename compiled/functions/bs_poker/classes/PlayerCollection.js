@@ -76,26 +76,8 @@ export default class PlayerCollection extends Collection {
                 },
             }));
         }
-        return Promise.all(promises);
-    }
-    updateAllBSData() {
-        const promises = [];
-        for (const p of this.values()) {
-            if (!p.joinedMidGame && (p.bses !== 0 || p.bsSuccesses !== 0)) {
-                promises.push(prisma.profile.update({
-                    where: {
-                        userId: p.id,
-                    },
-                    data: {
-                        bsCount: {
-                            increment: p.bses,
-                        },
-                        bsSuccesses: {
-                            increment: p.bsSuccesses,
-                        },
-                    },
-                }));
-            }
+        for (const p of players) {
+            promises.push(p.updateBSData());
         }
         return Promise.all(promises);
     }

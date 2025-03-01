@@ -1,6 +1,6 @@
 import { type Snowflake, userMention } from "discord.js";
 import { type ExtCard } from "../bs_poker_types.js";
-import { bsPokerTeams } from "../../../main.js";
+import { bsPokerTeams, prisma } from "../../../main.js";
 import Player from "../../cards/Player.js";
 
 export default class BSPokerPlayer extends Player<ExtCard> {
@@ -31,6 +31,25 @@ export default class BSPokerPlayer extends Player<ExtCard> {
 
 	public incrementBsSuccesses() {
 		this._bsSuccesses += 1;
+	}
+
+	public updateBSData() {
+		if (!this.joinedMidGame && this.bses !== 0) {
+			return prisma.profile.update({
+				where: {
+					userId: this.id,
+				},
+				data: {
+					bsCount: {
+						increment: this.bses,
+					},
+					bsSuccesses: {
+						increment: this.bsSuccesses,
+					},
+				},
+			});
+		}
+		return Promise.resolve();
 	}
 
 	public getTeammates() {

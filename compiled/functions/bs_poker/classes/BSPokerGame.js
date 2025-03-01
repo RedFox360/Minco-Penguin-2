@@ -241,7 +241,6 @@ ${this.players.currentPlayer} will start the round.`,
         return;
     }
     async endGameSuccess() {
-        await this.players.updateAllBSData();
         if (this.players.size === 0) {
             let description = "There were no players left at the end of this game due to a curse.";
             if (this.options.startingBet)
@@ -284,6 +283,12 @@ ${this.players.currentPlayer} will start the round.`,
                 },
                 bsPokerRating: {
                     increment: 1.0,
+                },
+                bsCount: {
+                    increment: winner.bses,
+                },
+                bsSuccesses: {
+                    increment: winner.bsSuccesses,
                 },
             });
         }
