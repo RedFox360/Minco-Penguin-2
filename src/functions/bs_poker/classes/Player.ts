@@ -5,8 +5,8 @@ import Player from "../../cards/Player.js";
 
 export default class BSPokerPlayer extends Player<ExtCard> {
 	public hand: ExtCard[] = [];
-	public bses = 0;
-	public bsSuccesses = 0;
+	private _bses = 0;
+	private _bsSuccesses = 0;
 
 	public constructor(
 		id: Snowflake,
@@ -15,6 +15,22 @@ export default class BSPokerPlayer extends Player<ExtCard> {
 		public readonly joinedMidGame = false
 	) {
 		super(id);
+	}
+
+	public get bses() {
+		return this._bses;
+	}
+
+	public get bsSuccesses() {
+		return this._bsSuccesses;
+	}
+
+	public incrementBses() {
+		this._bses += 1;
+	}
+
+	public incrementBsSuccesses() {
+		this._bsSuccesses += 1;
 	}
 
 	public getTeammates() {

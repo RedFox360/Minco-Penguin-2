@@ -8,8 +8,20 @@ export default class BSPokerPlayer extends Player {
         this.cardsEntitled = cardsEntitled;
         this.joinedMidGame = joinedMidGame;
         this.hand = [];
-        this.bses = 0;
-        this.bsSuccesses = 0;
+        this._bses = 0;
+        this._bsSuccesses = 0;
+    }
+    get bses() {
+        return this._bses;
+    }
+    get bsSuccesses() {
+        return this._bsSuccesses;
+    }
+    incrementBses() {
+        this._bses += 1;
+    }
+    incrementBsSuccesses() {
+        this._bsSuccesses += 1;
     }
     getTeammates() {
         return bsPokerTeams

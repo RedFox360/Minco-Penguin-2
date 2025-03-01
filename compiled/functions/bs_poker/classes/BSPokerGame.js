@@ -448,7 +448,7 @@ ${this.players.currentPlayer} will start the round.`,
             bser.hand.some(card => card.suit === "rj");
         const callIsTrue = callInDeck(this.state.currentCall.call, this.getCurrentDeck());
         let cardGainer = this.players.currentPlayer;
-        bser.bses += 1;
+        bser.incrementBses();
         if (callIsTrue) {
             cardGainer = bser;
             this.channel.send({
@@ -456,7 +456,7 @@ ${this.players.currentPlayer} will start the round.`,
             });
         }
         else {
-            bser.bsSuccesses += 1;
+            bser.incrementBsSuccesses();
             cardGainer = this.state.currentCall.player;
             this.channel.send({
                 content: `:red_circle: ${cardGainer} was lying! They gain 1 card.`,

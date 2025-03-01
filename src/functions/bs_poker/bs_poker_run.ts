@@ -175,6 +175,7 @@ ${text}`
 						content: "Alt accounts may not join.",
 						ephemeral: true,
 					});
+					return;
 				}
 				const joinerProfile = await getProfile(buttonInteraction.user.id);
 				if (

@@ -583,14 +583,14 @@ ${this.players.currentPlayer} will start the round.`,
 		);
 
 		let cardGainer = this.players.currentPlayer;
-		bser.bses += 1;
+		bser.incrementBses();
 		if (callIsTrue) {
 			cardGainer = bser;
 			this.channel.send({
 				content: `:green_circle: ${this.state.currentCall.player} was telling the truth! ${cardGainer} gains 1 card.`,
 			});
 		} else {
-			bser.bsSuccesses += 1;
+			bser.incrementBsSuccesses();
 			cardGainer = this.state.currentCall.player;
 			this.channel.send({
 				content: `:red_circle: ${cardGainer} was lying! They gain 1 card.`,
