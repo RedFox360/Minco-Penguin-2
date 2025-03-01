@@ -26,10 +26,10 @@ export function hasOtherCardInSameHalfSuit(deck, card) {
         return deck.some(c => c.value === 8 || c.value === 1 || c.value === 15);
     }
     if (card.value > 8) {
-        return deck.some(card => card.suit === card.suit && card.value > 8 && card.value < 15);
+        return deck.some(c => c.suit === card.suit && c.value > 8 && c.value < 15);
     }
     if (card.value < 8) {
-        return deck.some(card => card.suit === card.suit && card.value < 8 && card.value > 1);
+        return deck.some(c => c.suit === card.suit && c.value < 8 && c.value > 1);
     }
 }
 const halfSuitSelectMenu = new StringSelectMenuBuilder()
