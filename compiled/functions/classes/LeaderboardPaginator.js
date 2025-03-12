@@ -1,6 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, inlineCode, } from "discord.js";
 import { chunkArray, colors } from "../util.js";
 const chunkSize = 15;
+const collectorTime = 300000;
 export default class LeaderboardPaginator {
     constructor(options) {
         var _a, _b;
@@ -85,8 +86,10 @@ export default class LeaderboardPaginator {
         };
     }
     loadCollector(message) {
+        if (this.slices.length <= 1)
+            return;
         const collector = message.createMessageComponentCollector({
-            time: 120000,
+            time: collectorTime,
             componentType: ComponentType.Button,
         });
         const lastPage = this.slices.length - 1;

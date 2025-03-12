@@ -1,6 +1,6 @@
 import { ActionRowBuilder, StringSelectMenuBuilder, userMention, } from "discord.js";
 import { formatDeck, suitToSuitValue, symbolToValue, } from "../cards/basic_card_functions.js";
-import { emojiRaw } from "../cards/basic_card_types.js";
+import { emojiRaw, } from "../cards/basic_card_types.js";
 import { cardToHalfSuit, customIds, HalfSuit, } from "./fish_types.js";
 export function extrapolateCard(ask) {
     const [valueGiven, suitGiven] = ask.split(" ");
@@ -97,5 +97,8 @@ export function nonDisjointCards(arr1, arr2) {
     const matchingCards = arr1.filter(c => suits.has(cardToHalfSuit(c)));
     const nonMatchingCards = arr1.filter(c => !suits.has(cardToHalfSuit(c)));
     return { matchingCards, nonMatchingCards };
+}
+export function isEJI(a) {
+    return a === 8 || a === 1 || a === 15;
 }
 //# sourceMappingURL=fish_functions.js.map

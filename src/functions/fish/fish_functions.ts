@@ -8,7 +8,12 @@ import {
 	suitToSuitValue,
 	symbolToValue,
 } from "../cards/basic_card_functions.js";
-import { AnyCard, emojiRaw, JICard } from "../cards/basic_card_types.js";
+import {
+	AnyCard,
+	emojiRaw,
+	ExtValue,
+	JICard,
+} from "../cards/basic_card_types.js";
 import {
 	cardToHalfSuit,
 	customIds,
@@ -139,4 +144,8 @@ export function nonDisjointCards(
 	const matchingCards = arr1.filter(c => suits.has(cardToHalfSuit(c)));
 	const nonMatchingCards = arr1.filter(c => !suits.has(cardToHalfSuit(c)));
 	return { matchingCards, nonMatchingCards };
+}
+
+export function isEJI(a: ExtValue) {
+	return a === 8 || a === 1 || a === 15;
 }

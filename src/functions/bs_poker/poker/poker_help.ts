@@ -5,7 +5,7 @@ import {
 	StringSelectMenuBuilder,
 } from "discord.js";
 import Subcommand from "../../../core/Subcommand.js";
-import helpEmbeds from "../bs_poker_help_embed.js";
+import helpEmbeds from "./bs_poker_help_embed.js";
 import { emojiRaw } from "../../cards/basic_card_types.js";
 
 const selectMenuOptions: SelectMenuComponentOptionData[] = [
@@ -105,7 +105,7 @@ const pokerHelp = new Subcommand()
 
 		const collector = msg.createMessageComponentCollector({
 			componentType: ComponentType.StringSelect,
-			time: 60_000,
+			time: 300_000,
 		});
 
 		collector.on("collect", selectInteraction => {

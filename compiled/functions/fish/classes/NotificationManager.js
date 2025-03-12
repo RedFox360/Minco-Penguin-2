@@ -1,5 +1,5 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, } from "discord.js";
-import { customIds, customIdValues, gameLength, timeToMakeCall, } from "../fish_types.js";
+import { customIds, customIdValues, gameLength, timeToChooseHalfSuitToMakeCall, } from "../fish_types.js";
 import { msToRelTimestamp } from "../../util.js";
 import { halfSuitSelectMenuRow } from "../fish_functions.js";
 const callButton = new ButtonBuilder()
@@ -38,14 +38,14 @@ export default class NotificationManager {
         });
     }
     async onCall(buttonInteraction) {
-        const timeUp = msToRelTimestamp(timeToMakeCall);
+        const timeUp = msToRelTimestamp(timeToChooseHalfSuitToMakeCall);
         const msg = await buttonInteraction.reply({
             content: `Please use the menu below to select a half suit to call ${timeUp}.`,
             components: [halfSuitSelectMenuRow],
         });
         msg.awaitMessageComponent({
             componentType: ComponentType.StringSelect,
-            time: timeToMakeCall,
+            time: timeToChooseHalfSuitToMakeCall,
             filter: i => i.customId === "call_fish" && i.user.id === buttonInteraction.user.id,
         });
         this.ongoingCall = true;
@@ -56,7 +56,7 @@ export default class NotificationManager {
             if (!this.players.has(playerId))
                 return;
             this.ongoingAskId = playerId;
-            const timeUp = msToRelTimestamp(timeToMakeCall);
+            const timeUp = msToRelTimestamp(timeToChooseHalfSuitToMakeCall);
             await buttonInteraction.reply({
                 content: `Please type the card you wish to ask <@${playerId}> for ${timeUp}.`,
             });
@@ -82,7 +82,7 @@ export default class NotificationManager {
         const row = new ActionRowBuilder();
         for (const player of opponents.values()) {
             row.addComponents(new ButtonBuilder()
-                .setLabel(player.username)
+                .setLabel(player.user.username)
                 .setCustomId(interpolatePlayerIdToCustomId(player.id))
                 .setStyle(ButtonStyle.Secondary));
         }

@@ -1,9 +1,8 @@
-import { Collection, Snowflake, User, userMention } from "discord.js";
+import { Collection, Snowflake, User } from "discord.js";
 import FishPlayer from "./FishPlayer.js";
 import { JICard } from "../../cards/basic_card_types.js";
 import {
 	CardsPerHalfSuit,
-	FakeUser,
 	HalfSuit,
 	HalfSuitCall,
 	HalfSuitCallCollection,
@@ -12,11 +11,17 @@ import {
 import { formatDeck } from "../../cards/basic_card_functions.js";
 import { deckHasCard } from "../fish_functions.js";
 
+export class TeamsAreDisjointError extends Error {
+	constructor() {
+		super("Teams are disjoint.");
+	}
+}
+
 export default class FishPlayerCollection extends Collection<
 	Snowflake,
 	FishPlayer
 > {
-	public currentPlayerId: Snowflake;
+	public currentPlayerId: Snowflake | null = null;
 	public team0Score = 0;
 	public team1Score = 1;
 	public team0Table: HalfSuit[] = [];
@@ -30,6 +35,10 @@ export default class FishPlayerCollection extends Collection<
 		const team0for = this.team0.map(p => p.formatHandLength()).join("\n");
 		const team1for = this.team1.map(p => p.formatHandLength()).join("\n");
 		return `**Team 1**:\n${team0for}\n**Team 2**:\n${team1for}`;
+	}
+
+	public formatTeamNamesOnly() {
+		return `**Team 1**: ${this.team0Names}\n**Team 2**: ${this.team1Names}`;
 	}
 
 	public incrementScore(team: 0 | 1) {
@@ -48,17 +57,18 @@ export default class FishPlayerCollection extends Collection<
 		return this.filter(p => p.team === 1);
 	}
 
-	public get team0Names() {
+	private get team0Names() {
 		return this.team0.map(p => p.toString()).join(" ");
 	}
 
-	public get team1Names() {
+	private get team1Names() {
 		return this.team1.map(p => p.toString()).join(" ");
 	}
 
 	public formatTeamTableCards(team: 0 | 1) {
 		const table = team === 0 ? this.team0Table : this.team1Table;
 		if (table.length === 0) return "No Half Suits";
+		if (table.length === 1) return formatDeck(CardsPerHalfSuit[table[0]]);
 		return formatDeck(table.map(x => SignificantCardPerHalfSuit[x]));
 	}
 
@@ -66,17 +76,14 @@ export default class FishPlayerCollection extends Collection<
 		return this.get(id).team === 0 ? this.team1 : this.team0;
 	}
 
-	public static fromUsers(
-		team0: readonly FakeUser[],
-		team1: readonly FakeUser[]
-	) {
+	public static fromUsers(team0: readonly User[], team1: readonly User[]) {
 		const collection = new FishPlayerCollection();
 		for (const player of team0) {
-			const playerN = new FishPlayer(player.id, player.username, 0);
+			const playerN = new FishPlayer(player, 0);
 			collection.set(player.id, playerN);
 		}
 		for (const player of team1) {
-			const playerN = new FishPlayer(player.id, player.username, 1);
+			const playerN = new FishPlayer(player, 1);
 			collection.set(player.id, playerN);
 		}
 		return collection;
@@ -132,7 +139,13 @@ export default class FishPlayerCollection extends Collection<
 		);
 	}
 
-	public setFirstAvailablePlayer() {
-		this.currentPlayerId = this.findKey(p => !p.out);
+	public setFirstAvailablePlayer(team: 0 | 1) {
+		const availablePlayers = this.filter(p => p.team === team && !p.out);
+		if (availablePlayers.size) {
+			this.currentPlayerId = availablePlayers.randomKey();
+		} else {
+			this.currentPlayerId = null;
+			throw new TeamsAreDisjointError();
+		}
 	}
 }

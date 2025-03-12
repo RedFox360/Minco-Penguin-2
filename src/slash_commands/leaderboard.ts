@@ -1,7 +1,12 @@
 import { Collection, type GuildMember, type Snowflake } from "discord.js";
 import SlashCommand from "../core/SlashCommand.js";
 import { prisma } from "../main.js";
-import { asciiTable, invalidNumber, logDaily } from "../functions/util.js";
+import {
+	asciiTable,
+	invalidNumber,
+	logDaily,
+	onlyAscii,
+} from "../functions/util.js";
 import LeaderboardPaginator from "../functions/classes/LeaderboardPaginator.js";
 
 function trunc(str: string, length = 20) {
@@ -93,7 +98,9 @@ const leaderboard = new SlashCommand()
 			const validProfiles = profiles
 				.filter(profile => profile && profile.bsPokerGamesPlayed > 4)
 				.map(profile => {
-					const memberName = trunc(members.get(profile.userId)?.displayName);
+					const member = members.get(profile.userId);
+					let memberName = trunc(member?.displayName);
+					if (!onlyAscii(memberName)) memberName = member.user.username;
 					return {
 						profile,
 						memberName,
@@ -105,10 +112,10 @@ const leaderboard = new SlashCommand()
 						"No players have played more than 4 games of BS Poker yet, so the leaderboard is unavailable.",
 				});
 			}
-			const namePad =
-				Math.max(
-					...validProfiles.map(({ memberName }) => memberName?.length ?? 0)
-				) + 1;
+			const namePad = validProfiles.reduce((acc, { memberName }) => {
+				const length = memberName?.length;
+				return length > acc ? length : acc;
+			}, 0);
 			const items = <const>[
 				{
 					name: "Name",

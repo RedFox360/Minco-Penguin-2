@@ -9,7 +9,7 @@ export const customIds = {
 };
 export const customIdValues = Object.values(customIds);
 export const gameLength = 3600000;
-export const timeToMakeCall = 20000;
+export const timeToChooseHalfSuitToMakeCall = 20000;
 export var HalfSuit;
 (function (HalfSuit) {
     HalfSuit["HighHearts"] = "Hh";

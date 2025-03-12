@@ -108,7 +108,7 @@ ${handsList}`,
             color: colors.blurple,
         };
     }
-    printAllHands() {
+    async printAllHands() {
         const deck = this.getCurrentDeck();
         const embed = this.getHandsEmbed();
         this.channel

@@ -189,4 +189,8 @@ export function deleteSoon(message, timeMS = 40000) {
             message.delete();
     }, timeMS);
 }
+const ascii = /^[ -~]+$/;
+export function onlyAscii(str) {
+    return ascii.test(str);
+}
 //# sourceMappingURL=util.js.map

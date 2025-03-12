@@ -1,5 +1,6 @@
 import {
 	ActionRowBuilder,
+	APIEmbedField,
 	ButtonBuilder,
 	ButtonInteraction,
 	ButtonStyle,
@@ -12,6 +13,7 @@ import {
 	MessageCollector,
 	Snowflake,
 	StringSelectMenuInteraction,
+	User,
 } from "discord.js";
 import {
 	createJIDeck,
@@ -26,16 +28,17 @@ import {
 	removeC,
 	replyThenDelete,
 } from "../../util.js";
-import FishPlayerCollection from "./FishPlayerCollection.js";
+import FishPlayerCollection, {
+	TeamsAreDisjointError,
+} from "./FishPlayerCollection.js";
 import {
 	CardsPerHalfSuit,
 	customIds,
 	customIdValues,
-	FakeUser,
 	gameLength,
 	HalfSuit,
 	HalfSuitCallCollection,
-	timeToMakeCall,
+	timeToChooseHalfSuitToMakeCall,
 } from "../fish_types.js";
 import {
 	deckHasCard,
@@ -55,7 +58,7 @@ const callButton = new ButtonBuilder()
 const viewCardsButton = new ButtonBuilder()
 	.setCustomId(customIds.viewCards)
 	.setLabel("View Cards")
-	.setStyle(ButtonStyle.Secondary);
+	.setStyle(ButtonStyle.Primary);
 const viewTableButton = new ButtonBuilder()
 	.setCustomId(customIds.viewTable)
 	.setLabel("Table")
@@ -72,6 +75,12 @@ const abortDJButton = new ButtonBuilder()
 	.setCustomId(customIds.abortDJ)
 	.setLabel("Abort")
 	.setStyle(ButtonStyle.Danger);
+
+const bottomRowWoDisjoint = new ActionRowBuilder<ButtonBuilder>().addComponents(
+	viewCardsButton,
+	viewTableButton,
+	callButton
+);
 
 const bottomRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
 	viewCardsButton,
@@ -128,8 +137,9 @@ export default class Fish {
 	public constructor(
 		private readonly channel: GuildTextBasedChannel,
 		private hostId: Snowflake,
-		team0: readonly FakeUser[],
-		team1: readonly FakeUser[]
+		team0: readonly User[],
+		team1: readonly User[],
+		private readonly deleteHistory: boolean
 	) {
 		this.players = FishPlayerCollection.fromUsers(team0, team1);
 	}
@@ -168,6 +178,20 @@ export default class Fish {
 				new EmbedBuilder()
 					.setAuthor({ name: "Fish" })
 					.setTitle(`Team ${winner + 1} has won!`)
+					.addFields([
+						{
+							name: "Players",
+							value: this.players.formatTeamNamesOnly(),
+						},
+						{
+							name: "Team 1 (Final Table)",
+							value: this.players.formatTeamTableCards(0),
+						},
+						{
+							name: "Team 2 (Final Table)",
+							value: this.players.formatTeamTableCards(1),
+						},
+					])
 					.setColor(colors.green),
 			],
 			components: [],
@@ -179,7 +203,7 @@ export default class Fish {
 		const opponents = this.players.opponents(player.id);
 		for (const opponent of opponents.values()) {
 			const button = new ButtonBuilder()
-				.setLabel(opponent.username)
+				.setLabel(opponent.user.username)
 				.setCustomId(
 					useDisjointCodes
 						? idToDisjointId(opponent.id)
@@ -199,7 +223,7 @@ export default class Fish {
 		for (const player of team.values()) {
 			row.addComponents(
 				new ButtonBuilder()
-					.setLabel(player.username)
+					.setLabel(player.user.username)
 					.setCustomId(idToCallCid(player.id))
 					.setStyle(ButtonStyle.Secondary)
 			);
@@ -225,7 +249,7 @@ export default class Fish {
 			try {
 				const buttonInteraction = await msg.awaitMessageComponent({
 					componentType: ComponentType.Button,
-					time: timeToMakeCall,
+					time: timeToChooseHalfSuitToMakeCall,
 					filter: i => i.user.id === player.id && cIdIsCallFish(i.customId),
 					idle: 0,
 				});
@@ -317,7 +341,7 @@ export default class Fish {
 	}
 
 	private async callCollect(buttonInteraction: ButtonInteraction<"cached">) {
-		const timeUp = msToRelTimestamp(timeToMakeCall);
+		const timeUp = msToRelTimestamp(timeToChooseHalfSuitToMakeCall);
 		const msg = await buttonInteraction.reply({
 			embeds: [
 				new EmbedBuilder()
@@ -329,7 +353,7 @@ export default class Fish {
 					.setDescription(
 						`Please use the menu below to select a half suit to call ${timeUp}.
 Once you select a half suit, you will be prompted to select the player in your team who has each card in that half suit.
-If you wish to abort the call, press the "Abort" button.`
+If you wish to cancel the call, let it time out.`
 					)
 					.setColor(colors.blurple),
 			],
@@ -340,7 +364,7 @@ If you wish to abort the call, press the "Abort" button.`
 		msg
 			.awaitMessageComponent({
 				componentType: ComponentType.StringSelect,
-				time: timeToMakeCall,
+				time: timeToChooseHalfSuitToMakeCall,
 				filter: i =>
 					i.customId === customIds.callFishSelect &&
 					i.user.id === buttonInteraction.user.id,
@@ -373,7 +397,7 @@ ${formatDeck(CardsPerHalfSuit[selectInteraction.values[0] as HalfSuit])}`,
 			return;
 		}
 		this.ongoingAskId = playerId;
-		const timeUp = msToRelTimestamp(timeToMakeCall);
+		const timeUp = msToRelTimestamp(timeToChooseHalfSuitToMakeCall);
 		this.ongoingAskMessage = await buttonInteraction.reply({
 			content: `Please type the card you wish to ask <@${playerId}> for ${timeUp}.`,
 			fetchReply: true,
@@ -399,7 +423,7 @@ ${formatDeck(CardsPerHalfSuit[selectInteraction.values[0] as HalfSuit])}`,
 		});
 		try {
 			const newBi = await msg.awaitMessageComponent({
-				time: timeToMakeCall,
+				time: timeToChooseHalfSuitToMakeCall,
 				idle: 0,
 				componentType: ComponentType.Button,
 				filter: i => {
@@ -435,13 +459,26 @@ ${formatDeck(CardsPerHalfSuit[selectInteraction.values[0] as HalfSuit])}`,
 					content: `:green_circle: ${player}, you are disjoint with ${callWith}. You may no longer ask each other for cards.`,
 				});
 			} else {
-				await this.channel.send({
-					content: `:red_circle: ${player}, you are not disjoint with ${callWith}. You will give them the following cards in order to be disjoint. 
-${formatDeck(matchingCards)}
+				const formattedMatchingDeck = formatDeck(matchingCards);
+				await Promise.all([
+					this.channel.send({
+						content: `:red_circle: ${player}, you are not disjoint with ${callWith}. You will give them **${matchingCards.length} cards** in order to be disjoint. 
 Now, you may no longer ask each other for cards.`,
-				});
+					}),
+					player.user.send({
+						content: `You were not disjoint with ${callWith}. You gave them the following cards:
+${formattedMatchingDeck}`,
+					}),
+					callWith.user.send({
+						content: `You are now disjoint with ${player}. You received the following cards:
+${formattedMatchingDeck}
+Here is the ${player}'s original hand:
+${player.formatHand()}`,
+					}),
+				]);
 				player.hand = nonMatchingCards;
 				callWith.hand.push(...matchingCards);
+				callWith.sortHand();
 			}
 			player.disjoint.push(callWith.id);
 			callWith.disjoint.push(player.id);
@@ -450,11 +487,24 @@ Now, you may no longer ask each other for cards.`,
 			msg.delete();
 		}
 		if (player.out) {
-			this.players.setFirstAvailablePlayer();
-			await this.channel.send({
-				content: `${player}, you are now disjoint with all members of the opposing team. The turn will pass to <@${this.players.currentPlayerId}>.`,
-			});
-			await this.turn();
+			try {
+				this.players.setFirstAvailablePlayer(player.team);
+				await this.channel.send({
+					content: `${player}, you are now disjoint with all members of the opposing team. The turn will pass to <@${this.players.currentPlayerId}>.`,
+				});
+				await this.turn();
+			} catch (e) {
+				if (e instanceof TeamsAreDisjointError) {
+					await this.allDisjointTurn();
+				} else {
+					this.endCollectors();
+					this.channel.send({
+						content:
+							"An unexpected error occurred and the game has been aborted.",
+					});
+					console.error(e);
+				}
+			}
 		}
 	}
 
@@ -464,7 +514,7 @@ Now, you may no longer ask each other for cards.`,
 				embeds: [
 					new EmbedBuilder()
 						.setTitle("Game Info")
-						.addFields(
+						.addFields([
 							{
 								name: "Players",
 								value: this.players.formatTeamsAndHandLengths(),
@@ -476,8 +526,8 @@ Now, you may no longer ask each other for cards.`,
 							{
 								name: "Team 2",
 								value: this.players.formatTeamTableCards(1),
-							}
-						)
+							},
+						])
 						.setColor(colors.green),
 				],
 				ephemeral: true,
@@ -499,6 +549,7 @@ Now, you may no longer ask each other for cards.`,
 						"You cannot call while someone is trying to ask someone for a card.",
 					ephemeral: true,
 				});
+				return;
 			}
 			await this.callCollect(buttonInteraction);
 			return;
@@ -540,9 +591,10 @@ Now, you may no longer ask each other for cards.`,
 		const turnMessageRef = this.currentTurnMessage;
 		if (this.currentTurnMessage) {
 			this.currentTurnMessage.edit({ components: [] });
-			setTimeout(() => {
-				turnMessageRef.delete();
-			}, 60_000);
+			if (this.deleteHistory)
+				setTimeout(() => {
+					turnMessageRef.delete();
+				}, 60_000);
 		}
 		this.ongoingAskId = null;
 		this.ongoingAskMessage = null;
@@ -550,6 +602,15 @@ Now, you may no longer ask each other for cards.`,
 		this.currentTurnMessage = await this.channel.send({
 			content: `<@${this.players.currentPlayerId}>, it is your turn.`,
 			components: [row, bottomRow],
+		});
+	}
+
+	private async allDisjointTurn() {
+		this.ongoingAskId = null;
+		this.ongoingAskMessage = null;
+		this.currentTurnMessage = await this.channel.send({
+			content: `Both teams are disjoint with each other. You may only make calls now.`,
+			components: [bottomRowWoDisjoint],
 		});
 	}
 
@@ -577,7 +638,7 @@ Please try asking again.`
 		const targetPlayer = this.players.get(this.ongoingAskId);
 		if (!targetPlayer) return;
 		if (deckHasCard(targetPlayer.hand, card)) {
-			this.players.currentPlayer.hand.push(card);
+			this.players.currentPlayer.insertCard(card);
 			removeC(
 				targetPlayer.hand,
 				x => x.suit === card.suit && x.value === card.value
@@ -617,9 +678,15 @@ Please try asking again.`
 		) {
 			this.endCollectors();
 			msg.reply("Game aborted.");
+			return;
 		}
 		if (this.ongoingAskId) {
 			this.askCollect(msg);
+		}
+		if (this.deleteHistory && msg.author.id !== msg.client.user.id) {
+			setTimeout(() => {
+				msg.delete();
+			}, 120_000);
 		}
 	}
 

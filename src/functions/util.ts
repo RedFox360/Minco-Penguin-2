@@ -260,3 +260,8 @@ export function deleteSoon(message: Message, timeMS = 40_000) {
 		if (message.deletable) message.delete();
 	}, timeMS);
 }
+
+const ascii = /^[ -~]+$/;
+export function onlyAscii(str: string): boolean {
+	return ascii.test(str);
+}

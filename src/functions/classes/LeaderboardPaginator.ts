@@ -22,6 +22,7 @@ interface PaginatorConstructorOptions {
 }
 
 const chunkSize = 15;
+const collectorTime = 300_000;
 
 export default class LeaderboardPaginator {
 	public currentPage = 0;
@@ -131,8 +132,9 @@ export default class LeaderboardPaginator {
 	}
 
 	public loadCollector(message: Message | InteractionResponse) {
+		if (this.slices.length <= 1) return;
 		const collector = message.createMessageComponentCollector({
-			time: 120_000,
+			time: collectorTime,
 			componentType: ComponentType.Button,
 		});
 

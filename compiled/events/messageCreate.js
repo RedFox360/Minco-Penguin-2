@@ -1,6 +1,6 @@
 import { EmbedBuilder, Events, } from "discord.js";
 import { clean, colors, invalidNumber } from "../functions/util.js";
-import { updateProfile } from "../prisma/models.js";
+import { getProfile, updateProfile } from "../prisma/models.js";
 import { inDev } from "../main.js";
 import { characterSpawnMessage, randomCharacter, } from "../functions/tnt/character_util.js";
 const ownerId = process.env.OWNER_ID;
@@ -11,7 +11,7 @@ let interval;
 export default (client) => {
     client.on(Events.MessageCreate, async (message) => {
         if (message.author.id !== ownerId)
-            return;
+            return; // ! do not delete
         if (message.content === `${prefix}beginTimeouts`) {
             const channel = client.channels.cache.get(process.env.TEST_CHANNEL_ID);
             const cmsg = characterSpawnMessage(randomCharacter());
@@ -74,10 +74,20 @@ export default (client) => {
             await message.reply({
                 content: `Incremented \`${dataToIncrement}\` by \`${incrementValue}\` for ${mention}`,
             });
+            return;
         }
         if (message.content.startsWith(`${prefix}echo`)) {
             const text = message.content.slice(6);
             message.channel.send(text);
+            return;
+        }
+        if (message.content.startsWith(`${prefix}profile`)) {
+            const mention = message.mentions.users.first();
+            if (!mention)
+                return;
+            const profile = await getProfile(mention.id);
+            message.reply(JSON.stringify(profile));
+            return;
         }
     });
 };

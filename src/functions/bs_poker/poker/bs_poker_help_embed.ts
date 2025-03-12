@@ -1,6 +1,6 @@
 import { EmbedFooterOptions, type APIEmbed } from "discord.js";
-import { colors } from "../util.js";
-import { formatDeck } from "../cards/basic_card_functions.js";
+import { colors } from "../../util.js";
+import { formatDeck } from "../../cards/basic_card_functions.js";
 
 const specials: string = formatDeck([
 	{

@@ -12,7 +12,7 @@ import {
 	customIds,
 	customIdValues,
 	gameLength,
-	timeToMakeCall,
+	timeToChooseHalfSuitToMakeCall,
 } from "../fish_types.js";
 import FishPlayerCollection from "./FishPlayerCollection.js";
 import { msToRelTimestamp } from "../../util.js";
@@ -66,14 +66,14 @@ export default class NotificationManager {
 	}
 
 	private async onCall(buttonInteraction: ButtonInteraction) {
-		const timeUp = msToRelTimestamp(timeToMakeCall);
+		const timeUp = msToRelTimestamp(timeToChooseHalfSuitToMakeCall);
 		const msg = await buttonInteraction.reply({
 			content: `Please use the menu below to select a half suit to call ${timeUp}.`,
 			components: [halfSuitSelectMenuRow],
 		});
 		msg.awaitMessageComponent({
 			componentType: ComponentType.StringSelect,
-			time: timeToMakeCall,
+			time: timeToChooseHalfSuitToMakeCall,
 			filter: i =>
 				i.customId === "call_fish" && i.user.id === buttonInteraction.user.id,
 		});
@@ -87,7 +87,7 @@ export default class NotificationManager {
 			);
 			if (!this.players.has(playerId)) return;
 			this.ongoingAskId = playerId;
-			const timeUp = msToRelTimestamp(timeToMakeCall);
+			const timeUp = msToRelTimestamp(timeToChooseHalfSuitToMakeCall);
 			await buttonInteraction.reply({
 				content: `Please type the card you wish to ask <@${playerId}> for ${timeUp}.`,
 			});
@@ -116,7 +116,7 @@ export default class NotificationManager {
 		for (const player of opponents.values()) {
 			row.addComponents(
 				new ButtonBuilder()
-					.setLabel(player.username)
+					.setLabel(player.user.username)
 					.setCustomId(interpolatePlayerIdToCustomId(player.id))
 					.setStyle(ButtonStyle.Secondary)
 			);

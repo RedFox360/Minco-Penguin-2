@@ -3,7 +3,7 @@ import Subcommand from "../../../core/Subcommand.js";
 import { getProfile } from "../../../prisma/models.js";
 import { colors, invalidNumber } from "../../util.js";
 function perc(a, b) {
-    const result = Math.round((a / b) * 100);
+    const result = (a / b) * 100;
     if (invalidNumber(result))
         return "0";
     return result.toFixed(2);

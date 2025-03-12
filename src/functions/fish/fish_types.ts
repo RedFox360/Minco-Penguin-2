@@ -12,7 +12,7 @@ export const customIds = {
 } as const;
 export const customIdValues: string[] = Object.values(customIds);
 export const gameLength = 3_600_000;
-export const timeToMakeCall = 20_000;
+export const timeToChooseHalfSuitToMakeCall = 20_000;
 
 export enum HalfSuit {
 	HighHearts = "Hh",
@@ -96,7 +96,3 @@ export interface HalfSuitCall {
 }
 
 export type HalfSuitCallCollection = Collection<Snowflake, JICard[]>;
-export type FakeUser = {
-	id: Snowflake;
-	username: string;
-};

@@ -3,9 +3,15 @@ import FishPlayer from "./FishPlayer.js";
 import { CardsPerHalfSuit, SignificantCardPerHalfSuit, } from "../fish_types.js";
 import { formatDeck } from "../../cards/basic_card_functions.js";
 import { deckHasCard } from "../fish_functions.js";
+export class TeamsAreDisjointError extends Error {
+    constructor() {
+        super("Teams are disjoint.");
+    }
+}
 export default class FishPlayerCollection extends Collection {
     constructor() {
         super(...arguments);
+        this.currentPlayerId = null;
         this.team0Score = 0;
         this.team1Score = 1;
         this.team0Table = [];
@@ -18,6 +24,9 @@ export default class FishPlayerCollection extends Collection {
         const team0for = this.team0.map(p => p.formatHandLength()).join("\n");
         const team1for = this.team1.map(p => p.formatHandLength()).join("\n");
         return `**Team 1**:\n${team0for}\n**Team 2**:\n${team1for}`;
+    }
+    formatTeamNamesOnly() {
+        return `**Team 1**: ${this.team0Names}\n**Team 2**: ${this.team1Names}`;
     }
     incrementScore(team) {
         if (team === 0) {
@@ -43,6 +52,8 @@ export default class FishPlayerCollection extends Collection {
         const table = team === 0 ? this.team0Table : this.team1Table;
         if (table.length === 0)
             return "No Half Suits";
+        if (table.length === 1)
+            return formatDeck(CardsPerHalfSuit[table[0]]);
         return formatDeck(table.map(x => SignificantCardPerHalfSuit[x]));
     }
     opponents(id) {
@@ -51,11 +62,11 @@ export default class FishPlayerCollection extends Collection {
     static fromUsers(team0, team1) {
         const collection = new FishPlayerCollection();
         for (const player of team0) {
-            const playerN = new FishPlayer(player.id, player.username, 0);
+            const playerN = new FishPlayer(player, 0);
             collection.set(player.id, playerN);
         }
         for (const player of team1) {
-            const playerN = new FishPlayer(player.id, player.username, 1);
+            const playerN = new FishPlayer(player, 1);
             collection.set(player.id, playerN);
         }
         return collection;
@@ -97,8 +108,15 @@ export default class FishPlayerCollection extends Collection {
     setFirstPlayer() {
         this.currentPlayerId = this.findKey(p => p.hand.some(x => x.suit === "S" && x.value === 14));
     }
-    setFirstAvailablePlayer() {
-        this.currentPlayerId = this.findKey(p => !p.out);
+    setFirstAvailablePlayer(team) {
+        const availablePlayers = this.filter(p => p.team === team && !p.out);
+        if (availablePlayers.size) {
+            this.currentPlayerId = availablePlayers.randomKey();
+        }
+        else {
+            this.currentPlayerId = null;
+            throw new TeamsAreDisjointError();
+        }
     }
 }
 //# sourceMappingURL=FishPlayerCollection.js.map
